@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Sign In — Canela Beauty</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root{--bg:#FEFCFA;--bg2:#FBF6F1;--brown:#4A2418;--brown2:#6B3828;--gold:#C4784A;--gold-lite:#D9987A;--border:rgba(160,90,60,0.14);--border2:rgba(160,90,60,0.26);--muted:rgba(74,36,24,0.45);}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--brown2);min-height:100vh;display:flex;flex-direction:column;}
+    nav{display:flex;align-items:center;justify-content:space-between;padding:16px 52px;background:rgba(254,252,250,0.97);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;}
+    .logo{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;letter-spacing:5px;color:var(--brown);text-transform:uppercase;text-decoration:none;}
+    .logo em{font-style:italic;color:var(--gold);}
+    .back-link{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s;}
+    .back-link:hover{color:var(--brown);}
+    .main{flex:1;display:flex;align-items:center;justify-content:center;padding:40px 24px;}
+    .auth-box{width:100%;max-width:400px;}
+    .auth-tabs{display:flex;border-bottom:1px solid var(--border);margin-bottom:32px;}
+    .auth-tab{flex:1;padding:12px;text-align:center;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;transition:all .2s;background:none;border-left:none;border-right:none;border-top:none;font-family:'DM Sans',sans-serif;}
+    .auth-tab.active{color:var(--brown);border-bottom-color:var(--gold);}
+    .auth-form{display:none;flex-direction:column;gap:16px;}
+    .auth-form.active{display:flex;}
+    .auth-eyebrow{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:4px;}
+    .auth-title{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:300;color:var(--brown);margin-bottom:24px;}
+    .field label{display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
+    .field input{width:100%;padding:12px 16px;border:1px solid var(--border2);border-radius:2px;background:#fff;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--brown);outline:none;transition:border-color .2s;}
+    .field input:focus{border-color:var(--gold);}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .auth-btn{width:100%;padding:14px;background:var(--brown);color:#FAF6EF;border:none;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;font-weight:500;cursor:pointer;transition:background .2s;margin-top:4px;}
+    .auth-btn:hover{background:var(--brown2);}
+    .auth-divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:11px;}
+    .auth-divider::before,.auth-divider::after{content:'';flex:1;height:1px;background:var(--border);}
+    .google-btn{width:100%;padding:13px;background:#fff;color:var(--brown);border:1px solid var(--border2);border-radius:2px;font-family:'DM Sans',sans-serif;font-size:11px;letter-spacing:1px;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:10px;}
+    .google-btn:hover{border-color:var(--gold);}
+    .auth-note{font-size:11px;color:var(--muted);text-align:center;line-height:1.7;}
+    .auth-note a{color:var(--gold);text-decoration:none;}
+    .auth-error{font-size:12px;color:#C03030;background:rgba(192,48,48,.06);border:1px solid rgba(192,48,48,.2);border-radius:2px;padding:10px 14px;display:none;}
+    .auth-error.show{display:block;}
+    .auth-success{font-size:12px;color:#22783C;background:rgba(34,120,60,.06);border:1px solid rgba(34,120,60,.2);border-radius:2px;padding:10px 14px;display:none;}
+    .auth-success.show{display:block;}
+  </style>
+</head>
+<body>
+
+<nav>
+  <a href="/" class="logo">Canela <em>Beauty</em></a>
+  <a href="/" class="back-link">← Back to Shop</a>
+</nav>
+
+<div class="main">
+  <div class="auth-box">
+
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchTab('register')">Create Account</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="auth-form active" id="loginForm">
+      <p class="auth-eyebrow">Welcome back</p>
+      <h1 class="auth-title">Sign in to your account</h1>
+      <div id="loginError" class="auth-error"></div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="loginEmail" placeholder="your@email.com" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="loginPw" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
+      </div>
+      <button class="auth-btn" onclick="doLogin()">Sign In</button>
+      <div class="auth-divider">or</div>
+      <button class="google-btn" onclick="doGoogleLogin()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Continue with Google
+      </button>
+      <p class="auth-note"><a href="#" onclick="switchTab('reset')">Forgot your password?</a></p>
+    </div>
+
+    <!-- REGISTER -->
+    <div class="auth-form" id="registerForm">
+      <p class="auth-eyebrow">Join us</p>
+      <h1 class="auth-title">Create your account</h1>
+      <div id="registerError" class="auth-error"></div>
+      <div class="field-row">
+        <div class="field">
+          <label>First Name</label>
+          <input type="text" id="regFirst" placeholder="Ana" />
+        </div>
+        <div class="field">
+          <label>Last Name</label>
+          <input type="text" id="regLast" placeholder="García" />
+        </div>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="regEmail" placeholder="your@email.com" />
+      </div>
+      <div class="field">
+        <label>Phone (optional)</label>
+        <input type="tel" id="regPhone" placeholder="+1 (908) 000-0000" />
+      </div>
+      <div class="field">
+        <label>Password</label>
+        <input type="password" id="regPw" placeholder="At least 6 characters" />
+      </div>
+      <button class="auth-btn" onclick="doRegister()">Create Account</button>
+      <div class="auth-divider">or</div>
+      <button class="google-btn" onclick="doGoogleLogin()">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.31-8.16 2.31-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Continue with Google
+      </button>
+    </div>
+
+    <!-- PASSWORD RESET -->
+    <div class="auth-form" id="resetForm">
+      <p class="auth-eyebrow">No worries</p>
+      <h1 class="auth-title">Reset your password</h1>
+      <div id="resetSuccess" class="auth-success"></div>
+      <div id="resetError" class="auth-error"></div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" id="resetEmail" placeholder="your@email.com" />
+      </div>
+      <button class="auth-btn" onclick="doReset()">Send Reset Link</button>
+      <p class="auth-note" style="margin-top:8px"><a href="#" onclick="switchTab('login')">← Back to Sign In</a></p>
+    </div>
+
+  </div>
+</div>
+
+<!-- Firebase -->
+<script type="module">
+  import { initializeApp }                        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getAuth, signInWithEmailAndPassword,
+           createUserWithEmailAndPassword,
+           GoogleAuthProvider, signInWithPopup,
+           sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+  import { getFirestore, doc, setDoc, getDoc }    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+  // ── REPLACE WITH YOUR FIREBASE CONFIG ──
+  const firebaseConfig = {
+    apiKey:            "YOUR_API_KEY",
+    authDomain:        "YOUR_PROJECT.firebaseapp.com",
+    projectId:         "YOUR_PROJECT_ID",
+    storageBucket:     "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId:             "YOUR_APP_ID",
+  };
+
+  const app  = initializeApp(firebaseConfig);
+  const auth = getAuth(app);
+  const db   = getFirestore(app);
+
+  function switchTab(tab){
+    document.querySelectorAll('.auth-tab').forEach((t,i)=>{
+      t.classList.toggle('active', ['login','register','reset'][i]===tab);
+    });
+    document.querySelectorAll('.auth-form').forEach(f=>f.classList.remove('active'));
+    document.getElementById(tab==='login'?'loginForm':tab==='register'?'registerForm':'resetForm').classList.add('active');
+  }
+  window.switchTab = switchTab;
+
+  function showError(id, msg){ const el=document.getElementById(id); el.textContent=msg; el.classList.add('show'); }
+  function hideError(id){ document.getElementById(id)?.classList.remove('show'); }
+
+  // ── SAVE USER TO FIRESTORE ──
+  async function saveUser(user, extra={}){
+    await setDoc(doc(db,'customers',user.uid), {
+      uid:       user.uid,
+      email:     user.email,
+      name:      user.displayName || extra.name || '',
+      phone:     extra.phone || '',
+      createdAt: new Date().toISOString(),
+      orders:    [],
+    }, { merge: true });
+  }
+
+  // ── REDIRECT AFTER LOGIN ──
+  function afterLogin(user){
+    localStorage.setItem('canela_user', JSON.stringify({
+      uid:   user.uid,
+      email: user.email,
+      name:  user.displayName || user.email.split('@')[0],
+    }));
+    const redirect = new URLSearchParams(location.search).get('redirect') || '/';
+    location.href = redirect;
+  }
+
+  // ── LOGIN ──
+  window.doLogin = async function(){
+    hideError('loginError');
+    const email = document.getElementById('loginEmail').value.trim();
+    const pw    = document.getElementById('loginPw').value;
+    if(!email||!pw){ showError('loginError','Please fill in all fields.'); return; }
+    try {
+      const cred = await signInWithEmailAndPassword(auth, email, pw);
+      afterLogin(cred.user);
+    } catch(e) {
+      const msgs = {
+        'auth/user-not-found':  'No account found with this email.',
+        'auth/wrong-password':  'Incorrect password.',
+        'auth/invalid-email':   'Invalid email address.',
+        'auth/too-many-requests':'Too many attempts. Try again later.',
+      };
+      showError('loginError', msgs[e.code] || e.message);
+    }
+  };
+
+  // ── REGISTER ──
+  window.doRegister = async function(){
+    hideError('registerError');
+    const first = document.getElementById('regFirst').value.trim();
+    const last  = document.getElementById('regLast').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const phone = document.getElementById('regPhone').value.trim();
+    const pw    = document.getElementById('regPw').value;
+    if(!first||!email||!pw){ showError('registerError','Name, email and password are required.'); return; }
+    if(pw.length<6){ showError('registerError','Password must be at least 6 characters.'); return; }
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, email, pw);
+      await updateProfile(cred.user, { displayName: `${first} ${last}` });
+      await saveUser(cred.user, { name:`${first} ${last}`, phone });
+      afterLogin(cred.user);
+    } catch(e) {
+      const msgs = {
+        'auth/email-already-in-use': 'An account with this email already exists.',
+        'auth/invalid-email':        'Invalid email address.',
+        'auth/weak-password':        'Password is too weak.',
+      };
+      showError('registerError', msgs[e.code] || e.message);
+    }
+  };
+
+  // ── GOOGLE ──
+  window.doGoogleLogin = async function(){
+    try {
+      const provider = new GoogleAuthProvider();
+      const cred     = await signInWithPopup(auth, provider);
+      await saveUser(cred.user);
+      afterLogin(cred.user);
+    } catch(e) {
+      showError('loginError', e.message);
+      showError('registerError', e.message);
+    }
+  };
+
+  // ── RESET ──
+  window.doReset = async function(){
+    hideError('resetError');
+    document.getElementById('resetSuccess').classList.remove('show');
+    const email = document.getElementById('resetEmail').value.trim();
+    if(!email){ showError('resetError','Please enter your email.'); return; }
+    try {
+      await sendPasswordResetEmail(auth, email);
+      const el = document.getElementById('resetSuccess');
+      el.textContent = 'Reset link sent! Check your email.';
+      el.classList.add('show');
+    } catch(e) {
+      showError('resetError', 'Could not send reset email. Check the address.');
+    }
+  };
+</script>
+
+</body>
+</html>

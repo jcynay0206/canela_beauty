@@ -6,21 +6,56 @@
   <title>Order Confirmed — Canela Beauty</title>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
-    :root{--bg:#FAF6EF;--brown:#3D1F00;--gold:#C9941A;--muted:rgba(61,31,0,0.45);}
+    :root{--bg:#FEFCFA;--brown:#4A2418;--brown2:#6B3828;--gold:#C4784A;--border:rgba(160,90,60,0.14);--border2:rgba(160,90,60,0.26);--muted:rgba(74,36,24,0.45);}
     *{margin:0;padding:0;box-sizing:border-box;}
-    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--brown);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;}
-    .icon{width:64px;height:64px;border-radius:50%;background:rgba(201,148,26,0.12);border:1px solid rgba(201,148,26,0.3);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:28px;}
-    h1{font-family:'Cormorant Garamond',serif;font-size:38px;font-weight:300;margin-bottom:12px;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--brown2);min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:40px 24px;text-align:center;}
+    .icon{width:64px;height:64px;border-radius:50%;background:rgba(196,120,74,0.1);border:1px solid rgba(196,120,74,0.25);display:flex;align-items:center;justify-content:center;margin:0 auto 24px;font-size:28px;}
+    h1{font-family:'Cormorant Garamond',serif;font-size:38px;font-weight:300;color:var(--brown);margin-bottom:12px;}
     h1 em{font-style:italic;color:var(--gold);}
-    p{font-size:14px;color:var(--muted);line-height:1.8;max-width:400px;margin-bottom:32px;}
-    a{display:inline-block;background:var(--brown);color:#FAF6EF;padding:13px 32px;border-radius:2px;text-decoration:none;font-size:10px;letter-spacing:3px;text-transform:uppercase;font-weight:500;transition:opacity .2s;}
-    a:hover{opacity:.8;}
+    p{font-size:14px;color:var(--muted);line-height:1.8;max-width:420px;margin-bottom:8px;}
+    .actions{display:flex;flex-direction:column;align-items:center;gap:12px;margin-top:28px;}
+    .btn-main{display:inline-block;background:var(--brown);color:#FAF6EF;padding:13px 32px;border-radius:2px;text-decoration:none;font-size:10px;letter-spacing:3px;text-transform:uppercase;font-weight:500;transition:opacity .2s;}
+    .btn-main:hover{opacity:.85;}
+    .divider{display:flex;align-items:center;gap:12px;color:var(--muted);font-size:11px;width:100%;max-width:340px;}
+    .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border);}
+    /* Account invite box - only shown to guests */
+    .account-invite{background:#FBF6F1;border:1px solid var(--border2);border-radius:3px;padding:24px;max-width:380px;margin-top:8px;display:none;}
+    .account-invite.visible{display:block;}
+    .invite-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;color:var(--brown);margin-bottom:8px;}
+    .invite-desc{font-size:13px;color:var(--muted);line-height:1.7;margin-bottom:16px;}
+    .invite-perks{text-align:left;font-size:12px;color:var(--brown2);line-height:2;margin-bottom:16px;}
+    .invite-perks span{display:block;}
+    .btn-invite{display:inline-block;background:var(--gold);color:#FAF6EF;padding:11px 28px;border-radius:2px;text-decoration:none;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;font-weight:500;}
   </style>
 </head>
 <body>
   <div class="icon">✦</div>
   <h1>Thank you for your <em>order!</em></h1>
-  <p>Your purchase is confirmed. You'll receive a confirmation email shortly with your tracking information.</p>
-  <a href="/">Back to Shop</a>
+  <p>Your purchase is confirmed. You'll receive a confirmation email with your order details and tracking information once your package ships.</p>
+  <p style="font-size:12px;">Questions? <a href="mailto:hello@canelabauty.com" style="color:var(--gold)">hello@canelabauty.com</a></p>
+
+  <div class="actions">
+    <a href="/" class="btn-main">Continue Shopping</a>
+
+    <!-- Only shown to guests (not logged in) -->
+    <div id="accountInvite" class="account-invite">
+      <div class="divider" style="margin-bottom:20px">Create an account</div>
+      <p class="invite-title">Save your info for next time</p>
+      <p class="invite-desc">Create a free account and enjoy these benefits on every order:</p>
+      <div class="invite-perks">
+        <span>✦ Track all your orders in one place</span>
+        <span>✦ Faster checkout — no re-entering info</span>
+        <span>✦ Early access to new collections</span>
+        <span>✦ Exclusive member discounts</span>
+      </div>
+      <a href="/auth" class="btn-invite">Create Free Account</a>
+    </div>
+  </div>
+
+  <script>
+    // Show account invite only if user is not already logged in
+    const user = JSON.parse(localStorage.getItem('canela_user') || 'null');
+    if(!user) document.getElementById('accountInvite').classList.add('visible');
+  </script>
 </body>
 </html>

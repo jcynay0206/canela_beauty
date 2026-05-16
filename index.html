@@ -341,6 +341,7 @@
     <li><a href="#catalog" onclick="closeMobileMenu()">Catalog</a></li>
     <li><a href="#process" onclick="closeMobileMenu()">Our Process</a></li>
     <li><a href="#newsletter" onclick="closeMobileMenu()">Contact</a></li>
+    <li><a href="/auth" onclick="closeMobileMenu()">Sign In</a></li>
   </ul>
   <div class="mobile-menu-divider"></div>
   <div class="mobile-contact">
@@ -358,7 +359,7 @@
 
 <!-- ANNOUNCEMENT -->
 <div class="announcement">
-  New collection now available <span>✦</span> Subscribe and get 10% off your first order
+  New collection now available <span>✦</span> Create an account and get 10% off your first order
 </div>
 
 <!-- NAV -->
@@ -371,7 +372,9 @@
   </ul>
   <button class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">Canela <em>Beauty</em></button>
   <div class="nav-actions">
-    <a href="#" class="desktop-only">Sign In</a>
+    <span id="navAuthArea" class="desktop-only">
+      <a href="/auth" id="navSignIn">Sign In</a>
+    </span>
     <button class="cart-btn desktop-only" onclick="openCart()">Cart (<span id="cartCount">0</span>)</button>
     <button class="cart-btn mobile-cart-icon" onclick="openCart()" style="display:none;padding:8px 14px;">🛍 <span id="cartCountMobile">0</span></button>
     <button class="hamburger" id="hamburger" onclick="toggleMobileMenu()">
@@ -487,9 +490,9 @@
     <div class="payment-icons">
       <span class="pay-badge">Visa</span>
       <span class="pay-badge">Mastercard</span>
-      <span class="pay-badge">PayPal</span>
       <span class="pay-badge">Amex</span>
-      <span class="pay-badge">Shop Pay</span>
+      <span class="pay-badge">Apple Pay</span>
+      <span class="pay-badge">Google Pay</span>
     </div>
   </div>
   <div class="footer-bottom">
@@ -617,10 +620,15 @@ async function goCheckout(){
   btn.disabled = true;
   btn.textContent = 'Redirecting...';
   try {
+    // Get logged-in user email if available (optional — guest checkout works without it)
+    const user = JSON.parse(localStorage.getItem('canela_user') || 'null');
     const res = await fetch('/api/checkout', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ items: cart.map(i => ({ name: i.name, price: i.price, qty: i.qty })) })
+      body: JSON.stringify({
+        items: cart.map(i => ({ name: i.name, price: i.price, qty: i.qty })),
+        customerEmail: user?.email || null
+      })
     });
     const data = await res.json();
     if (data.url) {
@@ -686,7 +694,19 @@ function closeMobileMenu(){
   document.body.style.overflow = '';
 }
 
-renderProducts(); updateCartUI();
+renderProducts(); updateCartUI(); initAuthState();
+
+// ─── AUTH STATE ──────────────────────────────────────────
+function initAuthState(){
+  const user = JSON.parse(localStorage.getItem('canela_user') || 'null');
+  const area = document.getElementById('navAuthArea');
+  if(!area) return;
+  if(user){
+    area.innerHTML = `<a href="/account" style="color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--brown)'" onmouseout="this.style.color='var(--muted)'">Hi, ${user.name.split(' ')[0]}</a>`;
+  } else {
+    area.innerHTML = `<a href="/auth" style="color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--brown)'" onmouseout="this.style.color='var(--muted)'">Sign In</a>`;
+  }
+}
 </script>
 </body>
 </html>
