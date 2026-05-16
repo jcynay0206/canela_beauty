@@ -7,21 +7,21 @@
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg:        #FAF6EF;
-      --bg2:       #F4EDE0;
-      --bg3:       #EDE3D4;
-      --card:      #EDE3D0;
-      --card-gold: #F2E4B8;
-      --border:    rgba(139,90,30,0.14);
-      --border2:   rgba(139,90,30,0.28);
-      --gold:      #C9941A;
-      --gold-lite: #DFB045;
-      --gold-card: #E8C96A;
-      --gold-dim:  rgba(201,148,26,0.5);
-      --brown:     #3D1F00;
-      --brown2:    #5C3200;
-      --muted:     rgba(61,31,0,0.45);
-      --muted2:    rgba(61,31,0,0.28);
+      --bg:        #FEFCFA;
+      --bg2:       #FBF6F1;
+      --bg3:       #F7EEE7;
+      --card:      #F9EDE6;
+      --card-gold: #F5E4D8;
+      --border:    rgba(160,90,60,0.12);
+      --border2:   rgba(160,90,60,0.22);
+      --gold:      #C4784A;
+      --gold-lite: #D9987A;
+      --gold-card: #EBB89A;
+      --gold-dim:  rgba(196,120,74,0.5);
+      --brown:     #4A2418;
+      --brown2:    #6B3828;
+      --muted:     rgba(74,36,24,0.45);
+      --muted2:    rgba(74,36,24,0.25);
     }
     *{margin:0;padding:0;box-sizing:border-box;}
     html{scroll-behavior:smooth;}
@@ -49,9 +49,9 @@
     .hero-bg{
       position:absolute;inset:0;
       background:
-        radial-gradient(ellipse 600px 500px at 68% 38%, rgba(212,168,40,0.13) 0%, transparent 65%),
-        radial-gradient(ellipse 400px 400px at 15% 75%, rgba(201,148,26,0.07) 0%, transparent 60%),
-        linear-gradient(160deg, #F8F1E4 0%, #FAF6EF 55%, #F5EDE0 100%);
+        radial-gradient(ellipse 600px 500px at 68% 38%, rgba(220,150,110,0.1) 0%, transparent 65%),
+        radial-gradient(ellipse 400px 400px at 15% 75%, rgba(196,120,74,0.06) 0%, transparent 60%),
+        linear-gradient(160deg, #FDF7F3 0%, #FEFCFA 55%, #FBF5F0 100%);
     }
     .hero-bg::before{
       content:'';position:absolute;inset:0;
@@ -98,10 +98,10 @@
     .product-img{aspect-ratio:3/4;background:var(--card-gold);border:1px solid rgba(201,148,26,0.22);border-radius:3px;overflow:hidden;position:relative;margin-bottom:14px;transition:transform .4s,border-color .35s,box-shadow .35s;}
     .product-card:hover .product-img{transform:translateY(-5px);border-color:rgba(201,148,26,0.5);box-shadow:0 14px 36px rgba(100,60,0,.12);}
     .pimg-inner{width:100%;height:100%;display:flex;align-items:center;justify-content:center;}
-    .p1{background:linear-gradient(160deg,#EDD8B0,#E8C890);}
-    .p2{background:linear-gradient(160deg,#EDD0C0,#E8C0B0);}
-    .p3{background:linear-gradient(160deg,#EAD8A8,#E4CC88);}
-    .p4{background:linear-gradient(160deg,#E8CEB8,#E0BCA0);}
+    .p1{background:linear-gradient(160deg,#F5E0D0,#EDD0BE);}
+    .p2{background:linear-gradient(160deg,#F5DDD8,#EDD0CC);}
+    .p3{background:linear-gradient(160deg,#F5E4C8,#EDD8B8);}
+    .p4{background:linear-gradient(160deg,#F0DDD0,#E8CEC0);}
     .badge-new{position:absolute;top:12px;left:12px;background:var(--brown);color:#FAF6EF;font-size:8px;letter-spacing:2px;text-transform:uppercase;padding:4px 9px;border-radius:2px;font-weight:500;}
     .badge-sold{position:absolute;top:12px;left:12px;background:rgba(201,148,26,0.15);color:var(--gold);border:1px solid rgba(201,148,26,0.3);font-size:8px;letter-spacing:2px;text-transform:uppercase;padding:4px 9px;border-radius:2px;}
     .quick-add{position:absolute;bottom:0;left:0;right:0;background:rgba(61,31,0,0.88);color:#FAF6EF;text-align:center;padding:12px;font-size:9px;letter-spacing:2.5px;text-transform:uppercase;font-weight:500;opacity:0;transition:opacity .3s;cursor:pointer;}
@@ -109,6 +109,16 @@
     .product-name{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:400;color:var(--brown);margin-bottom:4px;}
     .product-price{font-size:12px;color:var(--gold);font-weight:500;}
     .product-price s{color:var(--muted);margin-right:5px;font-weight:300;}
+
+    /* PROCESS SECTION */
+    .process-section{padding:88px 52px;background:var(--bg);}
+    .process-sub{font-size:14px;color:var(--muted);max-width:480px;margin:12px auto 52px;line-height:1.8;font-weight:300;text-align:center;}
+    .process-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;max-width:1100px;margin:0 auto;}
+    .process-step{text-align:center;padding:32px 20px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;transition:transform .3s,border-color .3s;}
+    .process-step:hover{transform:translateY(-4px);border-color:var(--border2);}
+    .step-icon{font-size:32px;margin-bottom:16px;display:block;}
+    .step-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;color:var(--brown);margin-bottom:10px;}
+    .step-desc{font-size:13px;color:var(--muted);line-height:1.75;font-weight:300;}
 
     /* VALUES */
     .values-banner{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg3);padding:52px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:24px;}
@@ -220,6 +230,8 @@
       .hero-content{padding-left:28px;} .hero-art{display:none;}
       .products-section{padding:64px 24px;}
       .products-grid{grid-template-columns:repeat(2,1fr);gap:14px;}
+      .process-section{padding:64px 24px;}
+      .process-steps{grid-template-columns:repeat(2,1fr);gap:16px;}
       .values-banner{padding:44px 24px;}
       .newsletter{padding:64px 24px;}
       footer{padding:32px 24px 20px;} .footer-top{flex-direction:column;}
@@ -228,6 +240,7 @@
     }
     @media(max-width:480px){
       .hero-title{font-size:44px;}
+      .process-steps{grid-template-columns:1fr;}
       .email-form{flex-direction:column;}
       .email-form input{border-right:1px solid var(--border2);border-bottom:none;border-radius:2px 2px 0 0;}
       .email-form button{border-radius:0 0 2px 2px;}
@@ -345,6 +358,37 @@
     <h2 class="section-title">Our <em>Favorites</em></h2>
   </div>
   <div class="products-grid" id="productsGrid"></div>
+</section>
+
+<!-- PROCESS SECTION -->
+<section class="process-section">
+  <div class="section-header">
+    <p class="section-tag">Behind the Gloss</p>
+    <h2 class="section-title">Made with <em>intention</em></h2>
+    <p class="process-sub">Every Canela gloss is handcrafted in small batches — no shortcuts, no fillers. Just clean ingredients, real color, and care in every step.</p>
+  </div>
+  <div class="process-steps">
+    <div class="process-step">
+      <div class="step-icon">🌿</div>
+      <h3 class="step-title">Plant-Based Ingredients</h3>
+      <p class="step-desc">We source only vegan, cruelty-free ingredients — nourishing oils, natural waxes, and botanical pigments that care for your lips.</p>
+    </div>
+    <div class="process-step">
+      <div class="step-icon">⚗️</div>
+      <h3 class="step-title">Small Batch Mixing</h3>
+      <p class="step-desc">Each formula is mixed by hand in small quantities to ensure consistency, freshness, and the perfect texture every time.</p>
+    </div>
+    <div class="process-step">
+      <div class="step-icon">💄</div>
+      <h3 class="step-title">Hand-Filled & Sealed</h3>
+      <p class="step-desc">Every tube is filled, sealed, and inspected by hand. No machines, no mass production — just careful attention to detail.</p>
+    </div>
+    <div class="process-step">
+      <div class="step-icon">📦</div>
+      <h3 class="step-title">Packed with Love</h3>
+      <p class="step-desc">Orders are packed individually and shipped from Elizabeth, NJ. Each package is a little piece of Canela delivered to your door.</p>
+    </div>
+  </div>
 </section>
 
 <!-- VALUES -->
