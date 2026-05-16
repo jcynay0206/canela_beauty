@@ -1,9 +1,0 @@
-{
-  "rewrites": [
-    { "source": "/admin",   "destination": "/admin.html" },
-    { "source": "/auth",    "destination": "/auth.html" },
-    { "source": "/account", "destination": "/account.html" },
-    { "source": "/success", "destination": "/success.html" },
-    { "source": "/cancel",  "destination": "/cancel.html" }
-  ]
-}
