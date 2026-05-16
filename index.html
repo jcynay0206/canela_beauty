@@ -32,7 +32,7 @@
     .announcement span{opacity:.4;margin:0 10px;}
 
     /* NAV */
-    nav{display:flex;align-items:center;justify-content:space-between;padding:16px 52px;background:rgba(250,246,239,0.97);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;backdrop-filter:blur(16px);}
+    nav{display:flex;align-items:center;justify-content:space-between;padding:16px 52px;background:rgba(254,252,250,0.97);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:200;backdrop-filter:blur(16px);}
     .nav-links{display:flex;gap:36px;list-style:none;}
     .nav-links a{text-decoration:none;color:var(--muted);font-size:10px;letter-spacing:2.5px;text-transform:uppercase;font-weight:500;transition:color .2s;}
     .nav-links a:hover{color:var(--gold);}
@@ -43,6 +43,38 @@
     .nav-actions a:hover{color:var(--brown);}
     .cart-btn{background:var(--brown);color:#FAF6EF;padding:8px 20px;border-radius:2px;font-size:10px;font-weight:500;cursor:pointer;border:none;letter-spacing:2px;text-transform:uppercase;transition:background .2s;font-family:'DM Sans',sans-serif;}
     .cart-btn:hover{background:var(--brown2);}
+
+    /* HAMBURGER */
+    .hamburger{display:none;flex-direction:column;justify-content:center;gap:5px;width:36px;height:36px;background:none;border:none;cursor:pointer;padding:4px;z-index:302;}
+    .hamburger span{display:block;width:22px;height:1.5px;background:var(--brown);transition:all .35s cubic-bezier(.4,0,.2,1);transform-origin:center;}
+    .hamburger.open span:nth-child(1){transform:translateY(6.5px) rotate(45deg);}
+    .hamburger.open span:nth-child(2){opacity:0;transform:scaleX(0);}
+    .hamburger.open span:nth-child(3){transform:translateY(-6.5px) rotate(-45deg);}
+
+    /* MOBILE MENU OVERLAY */
+    .mobile-menu{position:fixed;inset:0;background:var(--bg);z-index:300;display:flex;flex-direction:column;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .4s ease;}
+    .mobile-menu.open{opacity:1;pointer-events:all;}
+    .mobile-menu-links{list-style:none;text-align:center;margin-bottom:48px;}
+    .mobile-menu-links li{overflow:hidden;margin-bottom:8px;}
+    .mobile-menu-links a{font-family:'Cormorant Garamond',serif;font-size:42px;font-weight:300;color:var(--brown);text-decoration:none;letter-spacing:2px;display:block;padding:8px 0;transition:color .2s;opacity:0;transform:translateY(20px);transition:opacity .4s ease, transform .4s ease, color .2s;}
+    .mobile-menu.open .mobile-menu-links a{opacity:1;transform:translateY(0);}
+    .mobile-menu.open .mobile-menu-links li:nth-child(1) a{transition-delay:.1s;}
+    .mobile-menu.open .mobile-menu-links li:nth-child(2) a{transition-delay:.18s;}
+    .mobile-menu.open .mobile-menu-links li:nth-child(3) a{transition-delay:.26s;}
+    .mobile-menu.open .mobile-menu-links li:nth-child(4) a{transition-delay:.34s;}
+    .mobile-menu-links a:hover{color:var(--gold);}
+    .mobile-menu-links a em{font-style:italic;}
+    .mobile-menu-divider{width:40px;height:1px;background:var(--border2);margin:0 auto 36px;opacity:0;transition:opacity .4s ease .4s;}
+    .mobile-menu.open .mobile-menu-divider{opacity:1;}
+    .mobile-contact{text-align:center;opacity:0;transform:translateY(10px);transition:opacity .4s ease .42s, transform .4s ease .42s;}
+    .mobile-menu.open .mobile-contact{opacity:1;transform:translateY(0);}
+    .mobile-contact p{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:14px;}
+    .mobile-contact-links{display:flex;flex-direction:column;gap:10px;align-items:center;}
+    .mobile-contact-links a{font-size:13px;color:var(--brown2);text-decoration:none;transition:color .2s;display:flex;align-items:center;gap:8px;}
+    .mobile-contact-links a:hover{color:var(--gold);}
+    .mobile-cart-row{margin-top:32px;opacity:0;transition:opacity .4s ease .5s;}
+    .mobile-menu.open .mobile-cart-row{opacity:1;}
+    .mobile-cart-btn{background:var(--brown);color:#FAF6EF;border:none;padding:13px 40px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;font-weight:500;cursor:pointer;}
 
     /* HERO */
     .hero{position:relative;height:90vh;min-height:580px;overflow:hidden;display:flex;align-items:center;}
@@ -226,7 +258,11 @@
     @keyframes modalIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
 
     @media(max-width:960px){
-      nav{padding:14px 24px;} .nav-links{display:none;}
+      nav{padding:14px 24px;}
+      .nav-links{display:none;}
+      .desktop-only{display:none!important;}
+      .mobile-cart-icon{display:flex!important;}
+      .hamburger{display:flex;}
       .hero-content{padding-left:28px;} .hero-art{display:none;}
       .products-section{padding:64px 24px;}
       .products-grid{grid-template-columns:repeat(2,1fr);gap:14px;}
@@ -298,6 +334,28 @@
   </div>
 </div>
 
+<!-- MOBILE MENU -->
+<div class="mobile-menu" id="mobileMenu">
+  <ul class="mobile-menu-links">
+    <li><a href="#home" onclick="closeMobileMenu()">Home</a></li>
+    <li><a href="#catalog" onclick="closeMobileMenu()">Catalog</a></li>
+    <li><a href="#process" onclick="closeMobileMenu()">Our Process</a></li>
+    <li><a href="#newsletter" onclick="closeMobileMenu()">Contact</a></li>
+  </ul>
+  <div class="mobile-menu-divider"></div>
+  <div class="mobile-contact">
+    <p>Get in touch</p>
+    <div class="mobile-contact-links">
+      <a href="mailto:hello@canelabauty.com">✉ hello@canelabauty.com</a>
+      <a href="https://wa.me/19082205337" target="_blank">💬 WhatsApp us</a>
+      <a href="https://instagram.com/canelabauty" target="_blank">📸 @canelabauty</a>
+    </div>
+  </div>
+  <div class="mobile-cart-row">
+    <button class="mobile-cart-btn" onclick="closeMobileMenu();openCart()">View Cart (<span id="mobileCartCount">0</span>)</button>
+  </div>
+</div>
+
 <!-- ANNOUNCEMENT -->
 <div class="announcement">
   New collection now available <span>✦</span> Subscribe and get 10% off your first order
@@ -308,12 +366,17 @@
   <ul class="nav-links">
     <li><a href="#home">Home</a></li>
     <li><a href="#catalog">Catalog</a></li>
+    <li><a href="#process">Our Process</a></li>
     <li><a href="#newsletter">Contact</a></li>
   </ul>
   <button class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">Canela <em>Beauty</em></button>
   <div class="nav-actions">
-    <a href="#">Sign In</a>
-    <button class="cart-btn" onclick="openCart()">Cart (<span id="cartCount">0</span>)</button>
+    <a href="#" class="desktop-only">Sign In</a>
+    <button class="cart-btn desktop-only" onclick="openCart()">Cart (<span id="cartCount">0</span>)</button>
+    <button class="cart-btn mobile-cart-icon" onclick="openCart()" style="display:none;padding:8px 14px;">🛍 <span id="cartCountMobile">0</span></button>
+    <button class="hamburger" id="hamburger" onclick="toggleMobileMenu()">
+      <span></span><span></span><span></span>
+    </button>
   </div>
 </nav>
 
@@ -361,7 +424,7 @@
 </section>
 
 <!-- PROCESS SECTION -->
-<section class="process-section">
+<section class="process-section" id="process">
   <div class="section-header">
     <p class="section-tag">Behind the Gloss</p>
     <h2 class="section-title">Made with <em>intention</em></h2>
@@ -517,6 +580,8 @@ function updateCartUI(){
   const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
   const count=cart.reduce((s,i)=>s+i.qty,0);
   document.getElementById('cartCount').textContent=count;
+  document.getElementById('cartCountMobile').textContent=count;
+  if(document.getElementById('mobileCartCount')) document.getElementById('mobileCartCount').textContent=count;
   document.getElementById('cartTotal').textContent=`$${total.toFixed(2)}`;
   document.getElementById('checkoutBtn').disabled=!cart.length;
   const el=document.getElementById('cartItems');
@@ -604,6 +669,21 @@ function showToast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+// ─── MOBILE MENU ──────────────────────────────────────────
+function toggleMobileMenu(){
+  const menu = document.getElementById('mobileMenu');
+  const btn  = document.getElementById('hamburger');
+  const isOpen = menu.classList.contains('open');
+  menu.classList.toggle('open');
+  btn.classList.toggle('open');
+  document.body.style.overflow = isOpen ? '' : 'hidden';
+}
+function closeMobileMenu(){
+  document.getElementById('mobileMenu').classList.remove('open');
+  document.getElementById('hamburger').classList.remove('open');
+  document.body.style.overflow = '';
 }
 
 renderProducts(); updateCartUI();
