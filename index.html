@@ -257,9 +257,11 @@
     @keyframes fadeUp{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
     @keyframes modalIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
 
+    #navAuthArea a{color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:color .2s;}
+    #navAuthArea a:hover{color:var(--brown);}
     @media(max-width:960px){
-      nav{padding:14px 24px;}
-      .nav-links{display:none;}
+      #navAuthArea{display:none;}
+    }
       .desktop-only{display:none!important;}
       .mobile-cart-icon{display:flex!important;}
       .hamburger{display:flex;}
@@ -341,7 +343,7 @@
     <li><a href="#catalog" onclick="closeMobileMenu()">Catalog</a></li>
     <li><a href="#process" onclick="closeMobileMenu()">Our Process</a></li>
     <li><a href="#newsletter" onclick="closeMobileMenu()">Contact</a></li>
-    <li><a href="/auth" onclick="closeMobileMenu()">Sign In</a></li>
+    <li><a href="/auth" id="mobileAuthLink" onclick="closeMobileMenu()">Sign In</a></li>
   </ul>
   <div class="mobile-menu-divider"></div>
   <div class="mobile-contact">
@@ -372,7 +374,7 @@
   </ul>
   <button class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">Canela <em>Beauty</em></button>
   <div class="nav-actions">
-    <span id="navAuthArea" class="desktop-only">
+    <span id="navAuthArea">
       <a href="/auth" id="navSignIn">Sign In</a>
     </span>
     <button class="cart-btn desktop-only" onclick="openCart()">Cart (<span id="cartCount">0</span>)</button>
@@ -712,11 +714,17 @@ renderProducts(); updateCartUI(); initAuthState();
 function initAuthState(){
   const user = JSON.parse(localStorage.getItem('canela_user') || 'null');
   const area = document.getElementById('navAuthArea');
-  if(!area) return;
+  const mobileAuthLink = document.getElementById('mobileAuthLink');
+
   if(user){
-    area.innerHTML = `<a href="/account" style="color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--brown)'" onmouseout="this.style.color='var(--muted)'">Hi, ${user.name.split(' ')[0]}</a>`;
+    const firstName = (user.name || user.email).split(' ')[0];
+    if(area) area.innerHTML = `<a href="/account" style="color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--brown)'" onmouseout="this.style.color='var(--muted)'">Hi, ${firstName}</a>`;
+    if(mobileAuthLink) mobileAuthLink.textContent = `Hi, ${firstName}`;
+    if(mobileAuthLink) mobileAuthLink.href = '/account';
   } else {
-    area.innerHTML = `<a href="/auth" style="color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--brown)'" onmouseout="this.style.color='var(--muted)'">Sign In</a>`;
+    if(area) area.innerHTML = `<a href="/auth" style="color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--brown)'" onmouseout="this.style.color='var(--muted)'">Sign In</a>`;
+    if(mobileAuthLink) mobileAuthLink.textContent = 'Sign In';
+    if(mobileAuthLink) mobileAuthLink.href = '/auth';
   }
 }
 </script>
