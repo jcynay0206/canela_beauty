@@ -300,7 +300,7 @@
       <span>Subtotal</span>
       <strong id="cartTotal">$0.00</strong>
     </div>
-    <p class="cart-note">Shipping & taxes calculated at checkout</p>
+    <p class="cart-note" id="cartShippingNote">Shipping & taxes calculated at checkout</p>
     <button class="checkout-btn" id="checkoutBtn" onclick="goCheckout()">Proceed to Checkout</button>
     <button class="continue-btn" onclick="closeCart()">Continue Shopping</button>
   </div>
@@ -359,7 +359,7 @@
 
 <!-- ANNOUNCEMENT -->
 <div class="announcement">
-  New collection now available <span>✦</span> Create an account and get 10% off your first order
+  Free shipping on orders $25+ <span>✦</span> New collection now available
 </div>
 
 <!-- NAV -->
@@ -587,6 +587,18 @@ function updateCartUI(){
   if(document.getElementById('mobileCartCount')) document.getElementById('mobileCartCount').textContent=count;
   document.getElementById('cartTotal').textContent=`$${total.toFixed(2)}`;
   document.getElementById('checkoutBtn').disabled=!cart.length;
+  // Free shipping progress
+  const note = document.getElementById('cartShippingNote');
+  if(note){
+    if(total >= 25){
+      note.innerHTML = '🎉 You qualify for <strong>free shipping!</strong>';
+      note.style.color = '#22783C';
+    } else {
+      const remaining = (25 - total).toFixed(2);
+      note.innerHTML = `Add <strong>$${remaining}</strong> more for free shipping`;
+      note.style.color = 'var(--muted)';
+    }
+  }
   const el=document.getElementById('cartItems');
   if(!cart.length){
     el.innerHTML=`<div class="cart-empty">
