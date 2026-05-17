@@ -15,20 +15,19 @@ module.exports = async function handler(req, res) {
     if (!body) body = {};
 
     const { items, customerEmail } = body;
-    console.log("Items received:", JSON.stringify(items));
-
     if (!items || !items.length) return res.status(400).json({ error: "No items" });
 
-    const origin = "https://canelabeauty.vercel.app";
+    const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    const freeShipping = subtotal >= 25;
 
-    // Build form-encoded body for Stripe REST API — no SDK needed
+    const origin = "https://canelabeauty.vercel.app";
     const params = new URLSearchParams();
+
     params.append("mode", "payment");
     params.append("success_url", `${origin}/success.html?session_id={CHECKOUT_SESSION_ID}`);
     params.append("cancel_url", `${origin}/cancel.html`);
     params.append("shipping_address_collection[allowed_countries][0]", "US");
 
-    // Add line items
     items.forEach((item, i) => {
       params.append(`line_items[${i}][price_data][currency]`, "usd");
       params.append(`line_items[${i}][price_data][product_data][name]`, item.name);
@@ -36,20 +35,32 @@ module.exports = async function handler(req, res) {
       params.append(`line_items[${i}][quantity]`, String(item.qty));
     });
 
-    // Shipping options
-    params.append("shipping_options[0][shipping_rate_data][type]", "fixed_amount");
-    params.append("shipping_options[0][shipping_rate_data][display_name]", "Free shipping (5-7 days)");
-    params.append("shipping_options[0][shipping_rate_data][fixed_amount][amount]", "0");
-    params.append("shipping_options[0][shipping_rate_data][fixed_amount][currency]", "usd");
+    if (freeShipping) {
+      // $25+ → free standard + paid express
+      params.append("shipping_options[0][shipping_rate_data][type]", "fixed_amount");
+      params.append("shipping_options[0][shipping_rate_data][display_name]", "Free Standard Shipping (5-7 days)");
+      params.append("shipping_options[0][shipping_rate_data][fixed_amount][amount]", "0");
+      params.append("shipping_options[0][shipping_rate_data][fixed_amount][currency]", "usd");
 
-    params.append("shipping_options[1][shipping_rate_data][type]", "fixed_amount");
-    params.append("shipping_options[1][shipping_rate_data][display_name]", "Express (2-3 days)");
-    params.append("shipping_options[1][shipping_rate_data][fixed_amount][amount]", "799");
-    params.append("shipping_options[1][shipping_rate_data][fixed_amount][currency]", "usd");
+      params.append("shipping_options[1][shipping_rate_data][type]", "fixed_amount");
+      params.append("shipping_options[1][shipping_rate_data][display_name]", "Express Shipping (2-3 days)");
+      params.append("shipping_options[1][shipping_rate_data][fixed_amount][amount]", "1299");
+      params.append("shipping_options[1][shipping_rate_data][fixed_amount][currency]", "usd");
+    } else {
+      // Under $25 → only paid options, no free shipping available
+      params.append("shipping_options[0][shipping_rate_data][type]", "fixed_amount");
+      params.append("shipping_options[0][shipping_rate_data][display_name]", "Standard Shipping (5-7 days)");
+      params.append("shipping_options[0][shipping_rate_data][fixed_amount][amount]", "599");
+      params.append("shipping_options[0][shipping_rate_data][fixed_amount][currency]", "usd");
+
+      params.append("shipping_options[1][shipping_rate_data][type]", "fixed_amount");
+      params.append("shipping_options[1][shipping_rate_data][display_name]", "Express Shipping (2-3 days)");
+      params.append("shipping_options[1][shipping_rate_data][fixed_amount][amount]", "1299");
+      params.append("shipping_options[1][shipping_rate_data][fixed_amount][currency]", "usd");
+    }
 
     if (customerEmail) params.append("customer_email", customerEmail);
 
-    // Call Stripe REST API directly
     const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
       method: "POST",
       headers: {
@@ -60,8 +71,6 @@ module.exports = async function handler(req, res) {
     });
 
     const data = await response.json();
-    console.log("Stripe response status:", response.status);
-
     if (!response.ok) {
       console.error("Stripe error:", JSON.stringify(data.error));
       return res.status(500).json({ error: data.error?.message || "Stripe error" });
