@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Contact — Canela Beauty</title>
+  <meta name="description" content="Get in touch with Canela Beauty. We're here to help with your order, product questions, or anything else."/>
+  <meta property="og:title" content="Contact — Canela Beauty"/>
+  <meta property="og:image" content="https://canelabeauty.vercel.app/og-image.jpg"/>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+  <meta name="theme-color" content="#FEFCFA"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root{--bg:#FEFCFA;--bg2:#FBF6F1;--bg3:#F7EEE7;--brown:#4A2418;--brown2:#6B3828;--gold:#C4784A;--border:rgba(160,90,60,0.14);--border2:rgba(160,90,60,0.26);--muted:rgba(74,36,24,0.45);}
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--brown2);}
+    nav{display:flex;align-items:center;justify-content:space-between;padding:16px 52px;background:rgba(254,252,250,.97);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:10;backdrop-filter:blur(16px);}
+    .logo{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;letter-spacing:5px;color:var(--brown);text-transform:uppercase;text-decoration:none;}
+    .logo em{font-style:italic;color:var(--gold);}
+    .back{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-decoration:none;transition:color .2s;}
+    .back:hover{color:var(--brown);}
+    .main{max-width:900px;margin:0 auto;padding:64px 24px;}
+    .page-eyebrow{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:12px;}
+    .page-title{font-family:'Cormorant Garamond',serif;font-size:48px;font-weight:300;color:var(--brown);margin-bottom:16px;line-height:1.1;}
+    .page-title em{font-style:italic;}
+    .page-sub{font-size:14px;color:var(--muted);line-height:1.8;max-width:480px;margin-bottom:56px;}
+    .contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:56px;}
+    .contact-card{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:28px 24px;text-decoration:none;transition:border-color .25s,transform .25s;display:flex;flex-direction:column;gap:10px;}
+    .contact-card:hover{border-color:var(--border2);transform:translateY(-3px);}
+    .contact-icon{font-size:24px;}
+    .contact-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+    .contact-value{font-size:15px;color:var(--brown);font-weight:400;}
+    .contact-note{font-size:11px;color:var(--muted);margin-top:4px;}
+    .divider{height:1px;background:var(--border);margin:0 0 48px;}
+    .faq-title{font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:var(--brown);margin-bottom:28px;}
+    .faq-title em{font-style:italic;color:var(--gold);}
+    .faq-list{display:flex;flex-direction:column;gap:0;}
+    .faq-item{border-bottom:1px solid var(--border);padding:20px 0;cursor:pointer;}
+    .faq-question{font-size:14px;color:var(--brown);font-weight:500;display:flex;justify-content:space-between;align-items:center;gap:16px;}
+    .faq-question span{font-size:18px;color:var(--gold);transition:transform .25s;flex-shrink:0;}
+    .faq-answer{font-size:13px;color:var(--muted);line-height:1.8;max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s;}
+    .faq-item.open .faq-answer{max-height:200px;padding-top:12px;}
+    .faq-item.open .faq-question span{transform:rotate(45deg);}
+    @media(max-width:640px){nav{padding:14px 20px;} .main{padding:40px 20px;} .contact-grid{grid-template-columns:1fr;} .page-title{font-size:36px;}}
+  </style>
+</head>
+<body>
+<nav>
+  <a href="/" class="logo">Canela <em>Beauty</em></a>
+  <a href="/" class="back">← Back to Shop</a>
+</nav>
+
+<div class="main">
+  <p class="page-eyebrow">Get in touch</p>
+  <h1 class="page-title">We'd love to <em>hear from you</em></h1>
+  <p class="page-sub">Have a question about your order, a product, or just want to say hi? Reach out — we typically respond within 24 hours.</p>
+
+  <div class="contact-grid">
+    <a class="contact-card" href="mailto:jcnay157@gmail.com">
+      <span class="contact-icon">✉</span>
+      <span class="contact-label">Email</span>
+      <span class="contact-value">jcnay157@gmail.com</span>
+      <span class="contact-note">Best for order questions & support</span>
+    </a>
+    <a class="contact-card" href="https://wa.me/19086774196" target="_blank">
+      <span class="contact-icon">💬</span>
+      <span class="contact-label">WhatsApp</span>
+      <span class="contact-value">+1 (908) 677-4196</span>
+      <span class="contact-note">Mon–Fri, 9am–6pm EST</span>
+    </a>
+    <a class="contact-card" href="https://instagram.com/yunyMD" target="_blank">
+      <span class="contact-icon">📸</span>
+      <span class="contact-label">Instagram</span>
+      <span class="contact-value">@yunyMD</span>
+      <span class="contact-note">DMs open — follow for new drops</span>
+    </a>
+    <a class="contact-card" href="https://tiktok.com/@yunyMD" target="_blank">
+      <span class="contact-icon">🎵</span>
+      <span class="contact-label">TikTok</span>
+      <span class="contact-value">@yunyMD</span>
+      <span class="contact-note">Behind the scenes & tutorials</span>
+    </a>
+    <a class="contact-card" href="https://facebook.com/YunyMarkDig" target="_blank" style="grid-column:span 1">
+      <span class="contact-icon">👍</span>
+      <span class="contact-label">Facebook</span>
+      <span class="contact-value">Yuny Mark Dig</span>
+      <span class="contact-note">Updates & community</span>
+    </a>
+    <div class="contact-card" style="cursor:default;">
+      <span class="contact-icon">📍</span>
+      <span class="contact-label">Location</span>
+      <span class="contact-value">Elizabeth, New Jersey</span>
+      <span class="contact-note">Shipping within the US</span>
+    </div>
+  </div>
+
+  <div class="divider"></div>
+
+  <h2 class="faq-title">Common <em>Questions</em></h2>
+  <div class="faq-list">
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-question">How long does shipping take? <span>+</span></div>
+      <div class="faq-answer">Standard shipping takes 5–7 business days. Express shipping takes 2–3 business days. Orders are processed within 1–2 business days after payment is confirmed.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-question">Do you ship outside the US? <span>+</span></div>
+      <div class="faq-answer">Currently we ship within the United States only. We're working on expanding to international shipping soon — follow us on Instagram for updates.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-question">When do I get free shipping? <span>+</span></div>
+      <div class="faq-answer">Orders of $25 or more qualify for free standard shipping automatically — no code needed. Just add your items and the free shipping option will appear at checkout.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-question">How do I track my order? <span>+</span></div>
+      <div class="faq-answer">Once your order ships, you'll receive an email with your tracking number. You can also view your order status anytime in your account under My Orders.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-question">Are your products really vegan? <span>+</span></div>
+      <div class="faq-answer">Yes, 100%. All Canela Beauty products are made with plant-based, cruelty-free ingredients. No animal byproducts, no animal testing — ever.</div>
+    </div>
+    <div class="faq-item" onclick="toggleFaq(this)">
+      <div class="faq-question">What is your return policy? <span>+</span></div>
+      <div class="faq-answer">Due to hygiene reasons, we cannot accept returns on opened lip products. If your product arrives damaged or incorrect, contact us within 7 days and we'll send a replacement or issue a full refund. See our full Return Policy for details.</div>
+    </div>
+  </div>
+</div>
+
+<script>
+function toggleFaq(el){ el.classList.toggle('open'); }
+</script>
+</body>
+</html>

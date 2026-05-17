@@ -3,8 +3,39 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Canela Beauty</title>
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+
+  <!-- Primary SEO -->
+  <title>Canela Beauty — Handmade Vegan Lip Gloss</title>
+  <meta name="description" content="Handmade, vegan lip gloss crafted in small batches with natural ingredients. Nourishing colors that shine and last all day. Free shipping on orders $25+." />
+  <meta name="keywords" content="vegan lip gloss, handmade lip gloss, natural lip gloss, cruelty free, canela beauty, lip gloss NJ" />
+  <meta name="author" content="Canela Beauty" />
+  <link rel="canonical" href="https://canelabeauty.vercel.app" />
+
+  <!-- Open Graph (Facebook, Instagram, WhatsApp) -->
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://canelabeauty.vercel.app" />
+  <meta property="og:title" content="Canela Beauty — Handmade Vegan Lip Gloss" />
+  <meta property="og:description" content="Vegan and handmade gloss crafted with natural ingredients. Colors that nourish, shine, and last all day. Free shipping on orders $25+." />
+  <meta property="og:image" content="https://canelabeauty.vercel.app/og-image.jpg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:site_name" content="Canela Beauty" />
+  <meta property="og:locale" content="en_US" />
+
+  <!-- Twitter / X -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Canela Beauty — Handmade Vegan Lip Gloss" />
+  <meta name="twitter:description" content="Vegan and handmade gloss crafted with natural ingredients. Colors that nourish, shine, and last all day." />
+  <meta name="twitter:image" content="https://canelabeauty.vercel.app/og-image.jpg" />
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+  <!-- Theme color (browser UI color on mobile) -->
+  <meta name="theme-color" content="#FEFCFA" />
+
+  <!-- Fonts -->
   <style>
     :root {
       --bg:        #FEFCFA;
@@ -390,9 +421,9 @@
   <div class="mobile-contact">
     <p>Get in touch</p>
     <div class="mobile-contact-links">
-      <a href="mailto:hello@canelabauty.com">✉ hello@canelabauty.com</a>
-      <a href="https://wa.me/19082205337" target="_blank">💬 WhatsApp us</a>
-      <a href="https://instagram.com/canelabauty" target="_blank">📸 @canelabauty</a>
+      <a href="mailto:jcnay157@gmail.com">✉ jcnay157@gmail.com</a>
+      <a href="https://wa.me/19086774196" target="_blank">💬 WhatsApp us</a>
+      <a href="https://instagram.com/yunyMD" target="_blank">📸 @yunyMD</a>
     </div>
   </div>
   <div class="mobile-cart-row">
@@ -419,6 +450,7 @@
       <a href="/auth" id="navSignIn">Sign In</a>
     </span>
     <button class="cart-btn desktop-only" onclick="openCart()">Cart (<span id="cartCount">0</span>)</button>
+    <a id="mobileUserGreet" href="/account" style="display:none;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-decoration:none;"></a>
     <button class="cart-btn mobile-cart-icon" onclick="openCart()" style="display:none;padding:8px 14px;">🛍 <span id="cartCountMobile">0</span></button>
     <button class="hamburger" id="hamburger" onclick="toggleMobileMenu()">
       <span></span><span></span><span></span>
@@ -526,9 +558,9 @@
   <div class="footer-top">
     <div class="footer-logo">Canela <em>Beauty</em></div>
     <ul class="footer-links">
-      <li><a href="#">Privacy Policy</a></li>
-      <li><a href="#">Return Policy</a></li>
-      <li><a href="#">Contact</a></li>
+      <li><a href="/privacy">Privacy Policy</a></li>
+      <li><a href="/returns">Return Policy</a></li>
+      <li><a href="/contact">Contact</a></li>
     </ul>
     <div class="payment-icons">
       <span class="pay-badge">Visa</span>
@@ -539,7 +571,7 @@
     </div>
   </div>
   <div class="footer-bottom">
-    <span>© 2026, Canela Beauty · All rights reserved</span>
+    <span>© 2026, Canela Beauty · Elizabeth, NJ · All rights reserved</span>
     <div style="display:flex;gap:18px"><a href="#">Privacy</a><a href="#">Returns</a></div>
   </div>
 </footer>
@@ -756,16 +788,17 @@ function initAuthState(){
   const user = JSON.parse(localStorage.getItem('canela_user') || 'null');
   const area = document.getElementById('navAuthArea');
   const mobileAuthLink = document.getElementById('mobileAuthLink');
+  const mobileGreet = document.getElementById('mobileUserGreet');
 
   if(user){
     const firstName = (user.name || user.email).split(' ')[0];
-    if(area) area.innerHTML = `<a href="/account" style="color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--brown)'" onmouseout="this.style.color='var(--muted)'">Hi, ${firstName}</a>`;
-    if(mobileAuthLink) mobileAuthLink.textContent = `Hi, ${firstName}`;
-    if(mobileAuthLink) mobileAuthLink.href = '/account';
+    if(area) area.innerHTML = `<a href="/account" style="color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;" onmouseover="this.style.color='var(--brown)'" onmouseout="this.style.color='var(--muted)'">Hi, ${firstName}</a>`;
+    if(mobileAuthLink){ mobileAuthLink.textContent = `Hi, ${firstName}`; mobileAuthLink.href='/account'; }
+    if(mobileGreet){ mobileGreet.textContent = `Hi, ${firstName}`; mobileGreet.style.display='block'; }
   } else {
-    if(area) area.innerHTML = `<a href="/auth" style="color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:color .2s" onmouseover="this.style.color='var(--brown)'" onmouseout="this.style.color='var(--muted)'">Sign In</a>`;
-    if(mobileAuthLink) mobileAuthLink.textContent = 'Sign In';
-    if(mobileAuthLink) mobileAuthLink.href = '/auth';
+    if(area) area.innerHTML = `<a href="/auth" style="color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;" onmouseover="this.style.color='var(--brown)'" onmouseout="this.style.color='var(--muted)'">Sign In</a>`;
+    if(mobileAuthLink){ mobileAuthLink.textContent='Sign In'; mobileAuthLink.href='/auth'; }
+    if(mobileGreet) mobileGreet.style.display='none';
   }
 }
 </script>
