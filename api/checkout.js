@@ -1,5 +1,3 @@
-const Stripe = require("stripe");
-
 module.exports = async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
@@ -8,68 +6,71 @@ module.exports = async function handler(req, res) {
   if (req.method === "OPTIONS") return res.status(200).end();
   if (req.method !== "POST") return res.status(405).json({ error: "Method not allowed" });
 
-  if (!process.env.STRIPE_SECRET_KEY) {
-    return res.status(500).json({ error: "Stripe key not configured" });
-  }
-
-  const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
-    apiVersion: "2023-10-16",
-  });
+  const key = process.env.STRIPE_SECRET_KEY;
+  if (!key) return res.status(500).json({ error: "Stripe key not configured" });
 
   try {
-    const { items, customerEmail } = req.body;
+    let body = req.body;
+    if (typeof body === "string") body = JSON.parse(body);
+    if (!body) body = {};
 
-    if (!items || items.length === 0) {
-      return res.status(400).json({ error: "No items in cart" });
+    const { items, customerEmail } = body;
+    console.log("Items received:", JSON.stringify(items));
+
+    if (!items || !items.length) return res.status(400).json({ error: "No items" });
+
+    const origin = "https://canelabeauty.vercel.app";
+
+    // Build form-encoded body for Stripe REST API — no SDK needed
+    const params = new URLSearchParams();
+    params.append("mode", "payment");
+    params.append("success_url", `${origin}/success.html?session_id={CHECKOUT_SESSION_ID}`);
+    params.append("cancel_url", `${origin}/cancel.html`);
+    params.append("shipping_address_collection[allowed_countries][0]", "US");
+
+    // Add line items
+    items.forEach((item, i) => {
+      params.append(`line_items[${i}][price_data][currency]`, "usd");
+      params.append(`line_items[${i}][price_data][product_data][name]`, item.name);
+      params.append(`line_items[${i}][price_data][unit_amount]`, String(Math.round(item.price * 100)));
+      params.append(`line_items[${i}][quantity]`, String(item.qty));
+    });
+
+    // Shipping options
+    params.append("shipping_options[0][shipping_rate_data][type]", "fixed_amount");
+    params.append("shipping_options[0][shipping_rate_data][display_name]", "Free shipping (5-7 days)");
+    params.append("shipping_options[0][shipping_rate_data][fixed_amount][amount]", "0");
+    params.append("shipping_options[0][shipping_rate_data][fixed_amount][currency]", "usd");
+
+    params.append("shipping_options[1][shipping_rate_data][type]", "fixed_amount");
+    params.append("shipping_options[1][shipping_rate_data][display_name]", "Express (2-3 days)");
+    params.append("shipping_options[1][shipping_rate_data][fixed_amount][amount]", "799");
+    params.append("shipping_options[1][shipping_rate_data][fixed_amount][currency]", "usd");
+
+    if (customerEmail) params.append("customer_email", customerEmail);
+
+    // Call Stripe REST API directly
+    const response = await fetch("https://api.stripe.com/v1/checkout/sessions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${key}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: params.toString(),
+    });
+
+    const data = await response.json();
+    console.log("Stripe response status:", response.status);
+
+    if (!response.ok) {
+      console.error("Stripe error:", JSON.stringify(data.error));
+      return res.status(500).json({ error: data.error?.message || "Stripe error" });
     }
 
-    const line_items = items.map((item) => ({
-      price_data: {
-        currency: "usd",
-        product_data: { name: item.name },
-        unit_amount: Math.round(item.price * 100),
-      },
-      quantity: item.qty,
-    }));
-
-    const origin = req.headers.origin || "https://canelabeauty.vercel.app";
-
-    const sessionConfig = {
-      payment_method_types: ["card"],
-      line_items,
-      mode: "payment",
-      success_url: `${origin}/success.html?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url:  `${origin}/cancel.html`,
-      shipping_address_collection: {
-        allowed_countries: ["US"],
-      },
-      shipping_options: [
-        {
-          shipping_rate_data: {
-            type: "fixed_amount",
-            fixed_amount: { amount: 0, currency: "usd" },
-            display_name: "Free shipping (5–7 business days)",
-          },
-        },
-        {
-          shipping_rate_data: {
-            type: "fixed_amount",
-            fixed_amount: { amount: 799, currency: "usd" },
-            display_name: "Express (2–3 business days)",
-          },
-        },
-      ],
-    };
-
-    if (customerEmail) {
-      sessionConfig.customer_email = customerEmail;
-    }
-
-    const session = await stripe.checkout.sessions.create(sessionConfig);
-    return res.status(200).json({ url: session.url });
+    return res.status(200).json({ url: data.url });
 
   } catch (err) {
-    console.error("Stripe error:", err.message);
+    console.error("Handler error:", err.message);
     return res.status(500).json({ error: err.message });
   }
 };
