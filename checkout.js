@@ -17,7 +17,6 @@ module.exports = async function handler(req, res) {
     const { items, customerEmail } = body;
     if (!items || !items.length) return res.status(400).json({ error: "No items" });
 
-    // Calculate order subtotal
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
     const freeShipping = subtotal >= 25;
 
@@ -25,11 +24,11 @@ module.exports = async function handler(req, res) {
     const params = new URLSearchParams();
 
     params.append("mode", "payment");
+    params.append("allow_promotion_codes", "true");
     params.append("success_url", `${origin}/success.html?session_id={CHECKOUT_SESSION_ID}`);
     params.append("cancel_url", `${origin}/cancel.html`);
     params.append("shipping_address_collection[allowed_countries][0]", "US");
 
-    // Line items
     items.forEach((item, i) => {
       params.append(`line_items[${i}][price_data][currency]`, "usd");
       params.append(`line_items[${i}][price_data][product_data][name]`, item.name);
@@ -37,25 +36,24 @@ module.exports = async function handler(req, res) {
       params.append(`line_items[${i}][quantity]`, String(item.qty));
     });
 
-    // Shipping options — free standard if subtotal >= $25
     if (freeShipping) {
-      // Free standard
+      // $25+ → free standard + paid express
       params.append("shipping_options[0][shipping_rate_data][type]", "fixed_amount");
       params.append("shipping_options[0][shipping_rate_data][display_name]", "Free Standard Shipping (5-7 days)");
       params.append("shipping_options[0][shipping_rate_data][fixed_amount][amount]", "0");
       params.append("shipping_options[0][shipping_rate_data][fixed_amount][currency]", "usd");
-      // Express
+
       params.append("shipping_options[1][shipping_rate_data][type]", "fixed_amount");
       params.append("shipping_options[1][shipping_rate_data][display_name]", "Express Shipping (2-3 days)");
       params.append("shipping_options[1][shipping_rate_data][fixed_amount][amount]", "1299");
       params.append("shipping_options[1][shipping_rate_data][fixed_amount][currency]", "usd");
     } else {
-      // Standard $5.99
+      // Under $25 → only paid options, no free shipping available
       params.append("shipping_options[0][shipping_rate_data][type]", "fixed_amount");
       params.append("shipping_options[0][shipping_rate_data][display_name]", "Standard Shipping (5-7 days)");
       params.append("shipping_options[0][shipping_rate_data][fixed_amount][amount]", "599");
       params.append("shipping_options[0][shipping_rate_data][fixed_amount][currency]", "usd");
-      // Express $12.99
+
       params.append("shipping_options[1][shipping_rate_data][type]", "fixed_amount");
       params.append("shipping_options[1][shipping_rate_data][display_name]", "Express Shipping (2-3 days)");
       params.append("shipping_options[1][shipping_rate_data][fixed_amount][amount]", "1299");

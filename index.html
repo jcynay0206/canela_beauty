@@ -546,10 +546,19 @@
 <!-- NEWSLETTER -->
 <section class="newsletter" id="newsletter">
   <h3>Join the Canela Family</h3>
-  <p>Subscribe to receive updates, exclusive deals and beauty tips.</p>
-  <div class="email-form">
+  <p>Subscribe and get <strong style="color:var(--gold)">10% off</strong> your first order.</p>
+  <div class="email-form" id="emailFormWrap">
     <input type="email" placeholder="Your email address" id="emailInput" />
     <button onclick="handleSubscribe()">Subscribe</button>
+  </div>
+  <div id="couponReveal" style="display:none;text-align:center;margin-top:20px;">
+    <p style="font-size:12px;color:var(--muted);margin-bottom:12px;">Your welcome code is ready — use it at checkout:</p>
+    <div style="display:inline-flex;align-items:center;gap:12px;background:var(--bg3);border:1.5px dashed var(--border2);border-radius:3px;padding:14px 24px;">
+      <span style="font-family:'Cormorant Garamond',serif;font-size:28px;font-weight:300;color:var(--brown);letter-spacing:4px;">WELCOME10</span>
+      <button onclick="copyCode()" id="copyBtn" style="background:var(--brown);color:#FAF6EF;border:none;padding:8px 14px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;">Copy</button>
+    </div>
+    <p style="font-size:11px;color:var(--muted);margin-top:10px;">10% off · First purchase only · No expiration</p>
+    <a href="#catalog" style="display:inline-block;margin-top:16px;background:var(--brown);color:#FAF6EF;padding:12px 28px;border-radius:2px;text-decoration:none;font-size:10px;letter-spacing:3px;text-transform:uppercase;">Shop Now</a>
   </div>
 </section>
 
@@ -756,7 +765,20 @@ function addFromModal(){ if(!currentProduct||currentProduct.soldOut) return; add
 function handleSubscribe(){
   const inp=document.getElementById('emailInput');
   if(!inp.value||!inp.value.includes('@')){ showToast('Enter a valid email'); return; }
-  showToast('Welcome to the family!'); inp.value='';
+  // Hide form, show coupon
+  document.getElementById('emailFormArea').style.display='none';
+  document.getElementById('couponReveal').style.display='block';
+  // Save email locally
+  localStorage.setItem('canela_subscribed', inp.value);
+}
+
+function copyCoupon(){
+  navigator.clipboard.writeText('WELCOME10').then(()=>{
+    const btn=document.getElementById('copyBtn');
+    btn.textContent='Copied! ✓';
+    btn.style.background='var(--green)';
+    setTimeout(()=>{ btn.textContent='Copy Code'; btn.style.background='var(--brown)'; },2500);
+  }).catch(()=>showToast('Code: WELCOME10'));
 }
 
 let toastTimer;
