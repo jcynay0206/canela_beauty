@@ -5,28 +5,28 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
   <!-- Primary SEO -->
-  <title>Canela Beauty — Handmade Vegan Lip Gloss</title>
+  <title>Jonara Beauty — Handmade Vegan Lip Gloss</title>
   <meta name="description" content="Handmade, vegan lip gloss crafted in small batches with natural ingredients. Nourishing colors that shine and last all day. Free shipping on orders $25+." />
-  <meta name="keywords" content="vegan lip gloss, handmade lip gloss, natural lip gloss, cruelty free, canela beauty, lip gloss NJ" />
-  <meta name="author" content="Canela Beauty" />
-  <link rel="canonical" href="https://canelabeauty.vercel.app" />
+  <meta name="keywords" content="vegan lip gloss, handmade lip gloss, natural lip gloss, cruelty free, jonara beauty, lip gloss NJ" />
+  <meta name="author" content="Jonara Beauty" />
+  <link rel="canonical" href="https://jonarabeauty.vercel.app" />
 
   <!-- Open Graph (Facebook, Instagram, WhatsApp) -->
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://canelabeauty.vercel.app" />
-  <meta property="og:title" content="Canela Beauty — Handmade Vegan Lip Gloss" />
+  <meta property="og:url" content="https://jonarabeauty.vercel.app" />
+  <meta property="og:title" content="Jonara Beauty — Handmade Vegan Lip Gloss" />
   <meta property="og:description" content="Vegan and handmade gloss crafted with natural ingredients. Colors that nourish, shine, and last all day. Free shipping on orders $25+." />
-  <meta property="og:image" content="https://canelabeauty.vercel.app/og-image.jpg" />
+  <meta property="og:image" content="https://jonarabeauty.vercel.app/og-image.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
-  <meta property="og:site_name" content="Canela Beauty" />
+  <meta property="og:site_name" content="Jonara Beauty" />
   <meta property="og:locale" content="en_US" />
 
   <!-- Twitter / X -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="Canela Beauty — Handmade Vegan Lip Gloss" />
+  <meta name="twitter:title" content="Jonara Beauty — Handmade Vegan Lip Gloss" />
   <meta name="twitter:description" content="Vegan and handmade gloss crafted with natural ingredients. Colors that nourish, shine, and last all day." />
-  <meta name="twitter:image" content="https://canelabeauty.vercel.app/og-image.jpg" />
+  <meta name="twitter:image" content="https://jonarabeauty.vercel.app/og-image.jpg" />
 
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
@@ -290,13 +290,15 @@
 
     #navAuthArea a{color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:color .2s;}
     #navAuthArea a:hover{color:var(--brown);}
+    #mobileUserGreet{display:none;}
 
     @media(max-width:960px){
+      #navAuthArea{display:none!important;}
+      #mobileUserGreet{display:block!important;}
       /* Nav */
       nav{padding:12px 20px;}
       .nav-links{display:none!important;}
       .desktop-only{display:none!important;}
-      #navAuthArea{display:none!important;}
       .mobile-cart-icon{display:flex!important;}
       .hamburger{display:flex;}
       /* Announcement */
@@ -388,7 +390,7 @@
       <div class="modal-img-bg" id="modalImgBg"></div>
     </div>
     <div class="modal-info">
-      <p class="modal-eyebrow">Canela Beauty</p>
+      <p class="modal-eyebrow">Jonara Beauty</p>
       <h2 class="modal-title" id="modalTitle"></h2>
       <p class="modal-price" id="modalPrice"></p>
       <p class="modal-desc" id="modalDesc"></p>
@@ -444,7 +446,7 @@
     <li><a href="#process">Our Process</a></li>
     <li><a href="#newsletter">Contact</a></li>
   </ul>
-  <button class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">Canela <em>Beauty</em></button>
+  <button class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">Jonara <em>Beauty</em></button>
   <div class="nav-actions">
     <span id="navAuthArea">
       <a href="/auth" id="navSignIn">Sign In</a>
@@ -498,15 +500,16 @@
     <p class="section-tag">Most Loved</p>
     <h2 class="section-title">Our <em>Favorites</em></h2>
   </div>
+  <div class="collections-filter" id="collectionsFilter"></div>
   <div class="products-grid" id="productsGrid"></div>
 </section>
 
 <!-- PROCESS SECTION -->
-<section class="process-section" id="process">
+<section class="process-section reveal" id="process">
   <div class="section-header">
     <p class="section-tag">Behind the Gloss</p>
     <h2 class="section-title">Made with <em>intention</em></h2>
-    <p class="process-sub">Every Canela gloss is handcrafted in small batches — no shortcuts, no fillers. Just clean ingredients, real color, and care in every step.</p>
+    <p class="process-sub">Every Jonara gloss is handcrafted in small batches — no shortcuts, no fillers. Just clean ingredients, real color, and care in every step.</p>
   </div>
   <div class="process-steps">
     <div class="process-step">
@@ -533,7 +536,7 @@
 </section>
 
 <!-- VALUES -->
-<section class="values-banner">
+<section class="values-banner reveal">
   <span class="val-text">Handmade · <em>Natural</em> · Vegan</span>
   <div class="values-pills">
     <span class="pill">✦ Cruelty Free</span>
@@ -544,8 +547,8 @@
 </section>
 
 <!-- NEWSLETTER -->
-<section class="newsletter" id="newsletter">
-  <h3>Join the Canela Family</h3>
+<section class="newsletter reveal" id="newsletter">
+  <h3>Join the Jonara Family</h3>
   <p>Subscribe and get <strong style="color:var(--gold)">10% off</strong> your first order.</p>
   <div class="email-form" id="emailFormWrap">
     <input type="email" placeholder="Your email address" id="emailInput" />
@@ -565,7 +568,7 @@
 <!-- FOOTER -->
 <footer>
   <div class="footer-top">
-    <div class="footer-logo">Canela <em>Beauty</em></div>
+    <div class="footer-logo">Jonara <em>Beauty</em></div>
     <ul class="footer-links">
       <li><a href="/privacy">Privacy Policy</a></li>
       <li><a href="/returns">Return Policy</a></li>
@@ -580,7 +583,7 @@
     </div>
   </div>
   <div class="footer-bottom">
-    <span>© 2026, Canela Beauty · Elizabeth, NJ · All rights reserved</span>
+    <span>© 2026, Jonara Beauty · Elizabeth, NJ · All rights reserved</span>
     <div style="display:flex;gap:18px"><a href="#">Privacy</a><a href="#">Returns</a></div>
   </div>
 </footer>
@@ -588,19 +591,19 @@
 <script>
 const STORAGE_KEY = 'canela_products';
 const DEFAULT_PRODUCTS = [
-  { id:1, name:'Sweet Cinnamon', price:10.50, oldPrice:null, soldOut:false, isNew:true,
+  { id:1, name:'Sweet Cinnamon', price:10.50, oldPrice:null, soldOut:false, isNew:true, collection:'Signature',
     bg:'linear-gradient(160deg,#EDD8B0,#E8C890)', capClass:'mgc1', tubeClass:'mg1',
     desc:'A warm honey-tinted gloss with a hint of real cinnamon extract. Plumps and hydrates lips all day with a glossy, non-sticky finish.',
     badges:['Vegan','Hydrating','Long-lasting'], shades:['#C07850','#A05830','#E09870','#D0804A'] },
-  { id:2, name:'Rose Petal', price:9.50, oldPrice:12.00, soldOut:false, isNew:false,
+  { id:2, name:'Rose Petal', price:9.50, oldPrice:12.00, soldOut:false, isNew:false, collection:'Signature',
     bg:'linear-gradient(160deg,#EDD0C0,#E8C0B0)', capClass:'mgc2', tubeClass:'mg2',
     desc:'Delicate rose-tinted gloss infused with rose hip oil and vitamin E. Gives lips a soft romantic flush with a sheer buildable finish.',
     badges:['Vegan','Rose Hip Oil','Vitamin E'], shades:['#C0507A','#E090B0','#A03060','#F0B0C8'] },
-  { id:3, name:'Golden Honey', price:8.00, oldPrice:null, soldOut:true, isNew:false,
+  { id:3, name:'Golden Honey', price:8.00, oldPrice:null, soldOut:true, isNew:false, collection:'Glow',
     bg:'linear-gradient(160deg,#EAD8A8,#E4CC88)', capClass:'mgc3', tubeClass:'mg3',
     desc:'A golden-nude gloss with pure raw honey extract and jojoba oil. Restores moisture and leaves lips with a luminous sun-kissed glow.',
     badges:['Vegan','Honey Extract','Jojoba Oil'], shades:['#C09050','#E0B060','#A07030','#D0A040'] },
-  { id:4, name:'Terracotta Nude', price:11.00, oldPrice:null, soldOut:false, isNew:false,
+  { id:4, name:'Terracotta Nude', price:11.00, oldPrice:null, soldOut:false, isNew:false, collection:'Nude Edit',
     bg:'linear-gradient(160deg,#E8CEB8,#E0BCA0)', capClass:'mgc4', tubeClass:'mg4',
     desc:'A sophisticated terracotta-nude with warm earthy undertones. Enriched with argan oil and shea butter for intense nourishment and shine.',
     badges:['Vegan','Argan Oil','Shea Butter'], shades:['#B06040','#D08060','#906040','#C07858'] }
@@ -617,6 +620,9 @@ const PRODUCTS = getProducts().map(p => ({
   soldOut: (p.stock !== null && p.stock !== undefined) ? p.stock === 0 : p.soldOut
 }));
 
+// Active collection filter
+let activeCollection = 'All';
+
 let cart=[], modalQty=1, currentProduct=null;
 
 function gloss(cap,tube,scale){
@@ -626,17 +632,37 @@ function gloss(cap,tube,scale){
 }
 
 function renderProducts(){
-  document.getElementById('productsGrid').innerHTML = PRODUCTS.map((p,i)=>`
-    <div class="product-card" style="animation:fadeUp .6s ease ${i*.08}s both" onclick="openModal(${p.id})">
+  // Build collection filters
+  const collections = ['All', ...new Set(PRODUCTS.map(p=>p.collection).filter(Boolean))];
+  document.getElementById('collectionsFilter').innerHTML = collections.map(c=>`
+    <button class="collection-btn${c===activeCollection?' active':''}" onclick="filterCollection('${c}')">${c}</button>
+  `).join('');
+
+  // Filter products
+  const filtered = activeCollection==='All' ? PRODUCTS : PRODUCTS.filter(p=>p.collection===activeCollection);
+
+  document.getElementById('productsGrid').innerHTML = filtered.map((p,i)=>`
+    <div class="product-card reveal reveal-delay-${Math.min(i+1,4)}" onclick="openModal(${p.id})">
       <div class="product-img">
-        <div class="pimg-inner ${['p1','p2','p3','p4'][i]}">${gloss(p.capClass,p.tubeClass,1.1)}</div>
+        <div class="pimg-inner ${['p1','p2','p3','p4'][PRODUCTS.indexOf(p)%4]}">${gloss(p.capClass,p.tubeClass,1.1)}</div>
         ${p.isNew?'<span class="badge-new">New</span>':''}
         ${p.soldOut?'<span class="badge-sold">Sold Out</span>':''}
         <div class="quick-add" onclick="quickAdd(event,${p.id})">${p.soldOut?'View Details':'+ Add to Cart'}</div>
       </div>
+      ${p.collection?`<span class="collection-tag">${p.collection}</span>`:''}
       <p class="product-name">${p.name}</p>
       <p class="product-price">${p.oldPrice?`<s>$${p.oldPrice.toFixed(2)}</s> `:''}$${p.price.toFixed(2)} USD</p>
     </div>`).join('');
+
+  // Trigger reveal for newly rendered cards
+  setTimeout(()=>{
+    document.querySelectorAll('#productsGrid .reveal').forEach(el=>el.classList.add('visible'));
+  }, 50);
+}
+
+function filterCollection(name){
+  activeCollection = name;
+  renderProducts();
 }
 
 function quickAdd(e,id){ e.stopPropagation(); const p=PRODUCTS.find(x=>x.id===id); p.soldOut?openModal(id):addToCart(p,1); }
@@ -804,6 +830,21 @@ function closeMobileMenu(){
 }
 
 renderProducts(); updateCartUI(); initAuthState();
+
+// ── SCROLL REVEAL ──────────────────────────────────────────
+const revealObserver = new IntersectionObserver((entries)=>{
+  entries.forEach(entry=>{
+    if(entry.isIntersecting){
+      entry.target.classList.add('visible');
+      revealObserver.unobserve(entry.target);
+    }
+  });
+}, { threshold: 0.12 });
+
+function observeReveals(){
+  document.querySelectorAll('.reveal:not(.visible)').forEach(el=>revealObserver.observe(el));
+}
+observeReveals();
 
 // ─── AUTH STATE ──────────────────────────────────────────
 function initAuthState(){
