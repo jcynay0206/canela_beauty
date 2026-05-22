@@ -38,21 +38,21 @@
   <!-- Fonts -->
   <style>
     :root {
-      --bg:        #FEFCFA;
-      --bg2:       #FBF6F1;
-      --bg3:       #F7EEE7;
-      --card:      #F9EDE6;
-      --card-gold: #F5E4D8;
-      --border:    rgba(160,90,60,0.12);
-      --border2:   rgba(160,90,60,0.22);
-      --gold:      #C4784A;
-      --gold-lite: #D9987A;
-      --gold-card: #EBB89A;
-      --gold-dim:  rgba(196,120,74,0.5);
-      --brown:     #4A2418;
-      --brown2:    #6B3828;
-      --muted:     rgba(74,36,24,0.45);
-      --muted2:    rgba(74,36,24,0.25);
+      --bg:        #FDF9F7;
+      --bg2:       #F8F1ED;
+      --bg3:       #F2E8E3;
+      --card:      #F5E8E2;
+      --card-gold: #F0E0D4;
+      --border:    rgba(92,26,36,0.10);
+      --border2:   rgba(92,26,36,0.20);
+      --gold:      #B8943C;
+      --gold-lite: #D4B060;
+      --gold-card: #E8C87A;
+      --gold-dim:  rgba(184,148,60,0.55);
+      --brown:     #5C1A24;
+      --brown2:    #7A2030;
+      --muted:     rgba(92,26,36,0.45);
+      --muted2:    rgba(92,26,36,0.22);
     }
     *{margin:0;padding:0;box-sizing:border-box;}
     html{scroll-behavior:smooth;}
@@ -67,6 +67,9 @@
     .nav-links{display:flex;gap:36px;list-style:none;}
     .nav-links a{text-decoration:none;color:var(--muted);font-size:10px;letter-spacing:2.5px;text-transform:uppercase;font-weight:500;transition:color .2s;}
     .nav-links a:hover{color:var(--gold);}
+    .logo-btn{background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;}
+    .nav-logo{height:36px;width:auto;object-fit:contain;transition:opacity .2s;}
+    .logo-btn:hover .nav-logo{opacity:.8;}
     .logo{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:300;letter-spacing:6px;color:var(--brown);text-transform:uppercase;cursor:pointer;background:none;border:none;}
     .logo em{font-style:italic;color:var(--gold);}
     .nav-actions{display:flex;gap:20px;align-items:center;}
@@ -137,6 +140,7 @@
     .mgc4{width:32px;height:26px;background:#A07840;}
 
     .hero-content{position:relative;z-index:2;padding-left:72px;max-width:560px;animation:fadeUp .9s ease .1s both;}
+    .hero-logo{height:72px;width:auto;margin-bottom:20px;filter:drop-shadow(0 4px 16px rgba(92,26,36,0.18));animation:fadeUp .8s ease both;}
     .hero-tag{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border2);padding:6px 14px;border-radius:2px;margin-bottom:28px;}
     .hero-tag span{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--brown2);}
     .hero-tag-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);}
@@ -290,7 +294,17 @@
 
     #navAuthArea a{color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;transition:color .2s;}
     #navAuthArea a:hover{color:var(--brown);}
-    #mobileUserGreet{display:none;}
+
+    /* Mobile greet — hidden on desktop, shown on mobile via media query */
+    #mobileUserGreet{display:none;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-decoration:none;}
+
+    /* Explicit desktop nav visibility */
+    @media(min-width:961px){
+      .nav-links{display:flex!important;}
+      .hamburger{display:none!important;}
+      #mobileUserGreet{display:none!important;}
+      .mobile-cart-icon{display:none!important;}
+    }
 
     @media(max-width:960px){
       #navAuthArea{display:none!important;}
@@ -349,6 +363,7 @@
       .cart-footer{padding:14px 20px;}
       /* Mobile menu */
       .mobile-menu-links a{font-size:34px;}
+      .hero-logo{height:52px;}
     }
 
     @media(max-width:400px){
@@ -412,6 +427,7 @@
 
 <!-- MOBILE MENU -->
 <div class="mobile-menu" id="mobileMenu">
+  <img src="/logo.png" alt="Jonara Beauty" style="height:52px;margin-bottom:32px;opacity:.9"/>
   <ul class="mobile-menu-links">
     <li><a href="#home" onclick="closeMobileMenu()">Home</a></li>
     <li><a href="#catalog" onclick="closeMobileMenu()">Catalog</a></li>
@@ -446,13 +462,15 @@
     <li><a href="#process">Our Process</a></li>
     <li><a href="#newsletter">Contact</a></li>
   </ul>
-  <button class="logo" onclick="window.scrollTo({top:0,behavior:'smooth'})">Jonara <em>Beauty</em></button>
+  <button class="logo-btn" onclick="window.scrollTo({top:0,behavior:'smooth'})">
+    <img src="/logo.png" alt="Jonara Beauty" class="nav-logo"/>
+  </button>
   <div class="nav-actions">
     <span id="navAuthArea">
       <a href="/auth" id="navSignIn">Sign In</a>
     </span>
     <button class="cart-btn desktop-only" onclick="openCart()">Cart (<span id="cartCount">0</span>)</button>
-    <a id="mobileUserGreet" href="/account" style="display:none;font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-decoration:none;"></a>
+    <a id="mobileUserGreet" href="/account"></a>
     <button class="cart-btn mobile-cart-icon" onclick="openCart()" style="display:none;padding:8px 14px;">🛍 <span id="cartCountMobile">0</span></button>
     <button class="hamburger" id="hamburger" onclick="toggleMobileMenu()">
       <span></span><span></span><span></span>
@@ -481,6 +499,7 @@
     </div>
   </div>
   <div class="hero-content">
+    <img src="/logo.png" alt="Jonara Beauty" class="hero-logo"/>
     <div class="hero-tag">
       <div class="hero-tag-dot"></div>
       <span>Spring Collection 2026</span>
@@ -568,7 +587,10 @@
 <!-- FOOTER -->
 <footer>
   <div class="footer-top">
-    <div class="footer-logo">Jonara <em>Beauty</em></div>
+    <div class="footer-logo">
+      <img src="/logo.png" alt="Jonara Beauty" style="height:48px;opacity:.85;filter:sepia(.2)"/>
+      <p style="font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-top:8px;">Made with love. Worn with meaning.</p>
+    </div>
     <ul class="footer-links">
       <li><a href="/privacy">Privacy Policy</a></li>
       <li><a href="/returns">Return Policy</a></li>
@@ -855,13 +877,16 @@ function initAuthState(){
 
   if(user){
     const firstName = (user.name || user.email).split(' ')[0];
+    // Desktop nav — CSS controls visibility
     if(area) area.innerHTML = `<a href="/account" style="color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;" onmouseover="this.style.color='var(--brown)'" onmouseout="this.style.color='var(--muted)'">Hi, ${firstName}</a>`;
-    if(mobileAuthLink){ mobileAuthLink.textContent = `Hi, ${firstName}`; mobileAuthLink.href='/account'; }
-    if(mobileGreet){ mobileGreet.textContent = `Hi, ${firstName}`; mobileGreet.style.display='block'; }
+    // Mobile hamburger link
+    if(mobileAuthLink){ mobileAuthLink.textContent=`Hi, ${firstName}`; mobileAuthLink.href='/account'; }
+    // Mobile nav greeting — CSS controls show/hide
+    if(mobileGreet){ mobileGreet.textContent=`Hi, ${firstName}`; mobileGreet.href='/account'; }
   } else {
     if(area) area.innerHTML = `<a href="/auth" style="color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;text-decoration:none;" onmouseover="this.style.color='var(--brown)'" onmouseout="this.style.color='var(--muted)'">Sign In</a>`;
     if(mobileAuthLink){ mobileAuthLink.textContent='Sign In'; mobileAuthLink.href='/auth'; }
-    if(mobileGreet) mobileGreet.style.display='none';
+    if(mobileGreet){ mobileGreet.textContent='Sign In'; mobileGreet.href='/auth'; }
   }
 }
 </script>
