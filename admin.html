@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Admin — Canela Beauty</title>
+  <title>Admin — Jonara Beauty</title>
   <meta name="robots" content="noindex"/>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
@@ -245,7 +245,7 @@
 <!-- LOGIN -->
 <div id="loginScreen">
   <div class="login-box">
-    <p class="login-logo">Canela <em>Beauty</em></p>
+    <p class="login-logo">Jonara <em>Beauty</em></p>
     <p class="login-sub">Admin Panel</p>
     <input type="password" id="pwInput" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()"/>
     <button onclick="doLogin()">Enter</button>
@@ -256,7 +256,7 @@
 <!-- ADMIN SHELL -->
 <div id="adminShell">
   <div class="top-bar">
-    <span class="top-bar-logo">Canela <em>Beauty</em></span>
+    <span class="top-bar-logo">Jonara <em>Beauty</em></span>
     <div class="top-bar-nav">
       <button class="tab-btn active" onclick="switchTab('products')">Products</button>
       <button class="tab-btn" onclick="switchTab('inventory')">Inventory</button>
@@ -356,10 +356,15 @@
           <span>PNG · JPG · WEBP</span>
         </div>
       </div>
-      <!-- Name -->
+      <!-- Name + Collection -->
       <div class="field">
         <label>Product Name *</label>
         <input type="text" id="fName" placeholder="e.g. Sweet Cinnamon"/>
+      </div>
+      <div class="field">
+        <label>Collection</label>
+        <input type="text" id="fCollection" placeholder="e.g. Signature, Glow, Nude Edit, Holiday..."/>
+        <p class="field-hint">Groups products in the store filter. Leave blank for no collection.</p>
       </div>
       <!-- Price / Old Price / Stock -->
       <div class="field-row">
@@ -614,6 +619,7 @@ function openForm(id){
     document.getElementById('fOldPrice').value='';
     document.getElementById('fStock').value='';
     document.getElementById('fDesc').value='';
+    document.getElementById('fCollection').value='';
     document.getElementById('fIsNew').checked=false;
     document.getElementById('fSoldOut').checked=false;
     resetBadges([]);
@@ -627,6 +633,7 @@ function openForm(id){
     document.getElementById('fStock').value=p.stock!==undefined?p.stock:'';
     document.getElementById('fDesc').value=p.desc||'';
     document.getElementById('fIsNew').checked=!!p.isNew;
+    document.getElementById('fCollection').value=p.collection||'';
     document.getElementById('fSoldOut').checked=!!p.soldOut;
     currentShades=[...(p.shades||[])];
     currentImage=p.image||null;
@@ -652,6 +659,7 @@ function saveProduct(){
   const stock = stockV!==''?parseInt(stockV):null;
   const desc  = document.getElementById('fDesc').value.trim();
   const isNew = document.getElementById('fIsNew').checked;
+  const collection = document.getElementById('fCollection').value.trim();
   const forcedSoldOut = document.getElementById('fSoldOut').checked;
   const badges=[...document.querySelectorAll('#badgeChips .badge-chip.selected')].map(b=>b.textContent);
 
@@ -664,14 +672,14 @@ function saveProduct(){
 
   if(editingId===null){
     products.push({
-      id:Date.now(),name,price,oldPrice:oldP,stock,desc,isNew,soldOut,
+      id:Date.now(),name,price,oldPrice:oldP,stock,desc,isNew,soldOut,collection,
       badges,shades:currentShades,image:currentImage,
       bg:shadeGradient(currentShades),capClass:'mgc1',tubeClass:'mg1'
     });
     showToast(`${name} added!`);
   } else {
     const idx=products.findIndex(x=>x.id===editingId);
-    if(idx>-1) products[idx]={...products[idx],name,price,oldPrice:oldP,stock,desc,isNew,soldOut,badges,shades:currentShades,image:currentImage,bg:shadeGradient(currentShades)};
+    if(idx>-1) products[idx]={...products[idx],name,price,oldPrice:oldP,stock,desc,isNew,soldOut,collection,badges,shades:currentShades,image:currentImage,bg:shadeGradient(currentShades)};
     showToast(`${name} saved!`);
   }
 
@@ -855,7 +863,7 @@ function exportCSV(){
   const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download=`canela-beauty-orders-${new Date().toISOString().slice(0,10)}.csv`;
+  a.download=`jonara-beauty-orders-${new Date().toISOString().slice(0,10)}.csv`;
   a.click();
   showToast('CSV exported!');
 }
