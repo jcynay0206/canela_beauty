@@ -517,7 +517,7 @@
 <section class="products-section" id="catalog">
   <div class="section-header">
     <p class="section-tag">Most Loved</p>
-    <h2 class="section-title">Our <em>Favorites</em></h2>
+    <h2 class="section-title" id="collectionSubtitle">Our <em>Favorites</em></h2>
   </div>
   <div class="collections-filter" id="collectionsFilter"></div>
   <div class="products-grid" id="productsGrid"></div>
@@ -660,6 +660,18 @@ function renderProducts(){
     <button class="collection-btn${c===activeCollection?' active':''}" onclick="filterCollection('${c}')">${c}</button>
   `).join('');
 
+  // Show active collection subtitle
+  const subtitle = document.getElementById('collectionSubtitle');
+  if(subtitle){
+    if(activeCollection==='All'){
+      subtitle.textContent = 'Our Favorites';
+      subtitle.style.display='block';
+    } else {
+      subtitle.innerHTML = `${activeCollection} <em>Collection</em>`;
+      subtitle.style.display='block';
+    }
+  }
+
   // Filter products
   const filtered = activeCollection==='All' ? PRODUCTS : PRODUCTS.filter(p=>p.collection===activeCollection);
 
@@ -671,7 +683,7 @@ function renderProducts(){
         ${p.soldOut?'<span class="badge-sold">Sold Out</span>':''}
         <div class="quick-add" onclick="quickAdd(event,${p.id})">${p.soldOut?'View Details':'+ Add to Cart'}</div>
       </div>
-      ${p.collection?`<span class="collection-tag">${p.collection}</span>`:''}
+      ${p.collection && activeCollection==='All' ? `<span class="collection-tag">${p.collection}</span>` : ''}
       <p class="product-name">${p.name}</p>
       <p class="product-price">${p.oldPrice?`<s>$${p.oldPrice.toFixed(2)}</s> `:''}$${p.price.toFixed(2)} USD</p>
     </div>`).join('');
