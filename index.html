@@ -57,6 +57,20 @@
     *{margin:0;padding:0;box-sizing:border-box;}
     html{scroll-behavior:smooth;}
     body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--brown2);overflow-x:hidden;}
+    /* Watermark */
+    body::before{
+      content:'';
+      position:fixed;
+      inset:0;
+      background-image:url('/logo.png');
+      background-repeat:repeat;
+      background-size:220px auto;
+      opacity:0.025;
+      pointer-events:none;
+      z-index:0;
+    }
+    nav,#mobileMenu,.cart-drawer,.modal-overlay,.cart-overlay{z-index:200;}
+    section,footer{position:relative;z-index:1;}
 
     /* ANNOUNCEMENT */
     .announcement{background:var(--brown);color:#FAF6EF;text-align:center;padding:9px 20px;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;font-weight:500;}
@@ -141,9 +155,9 @@
 
     .hero-content{position:relative;z-index:2;padding-left:72px;max-width:560px;animation:fadeUp .9s ease .1s both;}
     .hero-logo{height:72px;width:auto;margin-bottom:20px;filter:drop-shadow(0 4px 16px rgba(92,26,36,0.18));animation:fadeUp .8s ease both;}
-    .hero-tag{display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border2);padding:6px 14px;border-radius:2px;margin-bottom:28px;}
+
     .hero-tag span{font-size:9px;letter-spacing:3px;text-transform:uppercase;color:var(--brown2);}
-    .hero-tag-dot{width:5px;height:5px;border-radius:50%;background:var(--gold);}
+
     .hero-title{font-family:'Cormorant Garamond',serif;font-size:clamp(50px,6.5vw,84px);font-weight:300;line-height:1.02;color:var(--brown);margin-bottom:22px;letter-spacing:-1px;}
     .hero-title em{font-style:italic;color:var(--gold);}
     .hero-sub{font-size:14px;color:var(--muted);margin-bottom:40px;line-height:1.85;max-width:360px;font-weight:300;}
@@ -328,6 +342,7 @@
       /* Products */
       .products-section{padding:52px 16px;}
       .products-grid{grid-template-columns:repeat(2,1fr);gap:12px;}
+      .collection-group-grid{grid-template-columns:repeat(2,1fr);gap:12px;}
       .product-name{font-size:15px;}
       .product-price{font-size:11px;}
       /* Process */
@@ -500,10 +515,7 @@
   </div>
   <div class="hero-content">
     <img src="/logo.png" alt="Jonara Beauty" class="hero-logo"/>
-    <div class="hero-tag">
-      <div class="hero-tag-dot"></div>
-      <span>Spring Collection 2026</span>
-    </div>
+
     <h1 class="hero-title">Lips that<br><em>captivate</em></h1>
     <p class="hero-sub">Vegan and handmade gloss crafted with natural ingredients. Colors that nourish, shine, and last all day.</p>
     <div class="hero-cta">
@@ -654,44 +666,80 @@ function gloss(cap,tube,scale){
 }
 
 function renderProducts(){
-  // Build collection filters
-  const collections = ['All', ...new Set(PRODUCTS.map(p=>p.collection).filter(Boolean))];
-  document.getElementById('collectionsFilter').innerHTML = collections.map(c=>`
+  const collections = [...new Set(PRODUCTS.map(p=>p.collection).filter(Boolean))];
+  const hasNoCollection = PRODUCTS.some(p=>!p.collection);
+
+  // Build filter buttons
+  const allCollections = ['All', ...collections];
+  document.getElementById('collectionsFilter').innerHTML = allCollections.map(c=>`
     <button class="collection-btn${c===activeCollection?' active':''}" onclick="filterCollection('${c}')">${c}</button>
   `).join('');
 
-  // Show active collection subtitle
+  const grid = document.getElementById('productsGrid');
   const subtitle = document.getElementById('collectionSubtitle');
-  if(subtitle){
-    if(activeCollection==='All'){
-      subtitle.textContent = 'Our Favorites';
-      subtitle.style.display='block';
-    } else {
-      subtitle.innerHTML = `${activeCollection} <em>Collection</em>`;
-      subtitle.style.display='block';
+
+  if(activeCollection === 'All'){
+    // Group by collection
+    subtitle.innerHTML = 'Our <em>Favorites</em>';
+    let html = '';
+
+    // Products with a collection
+    collections.forEach(col => {
+      const colProducts = PRODUCTS.filter(p=>p.collection===col);
+      if(!colProducts.length) return;
+      html += `
+        <div class="collection-group">
+          <div class="collection-group-header">
+            <span class="collection-group-line"></span>
+            <span class="collection-group-name">${col}</span>
+            <span class="collection-group-line"></span>
+          </div>
+          <div class="collection-group-grid">
+            ${colProducts.map((p,i)=>productCardHTML(p,i)).join('')}
+          </div>
+        </div>`;
+    });
+
+    // Products without collection
+    if(hasNoCollection){
+      const uncategorized = PRODUCTS.filter(p=>!p.collection);
+      html += `
+        <div class="collection-group">
+          <div class="collection-group-grid">
+            ${uncategorized.map((p,i)=>productCardHTML(p,i)).join('')}
+          </div>
+        </div>`;
     }
+
+    grid.innerHTML = html;
+    grid.style.display = 'block';
+
+  } else {
+    // Single collection filter
+    subtitle.innerHTML = `${activeCollection} <em>Collection</em>`;
+    const filtered = PRODUCTS.filter(p=>p.collection===activeCollection);
+    grid.style.display = 'grid';
+    grid.innerHTML = filtered.map((p,i)=>productCardHTML(p,i)).join('');
   }
 
-  // Filter products
-  const filtered = activeCollection==='All' ? PRODUCTS : PRODUCTS.filter(p=>p.collection===activeCollection);
+  setTimeout(()=>{
+    document.querySelectorAll('.reveal:not(.visible)').forEach(el=>el.classList.add('visible'));
+    observeReveals();
+  }, 50);
+}
 
-  document.getElementById('productsGrid').innerHTML = filtered.map((p,i)=>`
+function productCardHTML(p, i){
+  return `
     <div class="product-card reveal reveal-delay-${Math.min(i+1,4)}" onclick="openModal(${p.id})">
       <div class="product-img">
-        <div class="pimg-inner ${['p1','p2','p3','p4'][PRODUCTS.indexOf(p)%4]}">${gloss(p.capClass,p.tubeClass,1.1)}</div>
+        <div class="pimg-inner p${(PRODUCTS.indexOf(p)%4)+1}">${gloss(p.capClass,p.tubeClass,1.1)}</div>
         ${p.isNew?'<span class="badge-new">New</span>':''}
         ${p.soldOut?'<span class="badge-sold">Sold Out</span>':''}
         <div class="quick-add" onclick="quickAdd(event,${p.id})">${p.soldOut?'View Details':'+ Add to Cart'}</div>
       </div>
-      ${p.collection && activeCollection==='All' ? `<span class="collection-tag">${p.collection}</span>` : ''}
       <p class="product-name">${p.name}</p>
       <p class="product-price">${p.oldPrice?`<s>$${p.oldPrice.toFixed(2)}</s> `:''}$${p.price.toFixed(2)} USD</p>
-    </div>`).join('');
-
-  // Trigger reveal for newly rendered cards
-  setTimeout(()=>{
-    document.querySelectorAll('#productsGrid .reveal').forEach(el=>el.classList.add('visible'));
-  }, 50);
+    </div>`;
 }
 
 function filterCollection(name){
