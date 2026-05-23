@@ -529,9 +529,8 @@
 <section class="products-section" id="catalog">
   <div class="section-header">
     <p class="section-tag">Most Loved</p>
-    <h2 class="section-title" id="collectionSubtitle">Our <em>Favorites</em></h2>
+    <h2 class="section-title">Our <em>Favorites</em></h2>
   </div>
-  <div class="collections-filter" id="collectionsFilter"></div>
   <div class="products-grid" id="productsGrid"></div>
 </section>
 
@@ -654,8 +653,7 @@ const PRODUCTS = getProducts().map(p => ({
   soldOut: (p.stock !== null && p.stock !== undefined) ? p.stock === 0 : p.soldOut
 }));
 
-// Active collection filter
-let activeCollection = 'All';
+
 
 let cart=[], modalQty=1, currentProduct=null;
 
@@ -666,70 +664,7 @@ function gloss(cap,tube,scale){
 }
 
 function renderProducts(){
-  const collections = [...new Set(PRODUCTS.map(p=>p.collection).filter(Boolean))];
-  const hasNoCollection = PRODUCTS.some(p=>!p.collection);
-
-  // Build filter buttons
-  const allCollections = ['All', ...collections];
-  document.getElementById('collectionsFilter').innerHTML = allCollections.map(c=>`
-    <button class="collection-btn${c===activeCollection?' active':''}" onclick="filterCollection('${c}')">${c}</button>
-  `).join('');
-
-  const grid = document.getElementById('productsGrid');
-  const subtitle = document.getElementById('collectionSubtitle');
-
-  if(activeCollection === 'All'){
-    // Group by collection
-    subtitle.innerHTML = 'Our <em>Favorites</em>';
-    let html = '';
-
-    // Products with a collection
-    collections.forEach(col => {
-      const colProducts = PRODUCTS.filter(p=>p.collection===col);
-      if(!colProducts.length) return;
-      html += `
-        <div class="collection-group">
-          <div class="collection-group-header">
-            <span class="collection-group-line"></span>
-            <span class="collection-group-name">${col}</span>
-            <span class="collection-group-line"></span>
-          </div>
-          <div class="collection-group-grid">
-            ${colProducts.map((p,i)=>productCardHTML(p,i)).join('')}
-          </div>
-        </div>`;
-    });
-
-    // Products without collection
-    if(hasNoCollection){
-      const uncategorized = PRODUCTS.filter(p=>!p.collection);
-      html += `
-        <div class="collection-group">
-          <div class="collection-group-grid">
-            ${uncategorized.map((p,i)=>productCardHTML(p,i)).join('')}
-          </div>
-        </div>`;
-    }
-
-    grid.innerHTML = html;
-    grid.style.display = 'block';
-
-  } else {
-    // Single collection filter
-    subtitle.innerHTML = `${activeCollection} <em>Collection</em>`;
-    const filtered = PRODUCTS.filter(p=>p.collection===activeCollection);
-    grid.style.display = 'grid';
-    grid.innerHTML = filtered.map((p,i)=>productCardHTML(p,i)).join('');
-  }
-
-  setTimeout(()=>{
-    document.querySelectorAll('.reveal:not(.visible)').forEach(el=>el.classList.add('visible'));
-    observeReveals();
-  }, 50);
-}
-
-function productCardHTML(p, i){
-  return `
+  document.getElementById('productsGrid').innerHTML = PRODUCTS.map((p,i)=>`
     <div class="product-card reveal reveal-delay-${Math.min(i+1,4)}" onclick="openModal(${p.id})">
       <div class="product-img">
         <div class="pimg-inner p${(PRODUCTS.indexOf(p)%4)+1}">${gloss(p.capClass,p.tubeClass,1.1)}</div>
@@ -737,14 +672,15 @@ function productCardHTML(p, i){
         ${p.soldOut?'<span class="badge-sold">Sold Out</span>':''}
         <div class="quick-add" onclick="quickAdd(event,${p.id})">${p.soldOut?'View Details':'+ Add to Cart'}</div>
       </div>
+      ${p.collection?`<span class="collection-tag">${p.collection}</span>`:''}
       <p class="product-name">${p.name}</p>
       <p class="product-price">${p.oldPrice?`<s>$${p.oldPrice.toFixed(2)}</s> `:''}$${p.price.toFixed(2)} USD</p>
-    </div>`;
-}
+    </div>`).join('');
 
-function filterCollection(name){
-  activeCollection = name;
-  renderProducts();
+  setTimeout(()=>{
+    document.querySelectorAll('.reveal:not(.visible)').forEach(el=>el.classList.add('visible'));
+    observeReveals();
+  }, 50);
 }
 
 function quickAdd(e,id){ e.stopPropagation(); const p=PRODUCTS.find(x=>x.id===id); p.soldOut?openModal(id):addToCart(p,1); }
