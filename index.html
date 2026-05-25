@@ -201,6 +201,22 @@
     .step-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;color:var(--brown);margin-bottom:10px;}
     .step-desc{font-size:13px;color:var(--muted);line-height:1.75;font-weight:300;}
 
+    /* OUR STORY */
+    .story-section{padding:88px 52px;background:var(--bg2);}
+    .story-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1.2fr 1fr;gap:72px;align-items:center;}
+    .story-title{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,3.5vw,46px);font-weight:300;color:var(--brown);line-height:1.15;margin-bottom:24px;}
+    .story-title em{font-style:italic;color:var(--gold);}
+    .story-divider{width:48px;height:2px;background:var(--gold);margin-bottom:24px;animation:revealLine .8s ease both;}
+    .story-body{font-size:14px;color:var(--muted);line-height:1.9;margin-bottom:16px;font-weight:300;}
+    .story-quote{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:300;color:var(--brown2);line-height:1.7;margin-top:24px;padding-left:20px;border-left:2px solid var(--gold);}
+    .story-quote em{font-style:italic;color:var(--gold);}
+    .story-visual{display:flex;flex-direction:column;align-items:center;gap:36px;}
+    .story-logo{width:220px;opacity:.88;filter:drop-shadow(0 8px 24px rgba(92,26,36,0.12));}
+    .story-badges{display:grid;grid-template-columns:1fr 1fr;gap:12px;width:100%;}
+    .story-badge{background:var(--bg);border:1px solid var(--border2);border-radius:3px;padding:14px 16px;display:flex;align-items:center;gap:10px;transition:border-color .25s,transform .25s;}
+    .story-badge:hover{border-color:var(--gold);transform:translateY(-2px);}
+    .story-badge span{font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:var(--brown2);}
+
     /* VALUES */
     .values-banner{border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--bg3);padding:52px;display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:24px;}
     .val-text{font-family:'Cormorant Garamond',serif;font-size:clamp(16px,2vw,22px);font-weight:300;color:var(--brown);letter-spacing:3px;text-transform:uppercase;white-space:nowrap;}
@@ -348,6 +364,11 @@
       /* Process */
       .process-section{padding:52px 16px;}
       .process-steps{grid-template-columns:repeat(2,1fr);gap:12px;}
+      .story-section{padding:52px 16px;}
+      .story-inner{grid-template-columns:1fr;gap:40px;}
+      .story-visual{order:-1;}
+      .story-logo{width:160px;}
+      .story-badges{grid-template-columns:1fr 1fr;}
       .process-step{padding:20px 14px;}
       .step-icon{font-size:24px;margin-bottom:10px;}
       .step-title{font-size:15px;}
@@ -446,6 +467,7 @@
   <ul class="mobile-menu-links">
     <li><a href="#home" onclick="closeMobileMenu()">Home</a></li>
     <li><a href="#catalog" onclick="closeMobileMenu()">Catalog</a></li>
+    <li><a href="#story" onclick="closeMobileMenu()">Our Story</a></li>
     <li><a href="#process" onclick="closeMobileMenu()">Our Process</a></li>
     <li><a href="#newsletter" onclick="closeMobileMenu()">Contact</a></li>
     <li><a href="/auth" id="mobileAuthLink" onclick="closeMobileMenu()">Sign In</a></li>
@@ -474,6 +496,7 @@
   <ul class="nav-links">
     <li><a href="#home">Home</a></li>
     <li><a href="#catalog">Catalog</a></li>
+    <li><a href="#story">Our Story</a></li>
     <li><a href="#process">Our Process</a></li>
     <li><a href="#newsletter">Contact</a></li>
   </ul>
@@ -561,6 +584,30 @@
       <div class="step-icon">📦</div>
       <h3 class="step-title">Packed with Love</h3>
       <p class="step-desc">Orders are packed individually and shipped from Elizabeth, NJ. Each package is a little piece of Canela delivered to your door.</p>
+    </div>
+  </div>
+</section>
+
+<!-- OUR STORY -->
+<section class="story-section reveal" id="story">
+  <div class="story-inner">
+    <div class="story-text">
+      <p class="section-tag">Our Story</p>
+      <h2 class="story-title">JONARA isn't just<br>a brand — it's a<br><em>name made of love.</em></h2>
+      <div class="story-divider"></div>
+      <p class="story-body">Two kids who are the reason behind every product we make.</p>
+      <p class="story-body">JONARA Beauty is a 100% vegan, handcrafted cosmetics brand created for the Latina woman in the United States. We make lip colors, skincare, and beauty products that speak your language — literally.</p>
+      <p class="story-body">Formulated with natural, plant-based ingredients, inspired by the flavors and botanicals of Latin America, and made in small batches with the same care you put into everything you love.</p>
+      <p class="story-quote">We don't just make beauty products. We make beauty products that feel like they were made for you — <em>because they were.</em></p>
+    </div>
+    <div class="story-visual">
+      <img src="/logo.png" alt="Jonara Beauty" class="story-logo"/>
+      <div class="story-badges">
+        <div class="story-badge">🌿<span>100% Vegan</span></div>
+        <div class="story-badge">🤲<span>Handcrafted</span></div>
+        <div class="story-badge">🌺<span>Latin-Inspired</span></div>
+        <div class="story-badge">💕<span>Made with Love</span></div>
+      </div>
     </div>
   </div>
 </section>
