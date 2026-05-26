@@ -8,6 +8,7 @@
     { "source": "/contact", "destination": "/contact.html" },
     { "source": "/privacy", "destination": "/privacy.html" },
     { "source": "/returns", "destination": "/returns.html" },
+    { "source": "/story",   "destination": "/index.html" },
     { "source": "/404",     "destination": "/404.html" }
   ]
 }
