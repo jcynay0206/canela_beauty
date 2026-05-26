@@ -852,13 +852,21 @@ function selectShade(el){ document.querySelectorAll('.shade').forEach(s=>s.class
 function changeModalQty(d){ modalQty=Math.max(1,modalQty+d); document.getElementById('modalQtyVal').textContent=modalQty; }
 function addFromModal(){ if(!currentProduct||currentProduct.soldOut) return; addToCart(currentProduct,modalQty); closeModal(); openCart(); }
 
-function handleSubscribe(){
+async function handleSubscribe(){
   const inp=document.getElementById('emailInput');
   if(!inp.value||!inp.value.includes('@')){ showToast('Enter a valid email'); return; }
-  // Hide form, show coupon
+  const btn=document.querySelector('#emailFormArea button');
+  btn.textContent='Sending...'; btn.disabled=true;
+  try{
+    await fetch('/api/subscribe',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({email:inp.value})
+    });
+  } catch(e){ console.log('Email send error:', e.message); }
+  // Always show coupon regardless of email success
   document.getElementById('emailFormArea').style.display='none';
   document.getElementById('couponReveal').style.display='block';
-  // Save email locally
   localStorage.setItem('canela_subscribed', inp.value);
 }
 
