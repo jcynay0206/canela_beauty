@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Beauty Profile — Jonara Beauty</title>
+  <meta name="robots" content="noindex"/>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+  <meta name="theme-color" content="#FDF9F7"/>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --bg:#FDF9F7; --bg2:#F8F1ED; --bg3:#F2E8E3;
+      --brown:#5C1A24; --brown2:#7A2030;
+      --gold:#B8943C; --gold-lite:#D4B060;
+      --border:rgba(92,26,36,0.12); --border2:rgba(92,26,36,0.22);
+      --muted:rgba(92,26,36,0.45);
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--brown);min-height:100vh;display:flex;flex-direction:column;}
+
+    /* NAV */
+    nav{padding:16px 40px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);background:rgba(253,249,247,.97);backdrop-filter:blur(12px);}
+    .nav-logo{height:32px;width:auto;}
+    .skip-btn{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);background:none;border:none;cursor:pointer;font-family:'DM Sans',sans-serif;transition:color .2s;}
+    .skip-btn:hover{color:var(--brown);}
+
+    /* PROGRESS */
+    .progress-bar{height:3px;background:var(--border);position:relative;overflow:hidden;}
+    .progress-fill{height:100%;background:linear-gradient(90deg,var(--brown),var(--gold));transition:width .5s cubic-bezier(.4,0,.2,1);}
+
+    /* MAIN */
+    .quiz-main{flex:1;display:flex;align-items:center;justify-content:center;padding:32px 20px;}
+    .quiz-card{width:100%;max-width:580px;animation:fadeUp .5s ease;}
+
+    /* STEP HEADER */
+    .step-eyebrow{font-size:10px;letter-spacing:3px;text-transform:uppercase;color:var(--gold);margin-bottom:10px;}
+    .step-title{font-family:'Cormorant Garamond',serif;font-size:clamp(26px,4vw,38px);font-weight:300;color:var(--brown);margin-bottom:8px;line-height:1.2;}
+    .step-title em{font-style:italic;}
+    .step-sub{font-size:13px;color:var(--muted);margin-bottom:32px;line-height:1.7;}
+    .step-counter{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:20px;}
+
+    /* OPTIONS GRID */
+    .options-grid{display:grid;gap:10px;margin-bottom:28px;}
+    .options-grid.cols-2{grid-template-columns:1fr 1fr;}
+    .options-grid.cols-3{grid-template-columns:1fr 1fr 1fr;}
+    .options-grid.cols-1{grid-template-columns:1fr;}
+
+    .option-card{background:var(--bg2);border:1.5px solid var(--border);border-radius:3px;padding:16px 18px;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:12px;user-select:none;}
+    .option-card:hover{border-color:var(--border2);background:var(--bg3);}
+    .option-card.selected{border-color:var(--brown);background:rgba(92,26,36,.06);}
+    .option-card.selected .option-check{opacity:1;}
+    .option-icon{font-size:22px;flex-shrink:0;width:32px;text-align:center;}
+    .option-text{flex:1;}
+    .option-label{font-size:13px;color:var(--brown);font-weight:500;}
+    .option-desc{font-size:11px;color:var(--muted);margin-top:2px;}
+    .option-check{width:18px;height:18px;border-radius:50%;background:var(--brown);display:flex;align-items:center;justify-content:center;flex-shrink:0;opacity:0;transition:opacity .2s;}
+    .option-check::after{content:'✓';color:#FAF6EF;font-size:10px;font-weight:bold;}
+
+    /* COLOR SWATCHES */
+    .swatches-grid{display:flex;flex-wrap:wrap;gap:12px;margin-bottom:28px;}
+    .swatch{width:52px;height:52px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:all .2s;position:relative;}
+    .swatch:hover{transform:scale(1.1);}
+    .swatch.selected{border-color:var(--brown);transform:scale(1.12);}
+    .swatch.selected::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:16px;color:#fff;text-shadow:0 1px 3px rgba(0,0,0,.4);}
+    .swatch-label{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-align:center;margin-top:4px;width:52px;}
+
+    /* TAGS (multi select small) */
+    .tags-grid{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:28px;}
+    .tag{padding:8px 16px;border-radius:2px;border:1px solid var(--border2);background:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:11px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+    .tag:hover{border-color:var(--brown);color:var(--brown);}
+    .tag.selected{background:var(--brown);color:#FAF6EF;border-color:var(--brown);}
+
+    /* NAV BUTTONS */
+    .step-nav{display:flex;gap:12px;align-items:center;}
+    .btn-next{flex:1;padding:15px;background:var(--brown);color:#FAF6EF;border:none;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:500;cursor:pointer;transition:background .2s;}
+    .btn-next:hover{background:var(--brown2);}
+    .btn-next:disabled{opacity:.35;cursor:not-allowed;}
+    .btn-back{padding:15px 20px;background:none;border:1px solid var(--border2);color:var(--muted);border-radius:2px;font-family:'DM Sans',sans-serif;font-size:11px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+    .btn-back:hover{border-color:var(--brown);color:var(--brown);}
+
+    /* WELCOME SCREEN */
+    .welcome-screen{text-align:center;padding:20px 0;}
+    .welcome-logo{height:80px;margin-bottom:24px;filter:drop-shadow(0 4px 16px rgba(92,26,36,0.15));}
+    .welcome-title{font-family:'Cormorant Garamond',serif;font-size:clamp(30px,5vw,48px);font-weight:300;color:var(--brown);margin-bottom:12px;}
+    .welcome-title em{font-style:italic;color:var(--gold);}
+    .welcome-sub{font-size:14px;color:var(--muted);line-height:1.8;max-width:420px;margin:0 auto 32px;}
+    .welcome-badges{display:flex;justify-content:center;gap:12px;flex-wrap:wrap;margin-bottom:32px;}
+    .w-badge{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);border:1px solid var(--border);padding:6px 14px;border-radius:2px;}
+
+    /* COMPLETION SCREEN */
+    .completion-screen{text-align:center;padding:20px 0;}
+    .completion-icon{font-size:52px;margin-bottom:20px;}
+    .completion-title{font-family:'Cormorant Garamond',serif;font-size:clamp(28px,4vw,42px);font-weight:300;color:var(--brown);margin-bottom:12px;}
+    .completion-title em{font-style:italic;color:var(--gold);}
+    .completion-sub{font-size:14px;color:var(--muted);line-height:1.8;max-width:400px;margin:0 auto 32px;}
+    .btn-finish{display:inline-block;background:var(--brown);color:#FAF6EF;padding:15px 40px;border:none;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:11px;letter-spacing:3px;text-transform:uppercase;font-weight:500;cursor:pointer;transition:background .2s;}
+    .btn-finish:hover{background:var(--brown2);}
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+    @media(max-width:600px){
+      nav{padding:14px 20px;}
+      .quiz-main{padding:24px 16px;align-items:flex-start;}
+      .options-grid.cols-3{grid-template-columns:1fr 1fr;}
+      .options-grid.cols-2{grid-template-columns:1fr 1fr;}
+    }
+  </style>
+</head>
+<body>
+
+<nav>
+  <img src="/logo.png" alt="Jonara Beauty" class="nav-logo"/>
+  <button class="skip-btn" onclick="skipQuiz()">Skip for now →</button>
+</nav>
+
+<div class="progress-bar">
+  <div class="progress-fill" id="progressFill" style="width:0%"></div>
+</div>
+
+<div class="quiz-main">
+  <div class="quiz-card" id="quizCard"></div>
+</div>
+
+<script type="module">
+import { initializeApp }                           from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+import { getAuth, onAuthStateChanged }             from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
+import { getFirestore, doc, setDoc, updateDoc }    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBuYFifouw7GnxNLacfzCCnRh_73N4TLKM",
+  authDomain: "canela-beauty-dc884.firebaseapp.com",
+  projectId: "canela-beauty-dc884",
+  storageBucket: "canela-beauty-dc884.firebasestorage.app",
+  messagingSenderId: "667534672837",
+  appId: "1:667534672837:web:71033636e2c3fd49a781ac"
+};
+
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+let currentUser = null;
+
+onAuthStateChanged(auth, user => {
+  if (!user) { location.href = '/auth?redirect=/beauty-profile'; return; }
+  currentUser = user;
+});
+
+// ── QUIZ DATA ─────────────────────────────────────────────
+const STEPS = [
+  { id: 'welcome', type: 'welcome' },
+  {
+    id: 'shopping_for', type: 'multi',
+    eyebrow: 'Step 1 of 8 · About You',
+    title: 'Who are you <em>shopping for?</em>',
+    sub: 'Select all that apply — we\'ll personalize recommendations for everyone.',
+    cols: 2,
+    options: [
+      { icon:'💄', label:'For me', value:'self' },
+      { icon:'👨', label:'My partner / husband', value:'partner' },
+      { icon:'👶', label:'My baby or child', value:'baby' },
+      { icon:'👨‍👩‍👧‍👦', label:'The whole family', value:'family' },
+      { icon:'🎁', label:'As a gift', value:'gift' },
+    ]
+  },
+  {
+    id: 'skin_tone', type: 'swatches',
+    eyebrow: 'Step 2 of 8 · Your Skin',
+    title: 'What\'s your <em>skin tone?</em>',
+    sub: 'This helps us recommend the right foundation shades and skincare.',
+    swatches: [
+      { color:'#FDDBB4', label:'Fair' },
+      { color:'#F0C49A', label:'Light' },
+      { color:'#D4956A', label:'Medium' },
+      { color:'#B07040', label:'Tan' },
+      { color:'#7A4828', label:'Deep' },
+      { color:'#4A2818', label:'Rich' },
+    ]
+  },
+  {
+    id: 'skin_type', type: 'single',
+    eyebrow: 'Step 3 of 8 · Your Skin',
+    title: 'What\'s your <em>skin type?</em>',
+    sub: 'For personalized skincare — serums, creams and cleansers.',
+    cols: 2,
+    options: [
+      { icon:'💧', label:'Dry', desc:'Often feels tight or flaky', value:'dry' },
+      { icon:'✨', label:'Oily', desc:'Shiny, especially T-zone', value:'oily' },
+      { icon:'⚖️', label:'Combination', desc:'Oily T-zone, dry cheeks', value:'combination' },
+      { icon:'🌸', label:'Sensitive', desc:'Easily irritated or reactive', value:'sensitive' },
+      { icon:'😊', label:'Normal', desc:'Balanced, few concerns', value:'normal' },
+    ]
+  },
+  {
+    id: 'skin_concerns', type: 'multi',
+    eyebrow: 'Step 4 of 8 · Your Skin',
+    title: 'Any skin <em>concerns?</em>',
+    sub: 'Select all that apply. This guides our serum and treatment recommendations.',
+    cols: 2,
+    options: [
+      { icon:'🔴', label:'Acne & breakouts', value:'acne' },
+      { icon:'🌑', label:'Dark spots & hyperpigmentation', value:'dark_spots' },
+      { icon:'⌛', label:'Fine lines & aging', value:'aging' },
+      { icon:'🏜️', label:'Dryness & dehydration', value:'dryness' },
+      { icon:'🔍', label:'Large pores', value:'pores' },
+      { icon:'👁️', label:'Dark circles & puffiness', value:'dark_circles' },
+      { icon:'🤍', label:'Uneven skin tone', value:'uneven_tone' },
+      { icon:'✅', label:'No specific concerns', value:'none' },
+    ]
+  },
+  {
+    id: 'hair_type', type: 'single',
+    eyebrow: 'Step 5 of 8 · Your Hair',
+    title: 'What\'s your <em>hair type?</em>',
+    sub: 'For shampoo, conditioner, masks and styling products.',
+    cols: 2,
+    options: [
+      { icon:'➖', label:'Straight', desc:'1A–1C, smooth and fine', value:'straight' },
+      { icon:'🌊', label:'Wavy', desc:'2A–2C, soft to medium waves', value:'wavy' },
+      { icon:'🌀', label:'Curly', desc:'3A–3C, defined curls', value:'curly' },
+      { icon:'🔄', label:'Coily / Natural', desc:'4A–4C, tight coils', value:'coily' },
+    ]
+  },
+  {
+    id: 'hair_concerns', type: 'tags',
+    eyebrow: 'Step 5 of 8 · Your Hair',
+    title: 'Hair <em>goals?</em>',
+    sub: 'Select all that apply.',
+    tags: ['Frizz control','Hydration','Hair growth','Damage repair','Volume','Scalp health','Color protection','Shine']
+  },
+  {
+    id: 'makeup_style', type: 'single',
+    eyebrow: 'Step 6 of 8 · Makeup',
+    title: 'Your makeup <em>style</em>',
+    sub: 'How do you usually like to look?',
+    cols: 2,
+    options: [
+      { icon:'🤍', label:'No makeup / Skincare-first', value:'no_makeup' },
+      { icon:'🌿', label:'Natural & minimal', value:'natural' },
+      { icon:'☀️', label:'Everyday glam', value:'everyday' },
+      { icon:'💋', label:'Full glam', value:'full_glam' },
+      { icon:'🎨', label:'Bold & experimental', value:'bold' },
+    ]
+  },
+  {
+    id: 'lip_preference', type: 'tags',
+    eyebrow: 'Step 6 of 8 · Makeup',
+    title: 'Lip <em>preferences</em>',
+    sub: 'What do you usually reach for?',
+    tags: ['Gloss','Matte','Nude shades','Bold colors','Plumping','Long-lasting','Natural/tinted balm']
+  },
+  {
+    id: 'fragrance', type: 'multi',
+    eyebrow: 'Step 7 of 8 · Fragrance',
+    title: 'Your fragrance <em>personality</em>',
+    sub: 'Select the scent families you\'re drawn to.',
+    cols: 2,
+    options: [
+      { icon:'🌸', label:'Floral', desc:'Rose, jasmine, lily', value:'floral' },
+      { icon:'🌲', label:'Woody & earthy', desc:'Sandalwood, cedar, vetiver', value:'woody' },
+      { icon:'🍋', label:'Fresh & citrus', desc:'Bergamot, lemon, green', value:'citrus' },
+      { icon:'🌙', label:'Oriental & warm', desc:'Vanilla, musk, amber', value:'oriental' },
+      { icon:'🌊', label:'Aquatic & clean', desc:'Ocean, linen, light', value:'aquatic' },
+      { icon:'🍎', label:'Fruity & sweet', desc:'Berry, peach, tropical', value:'fruity' },
+    ]
+  },
+  {
+    id: 'special', type: 'multi',
+    eyebrow: 'Step 8 of 8 · Family',
+    title: 'A little more <em>about you</em>',
+    sub: 'This helps us recommend the safest and most relevant products.',
+    cols: 2,
+    options: [
+      { icon:'🤰', label:'I\'m pregnant', value:'pregnant' },
+      { icon:'🤱', label:'I\'m breastfeeding', value:'nursing' },
+      { icon:'👶', label:'I have a baby (0–2)', value:'has_baby' },
+      { icon:'🧒', label:'I have young kids', value:'has_kids' },
+      { icon:'👨', label:'Men\'s products for me/partner', value:'mens' },
+      { icon:'💅', label:'I love nail care', value:'nails' },
+      { icon:'⚠️', label:'I prefer fragrance-free', value:'fragrance_free' },
+      { icon:'🌱', label:'Strictly vegan/natural only', value:'strict_vegan' },
+    ]
+  },
+  { id: 'completion', type: 'completion' }
+];
+
+let currentStep = 0;
+let answers = {};
+
+function totalSteps(){ return STEPS.filter(s=>s.type!=='welcome'&&s.type!=='completion').length; }
+function stepNumber(){ return STEPS.slice(0,currentStep).filter(s=>s.type!=='welcome'&&s.type!=='completion').length; }
+
+function updateProgress(){
+  const pct = (currentStep / (STEPS.length - 1)) * 100;
+  document.getElementById('progressFill').style.width = pct + '%';
+}
+
+function render(){
+  updateProgress();
+  const step = STEPS[currentStep];
+  const card = document.getElementById('quizCard');
+  card.style.animation = 'none';
+  card.offsetHeight; // reflow
+  card.style.animation = 'fadeUp .4s ease';
+
+  if(step.type === 'welcome') { renderWelcome(card); return; }
+  if(step.type === 'completion') { renderCompletion(card); return; }
+
+  let html = `
+    <p class="step-eyebrow">${step.eyebrow}</p>
+    <h2 class="step-title">${step.title}</h2>
+    <p class="step-sub">${step.sub}</p>`;
+
+  if(step.type === 'single' || step.type === 'multi'){
+    const sel = answers[step.id] || [];
+    html += `<div class="options-grid cols-${step.cols||2}">`;
+    html += step.options.map(o=>`
+      <div class="option-card${sel.includes(o.value)?' selected':''}" onclick="selectOption('${step.id}','${o.value}',${step.type==='single'})">
+        <span class="option-icon">${o.icon}</span>
+        <div class="option-text">
+          <p class="option-label">${o.label}</p>
+          ${o.desc?`<p class="option-desc">${o.desc}</p>`:''}
+        </div>
+        <div class="option-check"></div>
+      </div>`).join('');
+    html += `</div>`;
+  }
+
+  if(step.type === 'swatches'){
+    const sel = answers[step.id] || [];
+    html += `<div class="swatches-grid">`;
+    html += step.swatches.map(s=>`
+      <div>
+        <div class="swatch${sel.includes(s.label)?' selected':''}" style="background:${s.color}" onclick="selectSwatch('${step.id}','${s.label}')"></div>
+        <p class="swatch-label">${s.label}</p>
+      </div>`).join('');
+    html += `</div>`;
+  }
+
+  if(step.type === 'tags'){
+    const sel = answers[step.id] || [];
+    html += `<div class="tags-grid">`;
+    html += step.tags.map(t=>`
+      <button class="tag${sel.includes(t)?' selected':''}" onclick="selectTag('${step.id}','${t}')">${t}</button>`).join('');
+    html += `</div>`;
+  }
+
+  // Nav buttons
+  html += `<div class="step-nav">`;
+  if(currentStep > 1) html += `<button class="btn-back" onclick="prevStep()">← Back</button>`;
+  html += `<button class="btn-next" id="nextBtn" onclick="nextStep()">
+    ${currentStep === STEPS.length - 2 ? 'Complete Profile ✦' : 'Continue →'}
+  </button>`;
+  html += `</div>`;
+
+  card.innerHTML = html;
+}
+
+function renderWelcome(card){
+  card.innerHTML = `
+    <div class="welcome-screen">
+      <img src="/logo.png" alt="Jonara Beauty" class="welcome-logo"/>
+      <h1 class="welcome-title">Your Beauty <em>Profile</em></h1>
+      <p class="welcome-sub">Tell us about yourself so we can recommend products made for you — your skin, your hair, your style, your family. It only takes 2 minutes.</p>
+      <div class="welcome-badges">
+        <span class="w-badge">✦ 8 quick steps</span>
+        <span class="w-badge">✦ 100% personalized</span>
+        <span class="w-badge">✦ Update anytime</span>
+      </div>
+      <button class="btn-next" onclick="nextStep()" style="max-width:300px;margin:0 auto;display:block;">Let's Get Started →</button>
+    </div>`;
+}
+
+function renderCompletion(card){
+  card.innerHTML = `
+    <div class="completion-screen">
+      <div class="completion-icon">💄</div>
+      <h2 class="completion-title">Your profile is <em>ready!</em></h2>
+      <p class="completion-sub">We'll use this to personalize your experience, recommend new products, and make sure every gift we send you is something you'll actually love.</p>
+      <button class="btn-finish" onclick="finishQuiz()">Start Shopping →</button>
+    </div>`;
+  saveProfile();
+}
+
+// ── SELECTION HANDLERS ───────────────────────────────────
+window.selectOption = function(stepId, value, single){
+  if(!answers[stepId]) answers[stepId] = [];
+  if(single){
+    answers[stepId] = [value];
+    setTimeout(nextStep, 300);
+  } else {
+    const idx = answers[stepId].indexOf(value);
+    if(idx > -1) answers[stepId].splice(idx,1);
+    else answers[stepId].push(value);
+  }
+  render();
+};
+
+window.selectSwatch = function(stepId, value){
+  answers[stepId] = [value];
+  setTimeout(nextStep, 300);
+};
+
+window.selectTag = function(stepId, value){
+  if(!answers[stepId]) answers[stepId] = [];
+  const idx = answers[stepId].indexOf(value);
+  if(idx > -1) answers[stepId].splice(idx,1);
+  else answers[stepId].push(value);
+  render();
+};
+
+window.nextStep = function(){
+  if(currentStep < STEPS.length - 1){ currentStep++; render(); }
+};
+
+window.prevStep = function(){
+  if(currentStep > 0){ currentStep--; render(); }
+};
+
+window.skipQuiz = function(){
+  if(confirm('You can complete your beauty profile anytime from your account. Skip for now?'))
+    location.href = '/';
+};
+
+window.finishQuiz = function(){ location.href = '/'; };
+
+// ── SAVE TO FIREBASE ─────────────────────────────────────
+async function saveProfile(){
+  if(!currentUser) return;
+  try {
+    await updateDoc(doc(db,'customers',currentUser.uid), {
+      beautyProfile: {
+        ...answers,
+        completedAt: new Date().toISOString()
+      }
+    });
+    console.log('Beauty profile saved');
+  } catch(e){
+    console.error('Save error:', e.message);
+  }
+}
+
+// Init
+render();
+</script>
+</body>
+</html>

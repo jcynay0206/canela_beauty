@@ -228,7 +228,13 @@
       const cred = await createUserWithEmailAndPassword(auth, email, pw);
       await updateProfile(cred.user, { displayName: `${first} ${last}` });
       await saveUser(cred.user, { name:`${first} ${last}`, phone });
-      afterLogin(cred.user);
+      // New users go to beauty profile quiz
+      localStorage.setItem('canela_user', JSON.stringify({
+        uid: cred.user.uid,
+        email: cred.user.email,
+        name: `${first} ${last}`,
+      }));
+      location.href = '/beauty-profile';
     } catch(e) {
       const msgs = {
         'auth/email-already-in-use': 'An account with this email already exists.',
