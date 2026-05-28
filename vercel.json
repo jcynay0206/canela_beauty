@@ -1,14 +1,14 @@
 {
   "rewrites": [
-    { "source": "/admin",   "destination": "/admin.html" },
-    { "source": "/auth",    "destination": "/auth.html" },
-    { "source": "/account", "destination": "/account.html" },
-    { "source": "/success", "destination": "/success.html" },
-    { "source": "/cancel",  "destination": "/cancel.html" },
-    { "source": "/contact", "destination": "/contact.html" },
-    { "source": "/privacy", "destination": "/privacy.html" },
-    { "source": "/returns", "destination": "/returns.html" },
-    { "source": "/story",   "destination": "/index.html" },
-    { "source": "/404",     "destination": "/404.html" }
+    { "source": "/admin",          "destination": "/admin.html" },
+    { "source": "/auth",           "destination": "/auth.html" },
+    { "source": "/account",        "destination": "/account.html" },
+    { "source": "/beauty-profile", "destination": "/beauty-profile.html" },
+    { "source": "/success",        "destination": "/success.html" },
+    { "source": "/cancel",         "destination": "/cancel.html" },
+    { "source": "/contact",        "destination": "/contact.html" },
+    { "source": "/privacy",        "destination": "/privacy.html" },
+    { "source": "/returns",        "destination": "/returns.html" },
+    { "source": "/404",            "destination": "/404.html" }
   ]
 }
