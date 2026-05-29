@@ -77,6 +77,36 @@ module.exports = async function handler(req, res) {
     });
 
     console.log("Order confirmation sent to:", customerEmail);
+
+    // Also notify admin
+    const adminEmail = process.env.ADMIN_EMAIL || fromEmail;
+    await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: { "api-key": brevoKey, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        sender: { name: "Jonara Beauty Orders", email: fromEmail },
+        to: [{ email: adminEmail }],
+        subject: `🛍 New Order #${orderId} — $${total} USD`,
+        htmlContent: `
+<div style="font-family:Georgia,serif;max-width:480px;margin:20px auto;background:#FDF9F7;border:1px solid rgba(92,26,36,0.12);border-radius:4px;overflow:hidden;">
+  <div style="background:#5C1A24;padding:20px 28px;">
+    <p style="color:#FAF6EF;font-size:16px;font-weight:300;letter-spacing:4px;text-transform:uppercase;margin:0;">🛍 New Order Received</p>
+  </div>
+  <div style="padding:24px 28px;">
+    <table style="width:100%;border-collapse:collapse;">
+      <tr><td style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(92,26,36,.45);padding:8px 0;border-bottom:1px solid rgba(92,26,36,.08);">Order</td><td style="font-size:13px;color:#5C1A24;font-weight:500;padding:8px 0;border-bottom:1px solid rgba(92,26,36,.08);">#${orderId}</td></tr>
+      <tr><td style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(92,26,36,.45);padding:8px 0;border-bottom:1px solid rgba(92,26,36,.08);">Customer</td><td style="font-size:13px;color:#5C1A24;padding:8px 0;border-bottom:1px solid rgba(92,26,36,.08);">${customerName}</td></tr>
+      <tr><td style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(92,26,36,.45);padding:8px 0;border-bottom:1px solid rgba(92,26,36,.08);">Email</td><td style="font-size:13px;color:#5C1A24;padding:8px 0;border-bottom:1px solid rgba(92,26,36,.08);">${customerEmail}</td></tr>
+      <tr><td style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(92,26,36,.45);padding:8px 0;">Total</td><td style="font-size:20px;color:#B8943C;font-weight:300;padding:8px 0;">$${total} USD</td></tr>
+    </table>
+    <div style="margin-top:20px;">
+      <a href="https://jonarabeauty.vercel.app/admin" style="display:inline-block;background:#5C1A24;color:#FAF6EF;padding:11px 24px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;border-radius:2px;">View in Admin →</a>
+    </div>
+  </div>
+</div>`
+      }),
+    });
+
     return res.status(200).json({ received: true });
 
   } catch (err) {

@@ -221,6 +221,22 @@
     .empty-state p{font-size:13px;margin-top:10px;}
     .loading-state{text-align:center;padding:32px;color:var(--muted);font-size:12px;letter-spacing:1px;}
 
+    /* CUSTOMER TABLE */
+    .customer-table{width:100%;border-collapse:collapse;}
+    .customer-table th{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);font-weight:500;}
+    .customer-table td{padding:14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--brown2);vertical-align:top;}
+    .customer-table tr:hover td{background:rgba(201,148,26,.03);}
+    .c-name{font-weight:500;color:var(--brown);margin-bottom:2px;}
+    .c-email{font-size:11px;color:var(--muted);}
+    .profile-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+    .profile-tag{font-size:8px;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:2px;background:rgba(184,148,60,.1);color:var(--gold);border:1px solid rgba(184,148,60,.2);}
+    .profile-tag.skin{background:rgba(92,26,36,.06);color:var(--brown);border-color:var(--border2);}
+    .profile-tag.hair{background:rgba(34,120,60,.08);color:#22783C;border-color:rgba(34,120,60,.2);}
+    .no-profile{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);opacity:.6;}
+    .filter-chip{padding:6px 14px;border-radius:2px;border:1px solid var(--border);background:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+    .filter-chip.active{background:var(--brown);color:#FAF6EF;border-color:var(--brown);}
+    .filter-chip:hover{border-color:var(--border2);color:var(--brown2);}
+
     /* TOAST */
     .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--brown);color:#FAF6EF;padding:11px 26px;border-radius:2px;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;font-weight:500;z-index:9999;opacity:0;transition:all .32s;white-space:nowrap;}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -262,6 +278,7 @@
       <button class="tab-btn" onclick="switchTab('inventory')">Inventory</button>
       <button class="tab-btn" onclick="switchTab('revenue')">Revenue</button>
       <button class="tab-btn" onclick="switchTab('orders')">Orders</button>
+      <button class="tab-btn" onclick="switchTab('customers')">Customers</button>
     </div>
     <div class="top-bar-right">
       <a href="/" target="_blank">← Store</a>
@@ -336,6 +353,19 @@
     <div class="stats-row" id="orderStats"></div>
     <div id="ordersBody"><div class="loading-state">Click Refresh to load orders from Stripe.</div></div>
   </div>
+
+  <!-- CUSTOMERS TAB -->
+  <div class="tab-panel" id="tab-customers">
+    <div class="panel-header">
+      <h1 class="panel-title">Customers <em>& Profiles</em></h1>
+      <button class="btn-secondary" onclick="loadCustomers()">↻ Refresh</button>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Beauty profiles from registered customers. Filter to find the right audience for new product launches.</p>
+    <div class="stats-row" id="customerStats"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;" id="customerFilters"></div>
+    <div id="customersBody"><div class="loading-state">Click Refresh to load customers.</div></div>
+  </div>
+
 </div>
 
 <!-- PRODUCT FORM MODAL -->
@@ -494,18 +524,46 @@ function saveProducts(list){ localStorage.setItem(STORE_KEY,JSON.stringify(list)
 function initAdmin(){
   renderProducts();
   renderInventory();
+  checkNewOrders();
+}
+
+// ── NEW ORDER NOTIFICATION ───────────────────────────────────
+async function checkNewOrders(){
+  try {
+    const res = await fetch('/api/orders');
+    const data = await res.json();
+    const orders = data.orders || [];
+    const stored = JSON.parse(localStorage.getItem('canela_order_labels')||'{}');
+    const newOrders = orders.filter(o=>!stored[o.id]);
+    if(newOrders.length > 0){
+      // Show badge on Orders tab
+      const ordersTab = document.querySelectorAll('.tab-btn')[3];
+      if(ordersTab && !ordersTab.querySelector('.notif-dot')){
+        ordersTab.innerHTML += `<span class="notif-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#C96400;margin-left:6px;vertical-align:middle;"></span>`;
+      }
+      // Browser notification
+      if('Notification' in window && Notification.permission === 'granted'){
+        new Notification(`🛍 ${newOrders.length} new order${newOrders.length>1?'s':''} — Jonara Beauty`, {
+          body: newOrders.map(o=>`${o.customerName} · $${o.total}`).join('\n')
+        });
+      } else if('Notification' in window && Notification.permission === 'default'){
+        Notification.requestPermission();
+      }
+    }
+  } catch(e){ /* silent fail */ }
 }
 
 // ── TAB SWITCHING ────────────────────────────────────────────
 function switchTab(tab){
   document.querySelectorAll('.tab-btn').forEach((b,i)=>{
-    b.classList.toggle('active',['products','inventory','revenue','orders'][i]===tab);
+    b.classList.toggle('active',['products','inventory','revenue','orders','customers'][i]===tab);
   });
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById(`tab-${tab}`).classList.add('active');
   if(tab==='orders') loadOrders();
   if(tab==='revenue') loadRevenue();
   if(tab==='inventory') renderInventory();
+  if(tab==='customers') loadCustomers();
 }
 
 // ── STOCK HELPERS ────────────────────────────────────────────
@@ -960,6 +1018,136 @@ function showToast(msg){
   const t=document.getElementById('toast');
   t.textContent=msg; t.classList.add('show');
   clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+// ── CUSTOMERS ────────────────────────────────────────────────
+let customersCache = [];
+let activeFilter   = 'All';
+
+async function loadCustomers(){
+  document.getElementById('customersBody').innerHTML = '<div class="loading-state">Loading customers...</div>';
+  try {
+    // Fetch from Firebase via REST API
+    const projectId = 'canela-beauty-dc884';
+    const res = await fetch(
+      `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/customers?pageSize=100`
+    );
+    const data = await res.json();
+    if(!data.documents){ customersCache=[]; renderCustomers(); return; }
+
+    customersCache = data.documents.map(doc => {
+      const f = doc.fields || {};
+      const bp = f.beautyProfile?.mapValue?.fields || null;
+      return {
+        name:     f.name?.stringValue    || '—',
+        email:    f.email?.stringValue   || '—',
+        phone:    f.phone?.stringValue   || '',
+        joinedAt: f.createdAt?.stringValue || '',
+        profile:  bp ? parseBeautyProfile(bp) : null,
+      };
+    });
+    renderCustomers();
+  } catch(e){
+    document.getElementById('customersBody').innerHTML =
+      `<div class="empty-state"><p>Could not load customers.<br><small>Make sure Firestore rules allow admin reads, or use Firebase Console directly.</small></p></div>`;
+  }
+}
+
+function parseBeautyProfile(bp){
+  function getArr(field){
+    try{ return bp[field]?.arrayValue?.values?.map(v=>v.stringValue)||[]; } catch{ return []; }
+  }
+  return {
+    shopping_for:    getArr('shopping_for'),
+    skin_tone:       getArr('skin_tone'),
+    skin_type:       getArr('skin_type'),
+    skin_concerns:   getArr('skin_concerns'),
+    hair_type:       getArr('hair_type'),
+    hair_concerns:   getArr('hair_concerns'),
+    makeup_style:    getArr('makeup_style'),
+    lip_preference:  getArr('lip_preference'),
+    fragrance:       getArr('fragrance'),
+    special:         getArr('special'),
+    completedAt:     bp.completedAt?.stringValue || '',
+  };
+}
+
+function renderCustomers(){
+  const customers = activeFilter === 'All'
+    ? customersCache
+    : customersCache.filter(c => c.profile && matchesFilter(c.profile, activeFilter));
+
+  const total     = customersCache.length;
+  const withProfile = customersCache.filter(c=>c.profile).length;
+  const pregnant  = customersCache.filter(c=>c.profile?.special?.includes('pregnant')).length;
+  const hasBaby   = customersCache.filter(c=>c.profile?.special?.includes('has_baby')).length;
+
+  document.getElementById('customerStats').innerHTML = `
+    <div class="stat-card"><p class="stat-label">Total Customers</p><p class="stat-value">${total}</p></div>
+    <div class="stat-card"><p class="stat-label">With Profile</p><p class="stat-value" style="color:var(--green)">${withProfile}</p></div>
+    <div class="stat-card"><p class="stat-label">Pregnant</p><p class="stat-value">${pregnant}</p></div>
+    <div class="stat-card"><p class="stat-label">Have Baby</p><p class="stat-value">${hasBaby}</p></div>`;
+
+  // Filter chips
+  const filters = ['All','Pregnant','Nursing','Has Baby','Mens Products','Nails','Floral Fragrance','Woody Fragrance','Strict Vegan','Natural Makeup'];
+  document.getElementById('customerFilters').innerHTML = filters.map(f=>`
+    <button class="filter-chip${f===activeFilter?' active':''}" onclick="setCustomerFilter('${f}')">${f}</button>
+  `).join('');
+
+  if(!customers.length){
+    document.getElementById('customersBody').innerHTML =
+      `<div class="empty-state"><p>No customers match this filter.</p></div>`;
+    return;
+  }
+
+  document.getElementById('customersBody').innerHTML = `
+    <div style="overflow-x:auto">
+    <table class="customer-table">
+      <thead><tr>
+        <th>Customer</th><th>Skin</th><th>Hair</th><th>Makeup</th><th>Fragrance</th><th>Special</th><th>Joined</th>
+      </tr></thead>
+      <tbody>${customers.map(c=>`
+        <tr>
+          <td>
+            <div class="c-name">${c.name}</div>
+            <div class="c-email">${c.email}</div>
+            ${c.phone?`<div class="c-email">${c.phone}</div>`:''}
+          </td>
+          <td>${c.profile ? `
+            <div class="profile-tags">
+              ${c.profile.skin_tone.map(t=>`<span class="profile-tag skin">${t}</span>`).join('')}
+              ${c.profile.skin_type.map(t=>`<span class="profile-tag skin">${t}</span>`).join('')}
+            </div>` : '<span class="no-profile">No profile</span>'}
+          </td>
+          <td>${c.profile?.hair_type?.map(t=>`<span class="profile-tag hair">${t}</span>`).join('')||'—'}</td>
+          <td>${c.profile?.makeup_style?.map(t=>`<span class="profile-tag">${t}</span>`).join('')||'—'}</td>
+          <td>${c.profile?.fragrance?.map(t=>`<span class="profile-tag">${t}</span>`).join('')||'—'}</td>
+          <td>${c.profile?.special?.map(t=>`<span class="profile-tag">${t.replace(/_/g,' ')}</span>`).join('')||'—'}</td>
+          <td style="font-size:11px;color:var(--muted);white-space:nowrap">${c.joinedAt?new Date(c.joinedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    </div>`;
+}
+
+function matchesFilter(profile, filter){
+  const map = {
+    'Pregnant':         ()=>profile.special?.includes('pregnant'),
+    'Nursing':          ()=>profile.special?.includes('nursing'),
+    'Has Baby':         ()=>profile.special?.includes('has_baby'),
+    'Mens Products':    ()=>profile.special?.includes('mens'),
+    'Nails':            ()=>profile.special?.includes('nails'),
+    'Floral Fragrance': ()=>profile.fragrance?.includes('floral'),
+    'Woody Fragrance':  ()=>profile.fragrance?.includes('woody'),
+    'Strict Vegan':     ()=>profile.special?.includes('strict_vegan'),
+    'Natural Makeup':   ()=>profile.makeup_style?.includes('natural'),
+  };
+  return map[filter] ? map[filter]() : true;
+}
+
+function setCustomerFilter(filter){
+  activeFilter = filter;
+  renderCustomers();
 }
 
 // ── AUTO LOGIN CHECK ─────────────────────────────────────────
