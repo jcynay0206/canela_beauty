@@ -17,10 +17,41 @@ module.exports = async function handler(req, res) {
     const { items, customerEmail } = body;
     if (!items || !items.length) return res.status(400).json({ error: "No items" });
 
-    const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
+    // ── SHIPPING CALCULATION ──────────────────────────────
+    const subtotal    = items.reduce((s, i) => s + (i.price * i.qty), 0);
+    const totalWeight = items.reduce((s, i) => s + ((i.weight || 0.3) * i.qty), 0); // oz
+    const totalQty    = items.reduce((s, i) => s + i.qty, 0);
+    const needsBox    = items.some(i => i.packaging === 'box') || totalQty > 3;
     const freeShipping = subtotal >= 25;
 
-    const origin = "https://canelabeauty.vercel.app";
+    // Determine shipping rates
+    let stdLabel, stdPrice, expPrice;
+
+    if(needsBox){
+      if(totalWeight <= 8){
+        stdLabel = 'Standard Shipping — Small Box (5–7 days)';
+        stdPrice = 799;  // $7.99
+      } else if(totalWeight <= 16){
+        stdLabel = 'Standard Shipping — Box (5–7 days)';
+        stdPrice = 899;  // $8.99
+      } else {
+        stdLabel = 'Standard Shipping — Priority (3–5 days)';
+        stdPrice = 1299; // $12.99
+      }
+      expPrice = 1499; // $14.99 express for boxes
+    } else {
+      // Bubble mailer
+      if(totalWeight <= 2){
+        stdLabel = 'Standard Shipping — Bubble Mailer (5–7 days)';
+        stdPrice = 399;  // $3.99
+      } else {
+        stdLabel = 'Standard Shipping — Bubble Mailer (5–7 days)';
+        stdPrice = 599;  // $5.99
+      }
+      expPrice = 999; // $9.99 express for envelopes
+    }
+
+    const origin = "https://jonarabeauty.vercel.app";
     const params = new URLSearchParams();
 
     params.append("mode", "payment");
@@ -29,6 +60,7 @@ module.exports = async function handler(req, res) {
     params.append("cancel_url", `${origin}/cancel.html`);
     params.append("shipping_address_collection[allowed_countries][0]", "US");
 
+    // Line items
     items.forEach((item, i) => {
       params.append(`line_items[${i}][price_data][currency]`, "usd");
       params.append(`line_items[${i}][price_data][product_data][name]`, item.name);
@@ -36,27 +68,31 @@ module.exports = async function handler(req, res) {
       params.append(`line_items[${i}][quantity]`, String(item.qty));
     });
 
+    // Shipping options
     if (freeShipping) {
-      // $25+ → free standard + paid express
+      // Free standard
       params.append("shipping_options[0][shipping_rate_data][type]", "fixed_amount");
-      params.append("shipping_options[0][shipping_rate_data][display_name]", "Free Standard Shipping (5-7 days)");
+      params.append("shipping_options[0][shipping_rate_data][display_name]",
+        needsBox ? "Free Shipping — Box (5–7 days)" : "Free Shipping — Bubble Mailer (5–7 days)");
       params.append("shipping_options[0][shipping_rate_data][fixed_amount][amount]", "0");
       params.append("shipping_options[0][shipping_rate_data][fixed_amount][currency]", "usd");
-
+      // Express still charged
       params.append("shipping_options[1][shipping_rate_data][type]", "fixed_amount");
-      params.append("shipping_options[1][shipping_rate_data][display_name]", "Express Shipping (2-3 days)");
-      params.append("shipping_options[1][shipping_rate_data][fixed_amount][amount]", "1299");
+      params.append("shipping_options[1][shipping_rate_data][display_name]",
+        `Express Shipping (2–3 days)`);
+      params.append("shipping_options[1][shipping_rate_data][fixed_amount][amount]", String(expPrice));
       params.append("shipping_options[1][shipping_rate_data][fixed_amount][currency]", "usd");
     } else {
-      // Under $25 → only paid options, no free shipping available
+      // Standard paid
       params.append("shipping_options[0][shipping_rate_data][type]", "fixed_amount");
-      params.append("shipping_options[0][shipping_rate_data][display_name]", "Standard Shipping (5-7 days)");
-      params.append("shipping_options[0][shipping_rate_data][fixed_amount][amount]", "599");
+      params.append("shipping_options[0][shipping_rate_data][display_name]", stdLabel);
+      params.append("shipping_options[0][shipping_rate_data][fixed_amount][amount]", String(stdPrice));
       params.append("shipping_options[0][shipping_rate_data][fixed_amount][currency]", "usd");
-
+      // Express
       params.append("shipping_options[1][shipping_rate_data][type]", "fixed_amount");
-      params.append("shipping_options[1][shipping_rate_data][display_name]", "Express Shipping (2-3 days)");
-      params.append("shipping_options[1][shipping_rate_data][fixed_amount][amount]", "1299");
+      params.append("shipping_options[1][shipping_rate_data][display_name]",
+        `Express Shipping (2–3 days)`);
+      params.append("shipping_options[1][shipping_rate_data][fixed_amount][amount]", String(expPrice));
       params.append("shipping_options[1][shipping_rate_data][fixed_amount][currency]", "usd");
     }
 

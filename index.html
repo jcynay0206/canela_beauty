@@ -670,19 +670,19 @@
 <script>
 const STORAGE_KEY = 'canela_products';
 const DEFAULT_PRODUCTS = [
-  { id:1, name:'Sweet Cinnamon', price:10.50, oldPrice:null, soldOut:false, isNew:true, collection:'Signature',
+  { id:1, name:'Sweet Cinnamon', price:10.50, oldPrice:null, soldOut:false, isNew:true, collection:'Signature', weight:0.3, packaging:'envelope',
     bg:'linear-gradient(160deg,#EDD8B0,#E8C890)', capClass:'mgc1', tubeClass:'mg1',
     desc:'A warm honey-tinted gloss with a hint of real cinnamon extract. Plumps and hydrates lips all day with a glossy, non-sticky finish.',
     badges:['Vegan','Hydrating','Long-lasting'], shades:['#C07850','#A05830','#E09870','#D0804A'] },
-  { id:2, name:'Rose Petal', price:9.50, oldPrice:12.00, soldOut:false, isNew:false, collection:'Signature',
+  { id:2, name:'Rose Petal', price:9.50, oldPrice:12.00, soldOut:false, isNew:false, collection:'Signature', weight:0.3, packaging:'envelope',
     bg:'linear-gradient(160deg,#EDD0C0,#E8C0B0)', capClass:'mgc2', tubeClass:'mg2',
     desc:'Delicate rose-tinted gloss infused with rose hip oil and vitamin E. Gives lips a soft romantic flush with a sheer buildable finish.',
     badges:['Vegan','Rose Hip Oil','Vitamin E'], shades:['#C0507A','#E090B0','#A03060','#F0B0C8'] },
-  { id:3, name:'Golden Honey', price:8.00, oldPrice:null, soldOut:true, isNew:false, collection:'Glow',
+  { id:3, name:'Golden Honey', price:8.00, oldPrice:null, soldOut:true, isNew:false, collection:'Glow', weight:0.3, packaging:'envelope',
     bg:'linear-gradient(160deg,#EAD8A8,#E4CC88)', capClass:'mgc3', tubeClass:'mg3',
     desc:'A golden-nude gloss with pure raw honey extract and jojoba oil. Restores moisture and leaves lips with a luminous sun-kissed glow.',
     badges:['Vegan','Honey Extract','Jojoba Oil'], shades:['#C09050','#E0B060','#A07030','#D0A040'] },
-  { id:4, name:'Terracotta Nude', price:11.00, oldPrice:null, soldOut:false, isNew:false, collection:'Nude Edit',
+  { id:4, name:'Terracotta Nude', price:11.00, oldPrice:null, soldOut:false, isNew:false, collection:'Nude Edit', weight:0.3, packaging:'envelope',
     bg:'linear-gradient(160deg,#E8CEB8,#E0BCA0)', capClass:'mgc4', tubeClass:'mg4',
     desc:'A sophisticated terracotta-nude with warm earthy undertones. Enriched with argan oil and shea butter for intense nourishment and shine.',
     badges:['Vegan','Argan Oil','Shea Butter'], shades:['#B06040','#D08060','#906040','#C07858'] }
@@ -761,15 +761,19 @@ function updateCartUI(){
   if(document.getElementById('mobileCartCount')) document.getElementById('mobileCartCount').textContent=count;
   document.getElementById('cartTotal').textContent=`$${total.toFixed(2)}`;
   document.getElementById('checkoutBtn').disabled=!cart.length;
-  // Free shipping progress
+  // Shipping estimate
   const note = document.getElementById('cartShippingNote');
   if(note){
+    const totalQty  = cart.reduce((s,i)=>s+i.qty,0);
+    const needsBox  = cart.some(i=>i.packaging==='box') || totalQty > 3;
+    const stdPrice  = needsBox ? (total>=25?'Free':7.99) : (total>=25?'Free':totalQty<=2?3.99:5.99);
+    const pkgLabel  = needsBox ? '📦 Box' : '✉ Bubble mailer';
     if(total >= 25){
-      note.innerHTML = '🎉 You qualify for <strong>free shipping!</strong>';
+      note.innerHTML = `🎉 <strong>Free shipping</strong> · ${pkgLabel}`;
       note.style.color = '#22783C';
     } else {
       const remaining = (25 - total).toFixed(2);
-      note.innerHTML = `Add <strong>$${remaining}</strong> more for free shipping`;
+      note.innerHTML = `${pkgLabel} · Est. <strong>$${typeof stdPrice==='number'?stdPrice.toFixed(2):stdPrice}</strong> · Add $${remaining} for free shipping`;
       note.style.color = 'var(--muted)';
     }
   }
@@ -812,7 +816,7 @@ async function goCheckout(){
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        items: cart.map(i => ({ name: i.name, price: i.price, qty: i.qty })),
+        items: cart.map(i => ({ name: i.name, price: i.price, qty: i.qty, weight: i.weight || 0.3, packaging: i.packaging || 'envelope' })),
         customerEmail: user?.email || null
       })
     });

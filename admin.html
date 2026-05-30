@@ -396,7 +396,7 @@
         <input type="text" id="fCollection" placeholder="e.g. Signature, Glow, Nude Edit, Holiday..."/>
         <p class="field-hint">Groups products in the store filter. Leave blank for no collection.</p>
       </div>
-      <!-- Price / Old Price / Stock -->
+      <!-- Price / Old Price / Stock / Weight -->
       <div class="field-row">
         <div class="field">
           <label>Price (USD) *</label>
@@ -410,6 +410,21 @@
           <label>Stock Units *</label>
           <input type="number" id="fStock" placeholder="20" min="0" step="1"/>
           <p class="field-hint">0 = auto sold out</p>
+        </div>
+      </div>
+      <div class="field-row-2">
+        <div class="field">
+          <label>Weight (oz)</label>
+          <input type="number" id="fWeight" placeholder="0.3" step="0.1" min="0"/>
+          <p class="field-hint">Lip gloss ≈ 0.3 oz</p>
+        </div>
+        <div class="field">
+          <label>Packaging</label>
+          <select id="fPackaging">
+            <option value="envelope">✉ Bubble Mailer (small)</option>
+            <option value="box">📦 Box (large/fragile)</option>
+          </select>
+          <p class="field-hint">Affects shipping cost</p>
         </div>
       </div>
       <!-- Description -->
@@ -678,6 +693,8 @@ function openForm(id){
     document.getElementById('fStock').value='';
     document.getElementById('fDesc').value='';
     document.getElementById('fCollection').value='';
+    document.getElementById('fWeight').value='0.3';
+    document.getElementById('fPackaging').value='envelope';
     document.getElementById('fIsNew').checked=false;
     document.getElementById('fSoldOut').checked=false;
     resetBadges([]);
@@ -692,6 +709,8 @@ function openForm(id){
     document.getElementById('fDesc').value=p.desc||'';
     document.getElementById('fIsNew').checked=!!p.isNew;
     document.getElementById('fCollection').value=p.collection||'';
+    document.getElementById('fWeight').value=p.weight||0.3;
+    document.getElementById('fPackaging').value=p.packaging||'envelope';
     document.getElementById('fSoldOut').checked=!!p.soldOut;
     currentShades=[...(p.shades||[])];
     currentImage=p.image||null;
@@ -718,6 +737,8 @@ function saveProduct(){
   const desc  = document.getElementById('fDesc').value.trim();
   const isNew = document.getElementById('fIsNew').checked;
   const collection = document.getElementById('fCollection').value.trim();
+  const weight = parseFloat(document.getElementById('fWeight').value)||0.3;
+  const packaging = document.getElementById('fPackaging').value||'envelope';
   const forcedSoldOut = document.getElementById('fSoldOut').checked;
   const badges=[...document.querySelectorAll('#badgeChips .badge-chip.selected')].map(b=>b.textContent);
 
@@ -730,14 +751,14 @@ function saveProduct(){
 
   if(editingId===null){
     products.push({
-      id:Date.now(),name,price,oldPrice:oldP,stock,desc,isNew,soldOut,collection,
+      id:Date.now(),name,price,oldPrice:oldP,stock,desc,isNew,soldOut,collection,weight,packaging,
       badges,shades:currentShades,image:currentImage,
       bg:shadeGradient(currentShades),capClass:'mgc1',tubeClass:'mg1'
     });
     showToast(`${name} added!`);
   } else {
     const idx=products.findIndex(x=>x.id===editingId);
-    if(idx>-1) products[idx]={...products[idx],name,price,oldPrice:oldP,stock,desc,isNew,soldOut,collection,badges,shades:currentShades,image:currentImage,bg:shadeGradient(currentShades)};
+    if(idx>-1) products[idx]={...products[idx],name,price,oldPrice:oldP,stock,desc,isNew,soldOut,collection,weight,packaging,badges,shades:currentShades,image:currentImage,bg:shadeGradient(currentShades)};
     showToast(`${name} saved!`);
   }
 
