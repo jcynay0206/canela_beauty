@@ -290,7 +290,10 @@
   <div class="tab-panel active" id="tab-products">
     <div class="panel-header">
       <h1 class="panel-title">Products <em>Management</em></h1>
-      <button class="btn-primary" onclick="openForm(null)">+ Add Product</button>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-secondary" onclick="exportProductsCSV()">↓ Export CSV</button>
+        <button class="btn-primary" onclick="openForm(null)">+ Add Product</button>
+      </div>
     </div>
 
     <!-- Stats -->
@@ -312,7 +315,10 @@
   <div class="tab-panel" id="tab-inventory">
     <div class="panel-header">
       <h1 class="panel-title">Inventory <em>Control</em></h1>
-      <button class="btn-secondary" onclick="switchTab('products')">← Back to Products</button>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-secondary" onclick="exportInventoryCSV()">↓ Export CSV</button>
+        <button class="btn-secondary" onclick="switchTab('products')">← Products</button>
+      </div>
     </div>
     <p style="font-size:13px;color:var(--muted);margin-bottom:24px;">Adjust stock levels manually. Use + to add units received, − to remove damaged or lost units.</p>
     <div style="overflow-x:auto;">
@@ -1169,6 +1175,67 @@ function matchesFilter(profile, filter){
 function setCustomerFilter(filter){
   activeFilter = filter;
   renderCustomers();
+}
+
+// ── EXPORT CSV FUNCTIONS ─────────────────────────────────────
+function downloadCSV(rows, filename){
+  const csv = rows.map(r => r.map(v => `"${String(v).replace(/"/g,'""')}"`).join(',')).join('
+');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = filename;
+  a.click();
+  showToast('CSV exported!');
+}
+
+function exportProductsCSV(){
+  const products = getProducts();
+  if(!products.length){ showToast('No products to export'); return; }
+  const rows = [
+    ['ID','Name','Collection','Price (USD)','Old Price (USD)','Stock','Status','Weight (oz)','Packaging','Badges','Description']
+  ];
+  products.forEach(p => {
+    const status = p.soldOut ? 'Sold Out' : p.stock <= 5 ? 'Low Stock' : 'Active';
+    rows.push([
+      p.id,
+      p.name,
+      p.collection || '',
+      p.price.toFixed(2),
+      p.oldPrice ? p.oldPrice.toFixed(2) : '',
+      p.stock || 0,
+      status,
+      p.weight || 0.3,
+      p.packaging || 'envelope',
+      (p.badges || []).join(' | '),
+      p.desc || ''
+    ]);
+  });
+  downloadCSV(rows, `jonara-products-${new Date().toISOString().slice(0,10)}.csv`);
+}
+
+function exportInventoryCSV(){
+  const products = getProducts();
+  if(!products.length){ showToast('No inventory to export'); return; }
+  const rows = [
+    ['Product','Collection','Stock Units','Status','Weight (oz)','Packaging Type','Price (USD)','Last Updated']
+  ];
+  const today = new Date().toLocaleDateString('en-US');
+  products.forEach(p => {
+    const status = p.soldOut || p.stock === 0 ? 'Out of Stock'
+      : p.stock <= 5 ? `Low Stock (${p.stock})`
+      : `In Stock (${p.stock})`;
+    rows.push([
+      p.name,
+      p.collection || '',
+      p.stock || 0,
+      status,
+      p.weight || 0.3,
+      p.packaging === 'box' ? 'Box' : 'Bubble Mailer',
+      p.price.toFixed(2),
+      today
+    ]);
+  });
+  downloadCSV(rows, `jonara-inventory-${new Date().toISOString().slice(0,10)}.csv`);
 }
 
 // ── AUTO LOGIN CHECK ─────────────────────────────────────────
