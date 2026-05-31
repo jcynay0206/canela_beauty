@@ -6,7 +6,7 @@
 
   <!-- Primary SEO -->
   <title>Jonara Beauty — Handmade Vegan Lip Gloss</title>
-  <meta name="description" content="Handmade, vegan lip gloss crafted in small batches with natural ingredients. Nourishing colors that shine and last all day. Free shipping on orders $25+." />
+  <meta name="description" content="Handmade, vegan lip gloss crafted in small batches with natural ingredients. Nourishing colors that shine and last all day. Free shipping on orders $50+." />
   <meta name="keywords" content="vegan lip gloss, handmade lip gloss, natural lip gloss, cruelty free, jonara beauty, lip gloss NJ" />
   <meta name="author" content="Jonara Beauty" />
   <link rel="canonical" href="https://jonarabeauty.vercel.app" />
@@ -15,7 +15,7 @@
   <meta property="og:type" content="website" />
   <meta property="og:url" content="https://jonarabeauty.vercel.app" />
   <meta property="og:title" content="Jonara Beauty — Handmade Vegan Lip Gloss" />
-  <meta property="og:description" content="Vegan and handmade gloss crafted with natural ingredients. Colors that nourish, shine, and last all day. Free shipping on orders $25+." />
+  <meta property="og:description" content="Vegan and handmade gloss crafted with natural ingredients. Colors that nourish, shine, and last all day. Free shipping on orders $50+." />
   <meta property="og:image" content="https://jonarabeauty.vercel.app/og-image.jpg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
@@ -488,7 +488,7 @@
 
 <!-- ANNOUNCEMENT -->
 <div class="announcement">
-  Free shipping on orders $25+ <span>✦</span> New collection now available
+  Free shipping on orders $50+ <span>✦</span> New collection now available
 </div>
 
 <!-- NAV -->
@@ -764,16 +764,15 @@ function updateCartUI(){
   // Shipping estimate
   const note = document.getElementById('cartShippingNote');
   if(note){
-    const totalQty  = cart.reduce((s,i)=>s+i.qty,0);
-    const needsBox  = cart.some(i=>i.packaging==='box') || totalQty > 3;
-    const stdPrice  = needsBox ? (total>=25?'Free':7.99) : (total>=25?'Free':totalQty<=2?3.99:5.99);
-    const pkgLabel  = needsBox ? '📦 Box' : '✉ Bubble mailer';
-    if(total >= 25){
-      note.innerHTML = `🎉 <strong>Free shipping</strong> · ${pkgLabel}`;
+    const totalQty = cart.reduce((s,i)=>s+i.qty,0);
+    const needsBox = cart.some(i=>i.packaging==='box') || totalQty > 3;
+    const stdPrice = needsBox ? 7.99 : 5.99;
+    if(total >= 50){
+      note.innerHTML = `🎉 <strong>Free shipping</strong> applied!`;
       note.style.color = '#22783C';
     } else {
-      const remaining = (25 - total).toFixed(2);
-      note.innerHTML = `${pkgLabel} · Est. <strong>$${typeof stdPrice==='number'?stdPrice.toFixed(2):stdPrice}</strong> · Add $${remaining} for free shipping`;
+      const remaining = (50 - total).toFixed(2);
+      note.innerHTML = `Est. shipping <strong>$${stdPrice.toFixed(2)}</strong> · Add <strong>$${remaining}</strong> for free shipping`;
       note.style.color = 'var(--muted)';
     }
   }

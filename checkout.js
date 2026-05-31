@@ -22,33 +22,28 @@ module.exports = async function handler(req, res) {
     const totalWeight = items.reduce((s, i) => s + ((i.weight || 0.3) * i.qty), 0); // oz
     const totalQty    = items.reduce((s, i) => s + i.qty, 0);
     const needsBox    = items.some(i => i.packaging === 'box') || totalQty > 3;
-    const freeShipping = subtotal >= 25;
+    const freeShipping = subtotal >= 50;
 
     // Determine shipping rates
     let stdLabel, stdPrice, expPrice;
 
     if(needsBox){
       if(totalWeight <= 8){
-        stdLabel = 'Standard Shipping — Small Box (5–7 days)';
+        stdLabel = 'Standard Shipping (5–7 business days)';
         stdPrice = 799;  // $7.99
       } else if(totalWeight <= 16){
-        stdLabel = 'Standard Shipping — Box (5–7 days)';
+        stdLabel = 'Standard Shipping (5–7 business days)';
         stdPrice = 899;  // $8.99
       } else {
-        stdLabel = 'Standard Shipping — Priority (3–5 days)';
+        stdLabel = 'Standard Shipping (3–5 business days)';
         stdPrice = 1299; // $12.99
       }
       expPrice = 1499; // $14.99 express for boxes
     } else {
-      // Bubble mailer
-      if(totalWeight <= 2){
-        stdLabel = 'Standard Shipping — Bubble Mailer (5–7 days)';
-        stdPrice = 399;  // $3.99
-      } else {
-        stdLabel = 'Standard Shipping — Bubble Mailer (5–7 days)';
-        stdPrice = 599;  // $5.99
-      }
-      expPrice = 999; // $9.99 express for envelopes
+      // Bubble mailer — always $5.99
+      stdLabel = 'Standard Shipping (5–7 business days)';
+      stdPrice = 599;  // $5.99
+      expPrice = 999;  // $9.99 express
     }
 
     const origin = "https://jonarabeauty.vercel.app";
