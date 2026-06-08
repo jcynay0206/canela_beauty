@@ -52,6 +52,23 @@
     .info-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
     .info-value{font-size:14px;color:var(--brown);}
     @media(max-width:600px){nav{padding:14px 20px;} .main{padding:32px 16px;} .info-grid{grid-template-columns:1fr;}}
+
+    /* REVIEW FORM */
+    .review-section{margin-top:48px;padding-top:40px;border-top:1px solid var(--border);}
+    .star-selector{display:flex;gap:8px;margin-bottom:16px;}
+    .star-btn{font-size:28px;cursor:pointer;opacity:.3;transition:opacity .2s,transform .2s;background:none;border:none;padding:0;}
+    .star-btn.active,.star-btn:hover{opacity:1;transform:scale(1.15);}
+    .review-textarea{width:100%;padding:13px 16px;border:1px solid var(--border2);border-radius:2px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--brown);outline:none;resize:vertical;min-height:100px;line-height:1.7;background:#fff;transition:border-color .2s;}
+    .review-textarea:focus{border-color:var(--gold);}
+    .review-img-upload{border:1.5px dashed var(--border2);border-radius:2px;padding:16px;text-align:center;cursor:pointer;position:relative;overflow:hidden;transition:border-color .2s;margin-bottom:14px;}
+    .review-img-upload:hover{border-color:var(--gold);}
+    .review-img-upload input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+    .review-img-upload p{font-size:12px;color:var(--muted);}
+    .review-preview{width:100%;max-height:140px;object-fit:cover;border-radius:2px;display:none;margin-bottom:8px;}
+    .submit-review-btn{width:100%;padding:14px;background:var(--brown);color:#FAF6EF;border:none;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;font-weight:500;cursor:pointer;transition:background .2s;}
+    .submit-review-btn:hover{background:var(--brown2);}
+    .submit-review-btn:disabled{opacity:.35;cursor:not-allowed;}
+    .review-success{background:rgba(34,120,60,.08);border:1px solid rgba(34,120,60,.2);border-radius:2px;padding:14px 18px;font-size:13px;color:#22783C;display:none;}
   </style>
 </head>
 <body>
@@ -91,6 +108,42 @@
 
   <h2 class="section-title">Account <em>Info</em></h2>
   <div class="info-grid" id="infoGrid"></div>
+
+</div>
+
+  <!-- LEAVE A REVIEW -->
+  <div class="review-section" id="reviewSection" style="display:none">
+    <h2 class="section-title" style="margin-bottom:24px;">Leave a <em>Review</em></h2>
+    <div class="field" style="margin-bottom:16px;">
+      <label style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:10px;">Select Product</label>
+      <select id="reviewProduct" style="width:100%;padding:11px 14px;border:1px solid var(--border2);border-radius:2px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--brown);outline:none;background:#fff;">
+        <option value="">Choose a product you purchased...</option>
+      </select>
+    </div>
+    <div style="margin-bottom:16px;">
+      <label style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:10px;">Your Rating</label>
+      <div class="star-selector" id="starSelector">
+        <button class="star-btn" onclick="setRating(1)" data-star="1">⭐</button>
+        <button class="star-btn" onclick="setRating(2)" data-star="2">⭐</button>
+        <button class="star-btn" onclick="setRating(3)" data-star="3">⭐</button>
+        <button class="star-btn" onclick="setRating(4)" data-star="4">⭐</button>
+        <button class="star-btn" onclick="setRating(5)" data-star="5">⭐</button>
+      </div>
+    </div>
+    <div style="margin-bottom:14px;">
+      <label style="font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;">Your Review</label>
+      <textarea class="review-textarea" id="reviewComment" placeholder="Tell us about your experience with this product..."></textarea>
+    </div>
+    <div class="review-img-upload" id="reviewImgArea">
+      <img class="review-preview" id="reviewPreview"/>
+      <input type="file" accept="image/*" id="reviewImg" onchange="handleReviewImg(event)"/>
+      <p>📸 Add a photo (optional)</p>
+    </div>
+    <div class="review-success" id="reviewSuccess">
+      ✓ Thank you! Your review has been submitted for approval. We'll publish it shortly.
+    </div>
+    <button class="submit-review-btn" onclick="submitReview()" id="submitReviewBtn">Submit Review</button>
+  </div>
 
 </div>
 
@@ -158,6 +211,7 @@
         return;
       }
 
+      loadProductsForReview(mine);
       document.getElementById('ordersList').innerHTML = mine.map(o=>`
         <div class="order-card">
           <div class="order-top">
@@ -183,6 +237,97 @@
     localStorage.removeItem('canela_user');
     location.href = '/';
   };
+
+  // ── REVIEWS ─────────────────────────────────────────────
+  let selectedRating = 0;
+  let reviewPhotoBase64 = null;
+
+  window.setRating = function(n){
+    selectedRating = n;
+    document.querySelectorAll('.star-btn').forEach((btn,i)=>{
+      btn.classList.toggle('active', i < n);
+    });
+  };
+
+  window.handleReviewImg = function(e){
+    const file = e.target.files[0]; if(!file) return;
+    // Compress to max 400px wide
+    const img = new Image();
+    const reader = new FileReader();
+    reader.onload = ev => {
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ratio = Math.min(400/img.width, 300/img.height, 1);
+        canvas.width = img.width*ratio; canvas.height = img.height*ratio;
+        canvas.getContext('2d').drawImage(img,0,0,canvas.width,canvas.height);
+        reviewPhotoBase64 = canvas.toDataURL('image/jpeg',0.7);
+        const prev = document.getElementById('reviewPreview');
+        prev.src = reviewPhotoBase64; prev.style.display='block';
+        document.querySelector('.review-img-upload p').style.display='none';
+      };
+      img.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  };
+
+  window.submitReview = async function(){
+    const productName = document.getElementById('reviewProduct').value;
+    const comment     = document.getElementById('reviewComment').value.trim();
+    if(!productName){ alert('Please select a product'); return; }
+    if(!selectedRating){ alert('Please select a rating'); return; }
+    if(!comment){ alert('Please write a comment'); return; }
+
+    const btn = document.getElementById('submitReviewBtn');
+    btn.disabled=true; btn.textContent='Submitting...';
+
+    try {
+      const user = auth.currentUser;
+      const reviewData = {
+        fields: {
+          productName: { stringValue: productName },
+          userId:      { stringValue: user.uid },
+          userName:    { stringValue: user.displayName || user.email.split('@')[0] },
+          rating:      { integerValue: selectedRating },
+          comment:     { stringValue: comment },
+          photo:       { stringValue: reviewPhotoBase64 || '' },
+          status:      { stringValue: 'pending' },
+          createdAt:   { stringValue: new Date().toISOString() },
+        }
+      };
+
+      const projectId = 'canela-beauty-dc884';
+      const res = await fetch(
+        `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/reviews`,
+        { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(reviewData) }
+      );
+
+      if(res.ok){
+        document.getElementById('reviewSuccess').style.display='block';
+        document.getElementById('reviewComment').value='';
+        selectedRating=0;
+        reviewPhotoBase64=null;
+        document.querySelectorAll('.star-btn').forEach(b=>b.classList.remove('active'));
+        document.getElementById('reviewPreview').style.display='none';
+        btn.textContent='Review Submitted ✓';
+      } else {
+        throw new Error('Failed to submit');
+      }
+    } catch(e){
+      btn.disabled=false; btn.textContent='Submit Review';
+      alert('Error submitting review. Please try again.');
+    }
+  };
+
+  // Load products for review selector
+  function loadProductsForReview(orders){
+    const section  = document.getElementById('reviewSection');
+    const selector = document.getElementById('reviewProduct');
+    if(!orders.length) return;
+    section.style.display='block';
+    const products = [...new Set(orders.flatMap(o=>o.items.map(i=>i.name)))];
+    selector.innerHTML = '<option value="">Choose a product you purchased...</option>' +
+      products.map(p=>`<option value="${p}">${p}</option>`).join('');
+  }
 </script>
 
 </body>

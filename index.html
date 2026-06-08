@@ -201,6 +201,25 @@
     .step-title{font-family:'Cormorant Garamond',serif;font-size:18px;font-weight:400;color:var(--brown);margin-bottom:10px;}
     .step-desc{font-size:13px;color:var(--muted);line-height:1.75;font-weight:300;}
 
+    /* REVIEWS SECTION */
+    .reviews-section{padding:80px 52px;background:var(--bg);}
+    .reviews-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1100px;margin:0 auto;}
+    .review-card{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:24px;}
+    .review-stars{display:flex;gap:3px;margin-bottom:12px;}
+    .review-star{font-size:14px;}
+    .review-comment{font-size:14px;color:var(--brown2);line-height:1.8;margin-bottom:16px;font-style:italic;}
+    .review-comment::before{content:'"';font-family:'Cormorant Garamond',serif;font-size:32px;color:var(--gold);line-height:0;vertical-align:-12px;margin-right:4px;}
+    .review-photo{width:100%;max-height:160px;object-fit:cover;border-radius:2px;margin-bottom:14px;display:block;}
+    .review-author{display:flex;align-items:center;gap:10px;}
+    .review-avatar{width:32px;height:32px;border-radius:50%;background:var(--bg3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:14px;color:var(--brown);flex-shrink:0;}
+    .review-name{font-size:12px;font-weight:500;color:var(--brown);margin-bottom:2px;}
+    .review-product{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--gold);}
+    .reviews-summary{display:flex;align-items:center;gap:24px;max-width:1100px;margin:0 auto 36px;padding:20px 24px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;}
+    .reviews-avg{font-family:'Cormorant Garamond',serif;font-size:52px;font-weight:300;color:var(--brown);line-height:1;}
+    .reviews-avg-stars{display:flex;gap:3px;margin:4px 0;}
+    .reviews-avg-count{font-size:11px;color:var(--muted);letter-spacing:1px;}
+    .no-reviews{text-align:center;padding:40px;color:var(--muted);font-size:13px;}
+
     /* OUR STORY */
     .story-section{padding:88px 52px;background:var(--bg2);}
     .story-inner{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:1.2fr 1fr;gap:72px;align-items:center;}
@@ -643,6 +662,18 @@
   </div>
 </section>
 
+<!-- REVIEWS -->
+<section class="reviews-section reveal" id="reviews">
+  <div class="section-header">
+    <p class="section-tag">What they say</p>
+    <h2 class="section-title">Customer <em>Reviews</em></h2>
+  </div>
+  <div id="reviewsSummary"></div>
+  <div class="reviews-grid" id="reviewsGrid">
+    <div class="no-reviews" style="grid-column:1/-1">Loading reviews...</div>
+  </div>
+</section>
+
 <!-- FOOTER -->
 <footer>
   <div class="footer-top">
@@ -707,6 +738,83 @@ function gloss(cap,tube,scale){
   return `<div style="display:flex;flex-direction:column;align-items:center;transform:scale(${scale});transform-origin:bottom center">
     <div class="mg-cap ${cap}"></div><div class="mg-tube ${tube}"></div>
   </div>`;
+}
+
+// ── REVIEWS ──────────────────────────────────────────────
+async function loadReviews(){
+  try {
+    const projectId = 'canela-beauty-dc884';
+    const res = await fetch(
+      `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/reviews?pageSize=50`
+    );
+    const data = await res.json();
+    if(!data.documents){ renderReviews([]); return; }
+
+    const approved = data.documents
+      .map(doc => {
+        const f = doc.fields || {};
+        return {
+          id:          doc.name.split('/').pop(),
+          productName: f.productName?.stringValue || '',
+          userName:    f.userName?.stringValue    || 'Anonymous',
+          rating:      parseInt(f.rating?.integerValue || f.rating?.doubleValue || 5),
+          comment:     f.comment?.stringValue     || '',
+          photo:       f.photo?.stringValue       || null,
+          status:      f.status?.stringValue      || 'pending',
+          createdAt:   f.createdAt?.stringValue   || '',
+        };
+      })
+      .filter(r => r.status === 'approved');
+
+    renderReviews(approved);
+  } catch(e) {
+    document.getElementById('reviewsGrid').innerHTML =
+      '<div class="no-reviews" style="grid-column:1/-1">Reviews coming soon!</div>';
+  }
+}
+
+function renderReviews(reviews){
+  const grid = document.getElementById('reviewsGrid');
+  const summary = document.getElementById('reviewsSummary');
+
+  if(!reviews.length){
+    grid.innerHTML = '<div class="no-reviews" style="grid-column:1/-1">Be the first to leave a review! 💄</div>';
+    summary.innerHTML = '';
+    return;
+  }
+
+  const avg = (reviews.reduce((s,r)=>s+r.rating,0)/reviews.length).toFixed(1);
+  const stars = n => Array.from({length:5},(_,i)=>
+    `<span class="review-star">${i < Math.round(n) ? '⭐' : '☆'}</span>`).join('');
+
+  summary.innerHTML = `
+    <div class="reviews-summary">
+      <div>
+        <div class="reviews-avg">${avg}</div>
+        <div class="reviews-avg-stars">${stars(avg)}</div>
+        <div class="reviews-avg-count">${reviews.length} review${reviews.length!==1?'s':''}</div>
+      </div>
+      <div style="flex:1;font-size:13px;color:var(--muted);line-height:1.8;">
+        <strong style="color:var(--brown)">${reviews.filter(r=>r.rating>=4).length}</strong> customers gave 4-5 stars ·
+        <a href="/auth" style="color:var(--gold);text-decoration:none;">Sign in to leave a review →</a>
+      </div>
+    </div>`;
+
+  grid.innerHTML = reviews.slice(0,6).map(r=>`
+    <div class="review-card reveal">
+      ${r.photo?`<img src="${r.photo}" class="review-photo" alt="Review photo"/>`:''}
+      <div class="review-stars">${stars(r.rating)}</div>
+      <p class="review-comment">${r.comment}</p>
+      <div class="review-author">
+        <div class="review-avatar">${r.userName.charAt(0).toUpperCase()}</div>
+        <div>
+          <p class="review-name">${r.userName}</p>
+          <p class="review-product">${r.productName}</p>
+        </div>
+      </div>
+    </div>`).join('');
+
+  observeReveals();
 }
 
 function renderProducts(){
@@ -904,7 +1012,7 @@ function closeMobileMenu(){
   document.body.style.overflow = '';
 }
 
-renderProducts(); updateCartUI(); initAuthState();
+renderProducts(); updateCartUI(); initAuthState(); loadReviews();
 
 // ── SCROLL REVEAL ──────────────────────────────────────────
 const revealObserver = new IntersectionObserver((entries)=>{

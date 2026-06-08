@@ -237,6 +237,22 @@
     .filter-chip.active{background:var(--brown);color:#FAF6EF;border-color:var(--brown);}
     .filter-chip:hover{border-color:var(--border2);color:var(--brown2);}
 
+    /* REVIEW CARDS */
+    .review-admin-card{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:20px;margin-bottom:12px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;}
+    .review-admin-card.pending{border-left:3px solid var(--gold);}
+    .review-admin-card.approved{border-left:3px solid var(--green);}
+    .review-admin-card.rejected{border-left:3px solid var(--red);opacity:.7;}
+    .ra-stars{display:flex;gap:2px;margin-bottom:8px;font-size:14px;}
+    .ra-product{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:6px;}
+    .ra-comment{font-size:13px;color:var(--brown2);line-height:1.7;margin-bottom:10px;}
+    .ra-meta{font-size:11px;color:var(--muted);}
+    .ra-photo{width:80px;height:80px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-top:8px;}
+    .ra-actions{display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
+    .btn-approve{background:rgba(34,120,60,.1);color:var(--green);border:1px solid rgba(34,120,60,.25);padding:8px 16px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;}
+    .btn-approve:hover{background:rgba(34,120,60,.2);}
+    .btn-reject{background:rgba(192,48,48,.08);color:var(--red);border:1px solid rgba(192,48,48,.2);padding:8px 16px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;}
+    .btn-reject:hover{background:rgba(192,48,48,.15);}
+
     /* TOAST */
     .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--brown);color:#FAF6EF;padding:11px 26px;border-radius:2px;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;font-weight:500;z-index:9999;opacity:0;transition:all .32s;white-space:nowrap;}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
@@ -279,6 +295,7 @@
       <button class="tab-btn" onclick="switchTab('revenue')">Revenue</button>
       <button class="tab-btn" onclick="switchTab('orders')">Orders</button>
       <button class="tab-btn" onclick="switchTab('customers')">Customers</button>
+      <button class="tab-btn" onclick="switchTab('reviews')">Reviews</button>
     </div>
     <div class="top-bar-right">
       <a href="/" target="_blank">← Store</a>
@@ -370,6 +387,22 @@
     <div class="stats-row" id="customerStats"></div>
     <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;" id="customerFilters"></div>
     <div id="customersBody"><div class="loading-state">Click Refresh to load customers.</div></div>
+  </div>
+
+  <!-- REVIEWS TAB -->
+  <div class="tab-panel" id="tab-reviews">
+    <div class="panel-header">
+      <h1 class="panel-title">Reviews <em>Moderation</em></h1>
+      <button class="btn-secondary" onclick="loadAdminReviews()">↻ Refresh</button>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Approve reviews before they appear on the store. Rejected reviews are never published.</p>
+    <div class="stats-row" id="reviewStats"></div>
+    <div style="display:flex;gap:8px;margin-bottom:20px;">
+      <button class="filter-chip active" id="rf-pending"  onclick="filterAdminReviews('pending')">⏳ Pending</button>
+      <button class="filter-chip"        id="rf-approved" onclick="filterAdminReviews('approved')">✅ Approved</button>
+      <button class="filter-chip"        id="rf-rejected" onclick="filterAdminReviews('rejected')">❌ Rejected</button>
+    </div>
+    <div id="reviewsAdminBody"><div class="loading-state">Click Refresh to load reviews.</div></div>
   </div>
 
 </div>
@@ -577,7 +610,7 @@ async function checkNewOrders(){
 // ── TAB SWITCHING ────────────────────────────────────────────
 function switchTab(tab){
   document.querySelectorAll('.tab-btn').forEach((b,i)=>{
-    b.classList.toggle('active',['products','inventory','revenue','orders','customers'][i]===tab);
+    b.classList.toggle('active',['products','inventory','revenue','orders','customers','reviews'][i]===tab);
   });
   document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
   document.getElementById(`tab-${tab}`).classList.add('active');
@@ -585,6 +618,7 @@ function switchTab(tab){
   if(tab==='revenue') loadRevenue();
   if(tab==='inventory') renderInventory();
   if(tab==='customers') loadCustomers();
+  if(tab==='reviews') loadAdminReviews();
 }
 
 // ── STOCK HELPERS ────────────────────────────────────────────
@@ -1236,6 +1270,105 @@ function exportInventoryCSV(){
     ]);
   });
   downloadCSV(rows, `jonara-inventory-${new Date().toISOString().slice(0,10)}.csv`);
+}
+
+// ── REVIEWS ADMIN ─────────────────────────────────────────────
+let reviewsCache = [];
+let reviewFilter = 'pending';
+const PROJECT_ID = 'canela-beauty-dc884';
+
+async function loadAdminReviews(){
+  document.getElementById('reviewsAdminBody').innerHTML='<div class="loading-state">Loading reviews...</div>';
+  try {
+    const res  = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/reviews?pageSize=100`);
+    const data = await res.json();
+    if(!data.documents){ reviewsCache=[]; renderAdminReviews(); return; }
+    reviewsCache = data.documents.map(doc=>{
+      const f=doc.fields||{};
+      return {
+        docId:       doc.name.split('/').pop(),
+        fullPath:    doc.name,
+        productName: f.productName?.stringValue||'',
+        userName:    f.userName?.stringValue   ||'Anonymous',
+        rating:      parseInt(f.rating?.integerValue||f.rating?.doubleValue||5),
+        comment:     f.comment?.stringValue    ||'',
+        photo:       f.photo?.stringValue      ||null,
+        status:      f.status?.stringValue     ||'pending',
+        createdAt:   f.createdAt?.stringValue  ||'',
+      };
+    });
+    renderAdminReviews();
+  } catch(e){
+    document.getElementById('reviewsAdminBody').innerHTML=`<div class="empty-state"><p>Could not load reviews.<br><small>Check Firestore rules allow admin reads.</small></p></div>`;
+  }
+}
+
+function renderAdminReviews(){
+  const pending  = reviewsCache.filter(r=>r.status==='pending').length;
+  const approved = reviewsCache.filter(r=>r.status==='approved').length;
+  const rejected = reviewsCache.filter(r=>r.status==='rejected').length;
+
+  document.getElementById('reviewStats').innerHTML=`
+    <div class="stat-card"><p class="stat-label">Pending</p><p class="stat-value" style="color:#C96400">${pending}</p></div>
+    <div class="stat-card"><p class="stat-label">Approved</p><p class="stat-value" style="color:var(--green)">${approved}</p></div>
+    <div class="stat-card"><p class="stat-label">Rejected</p><p class="stat-value" style="color:var(--red)">${rejected}</p></div>
+    <div class="stat-card"><p class="stat-label">Total</p><p class="stat-value">${reviewsCache.length}</p></div>`;
+
+  // Update filter chips
+  ['pending','approved','rejected'].forEach(s=>{
+    const chip=document.getElementById(`rf-${s}`);
+    if(chip) chip.classList.toggle('active',s===reviewFilter);
+  });
+
+  const filtered = reviewsCache.filter(r=>r.status===reviewFilter);
+  const el = document.getElementById('reviewsAdminBody');
+
+  if(!filtered.length){
+    el.innerHTML=`<div class="empty-state"><p>No ${reviewFilter} reviews.</p></div>`;
+    return;
+  }
+
+  const stars = n => '⭐'.repeat(n) + '☆'.repeat(5-n);
+
+  el.innerHTML = filtered.map(r=>`
+    <div class="review-admin-card ${r.status}">
+      <div>
+        <p class="ra-product">${r.productName}</p>
+        <div class="ra-stars">${stars(r.rating)}</div>
+        <p class="ra-comment">${r.comment}</p>
+        ${r.photo?`<img src="${r.photo}" class="ra-photo" alt="Review photo"/>`:''}
+        <p class="ra-meta">By <strong>${r.userName}</strong> · ${r.createdAt?new Date(r.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):''}</p>
+      </div>
+      <div class="ra-actions">
+        ${r.status!=='approved'?`<button class="btn-approve" onclick="updateReview('${r.docId}','approved')">✅ Approve</button>`:''}
+        ${r.status!=='rejected'?`<button class="btn-reject"  onclick="updateReview('${r.docId}','rejected')">❌ Reject</button>`:''}
+        ${r.status!=='pending' ?`<button class="btn-secondary" style="font-size:9px;padding:6px 12px" onclick="updateReview('${r.docId}','pending')">↩ Undo</button>`:''}
+      </div>
+    </div>`).join('');
+}
+
+async function updateReview(docId, newStatus){
+  try {
+    const res = await fetch(
+      `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/reviews/${docId}?updateMask.fieldPaths=status`,
+      {
+        method:'PATCH',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ fields:{ status:{ stringValue: newStatus } } })
+      }
+    );
+    if(res.ok){
+      const r = reviewsCache.find(x=>x.docId===docId);
+      if(r) r.status=newStatus;
+      renderAdminReviews();
+      showToast(`Review ${newStatus}`);
+    }
+  } catch(e){ showToast('Error updating review'); }
+}
+
+function filterAdminReviews(status){
+  reviewFilter=status;
+  renderAdminReviews();
 }
 
 // ── AUTO LOGIN CHECK ─────────────────────────────────────────
