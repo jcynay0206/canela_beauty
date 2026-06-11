@@ -324,6 +324,10 @@
     .modal-lbl{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px;}
     .shade-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px;}
     .shade{width:24px;height:24px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:border-color .2s,transform .2s;}
+    .shade.active{border-color:var(--brown);transform:scale(1.15);}
+    .shade.out-of-stock{opacity:.25;cursor:not-allowed;position:relative;}
+    .shade.out-of-stock::after{content:'';position:absolute;inset:-2px;background:linear-gradient(135deg,transparent 45%,var(--red) 50%,transparent 55%);border-radius:50%;}
+    .shade-row{display:flex;flex-wrap:wrap;gap:8px;}
     .shade:hover,.shade.active{border-color:var(--gold);transform:scale(1.2);}
     .modal-qty-row{display:flex;align-items:center;gap:16px;margin-bottom:22px;}
     .modal-qty-ctrl{display:flex;align-items:center;gap:8px;}
@@ -465,8 +469,9 @@
       <p class="modal-price" id="modalPrice"></p>
       <p class="modal-desc" id="modalDesc"></p>
       <div class="modal-badges" id="modalBadges"></div>
-      <span class="modal-lbl">Shade</span>
+      <span class="modal-lbl" id="shadeLabel">Shade</span>
       <div class="shade-row" id="shadeRow"></div>
+      <p id="variantSelectedName" style="font-size:11px;color:var(--muted);margin:-8px 0 16px;display:none;"></p>
       <div class="modal-qty-row">
         <span class="modal-lbl" style="margin-bottom:0">Qty</span>
         <div class="modal-qty-ctrl">
@@ -732,7 +737,7 @@ const PRODUCTS = getProducts().map(p => ({
 
 
 
-let cart=[], modalQty=1, currentProduct=null;
+let cart=[], modalQty=1, currentProduct=null, selectedVariant=null;
 
 function gloss(cap,tube,scale){
   return `<div style="display:flex;flex-direction:column;align-items:center;transform:scale(${scale});transform-origin:bottom center">
@@ -824,11 +829,12 @@ function renderProducts(){
         <div class="pimg-inner p${(PRODUCTS.indexOf(p)%4)+1}">${gloss(p.capClass,p.tubeClass,1.1)}</div>
         ${p.isNew?'<span class="badge-new">New</span>':''}
         ${p.soldOut?'<span class="badge-sold">Sold Out</span>':''}
-        <div class="quick-add" onclick="quickAdd(event,${p.id})">${p.soldOut?'View Details':'+ Add to Cart'}</div>
+        <div class="quick-add" onclick="quickAdd(event,${p.id})">${p.soldOut?'View Details':p.hasVariants?'Select Shade':'+ Add to Cart'}</div>
       </div>
       ${p.collection?`<span class="collection-tag">${p.collection}</span>`:''}
       <p class="product-name">${p.name}</p>
       <p class="product-price">${p.oldPrice?`<s>$${p.oldPrice.toFixed(2)}</s> `:''}$${p.price.toFixed(2)} USD</p>
+      ${p.hasVariants && p.variants?.length ? `<p style="font-size:10px;color:var(--muted);margin-top:4px;">${p.variants.length} shades available</p>` : ''}
     </div>`).join('');
 
   setTimeout(()=>{
@@ -837,28 +843,48 @@ function renderProducts(){
   }, 50);
 }
 
-function quickAdd(e,id){ e.stopPropagation(); const p=PRODUCTS.find(x=>x.id===id); p.soldOut?openModal(id):addToCart(p,1); }
+function quickAdd(e,id){
+  e.stopPropagation();
+  const p=PRODUCTS.find(x=>x.id===id);
+  // Variant products and sold out items always open the modal
+  if(p.soldOut || (p.hasVariants && p.variants?.length)) openModal(id);
+  else addToCart(p,1);
+}
 
-function addToCart(product, qty){
-  // Check available stock
-  if(product.stock !== null && product.stock !== undefined){
-    const inCart = cart.find(i=>i.id===product.id);
+function addToCart(product, qty, variant){
+  // Determine effective stock (variant-specific or product-level)
+  const effectiveStock = variant ? variant.stock : product.stock;
+  const cartId = variant ? `${product.id}-${variant.name}` : `${product.id}`;
+
+  if(effectiveStock !== null && effectiveStock !== undefined){
+    const inCart = cart.find(i=>i.cartId===cartId);
     const already = inCart ? inCart.qty : 0;
-    if(already + qty > product.stock){
-      showToast(`Only ${product.stock} units available`);
+    if(already + qty > effectiveStock){
+      showToast(`Only ${effectiveStock} units available`);
       return;
     }
   }
-  const ex = cart.find(i=>i.id===product.id);
-  if(ex) ex.qty += qty; else cart.push({...product, qty});
+  const ex = cart.find(i=>i.cartId===cartId);
+  if(ex){
+    ex.qty += qty;
+  } else {
+    cart.push({
+      ...product,
+      cartId,
+      qty,
+      variantName: variant ? variant.name : null,
+      variantColor: variant ? variant.color : null,
+      displayName: variant ? `${product.name} — ${variant.name}` : product.name
+    });
+  }
   updateCartUI();
-  showToast(`${product.name} added`);
+  showToast(`${variant ? `${product.name} (${variant.name})` : product.name} added`);
 }
-function removeFromCart(id){ cart=cart.filter(i=>i.id!==id); updateCartUI(); }
-function changeQty(id,d){
-  const item=cart.find(i=>i.id===id); if(!item) return;
+function removeFromCart(cartId){ cart=cart.filter(i=>i.cartId!==cartId); updateCartUI(); }
+function changeQty(cartId,d){
+  const item=cart.find(i=>i.cartId===cartId); if(!item) return;
   item.qty=Math.max(0,item.qty+d);
-  item.qty===0?removeFromCart(id):updateCartUI();
+  item.qty===0?removeFromCart(cartId):updateCartUI();
 }
 
 function updateCartUI(){
@@ -895,15 +921,15 @@ function updateCartUI(){
   }
   el.innerHTML=cart.map(item=>`
     <div class="cart-item">
-      <div class="cart-item-thumb" style="background:${item.bg}">${gloss(item.capClass,item.tubeClass,0.6)}</div>
+      <div class="cart-item-thumb" style="background:${item.variantColor?`linear-gradient(160deg,${item.variantColor}33,${item.variantColor}66)`:item.bg}">${gloss(item.capClass,item.tubeClass,0.6)}</div>
       <div class="cart-item-info">
-        <p class="cart-item-name">${item.name}</p>
+        <p class="cart-item-name">${item.displayName||item.name}</p>
         <p class="cart-item-price">$${item.price.toFixed(2)} USD</p>
         <div class="qty-row">
-          <button class="qty-btn" onclick="changeQty(${item.id},-1)">−</button>
+          <button class="qty-btn" onclick="changeQty('${item.cartId}',-1)">−</button>
           <span class="qty-val">${item.qty}</span>
-          <button class="qty-btn" onclick="changeQty(${item.id},1)">+</button>
-          <button class="remove-btn" onclick="removeFromCart(${item.id})">Remove</button>
+          <button class="qty-btn" onclick="changeQty('${item.cartId}',1)">+</button>
+          <button class="remove-btn" onclick="removeFromCart('${item.cartId}')">Remove</button>
         </div>
       </div>
     </div>`).join('');
@@ -923,7 +949,7 @@ async function goCheckout(){
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        items: cart.map(i => ({ name: i.name, price: i.price, qty: i.qty, weight: i.weight || 0.3, packaging: i.packaging || 'envelope' })),
+        items: cart.map(i => ({ name: i.displayName||i.name, price: i.price, qty: i.qty, weight: i.weight || 0.3, packaging: i.packaging || 'envelope' })),
         customerEmail: user?.email || null
       })
     });
@@ -944,24 +970,74 @@ async function goCheckout(){
 
 function openModal(id){
   const p=PRODUCTS.find(x=>x.id===id); if(!p) return;
-  currentProduct=p; modalQty=1;
+  currentProduct=p; modalQty=1; selectedVariant=null;
   document.getElementById('modalTitle').textContent=p.name;
   document.getElementById('modalDesc').textContent=p.desc;
   document.getElementById('modalQtyVal').textContent=1;
   document.getElementById('modalPrice').innerHTML=p.oldPrice?`<s>$${p.oldPrice.toFixed(2)}</s> $${p.price.toFixed(2)} USD`:`$${p.price.toFixed(2)} USD`;
   document.getElementById('modalImgBg').innerHTML=`<div style="background:${p.bg};width:100%;min-height:420px;display:flex;align-items:center;justify-content:center">${gloss(p.capClass,p.tubeClass,1.8)}</div>`;
   document.getElementById('modalBadges').innerHTML=p.badges.map(b=>`<span class="m-badge">${b}</span>`).join('');
-  document.getElementById('shadeRow').innerHTML=p.shades.map((c,i)=>`<div class="shade${i===0?' active':''}" style="background:${c}" onclick="selectShade(this)"></div>`).join('');
+
+  const shadeLabel = document.getElementById('shadeLabel');
+  const shadeRow = document.getElementById('shadeRow');
+  const nameLabel = document.getElementById('variantSelectedName');
+
+  if(p.hasVariants && p.variants?.length){
+    shadeLabel.textContent = 'Select Shade *';
+    shadeRow.innerHTML = p.variants.map((v,i)=>{
+      const out = v.stock===0;
+      return `<div class="shade${out?' out-of-stock':''}" style="background:${v.color}" data-name="${v.name}" data-idx="${i}" data-out="${out}" onclick="${out?'':`selectVariant(${i})`}"></div>`;
+    }).join('');
+    nameLabel.style.display='block';
+    nameLabel.textContent = 'Please select a shade';
+  } else {
+    shadeLabel.textContent = 'Shade';
+    shadeRow.innerHTML = (p.shades||[]).map((c,i)=>`<div class="shade${i===0?' active':''}" style="background:${c}" onclick="selectShade(this)"></div>`).join('');
+    nameLabel.style.display='none';
+  }
+
   const btn=document.getElementById('modalAddBtn');
-  btn.disabled=p.soldOut; btn.textContent=p.soldOut?'Sold Out':'Add to Cart';
+  if(p.soldOut){
+    btn.disabled=true; btn.textContent='Sold Out';
+  } else if(p.hasVariants && p.variants?.length){
+    btn.disabled=true; btn.textContent='Select a Shade';
+  } else {
+    btn.disabled=false; btn.textContent='Add to Cart';
+  }
+
   document.getElementById('modalOverlay').classList.add('open');
   document.body.style.overflow='hidden';
 }
 function closeModal(){ document.getElementById('modalOverlay').classList.remove('open'); document.body.style.overflow=''; }
 function handleOverlayClick(e){ if(e.target===document.getElementById('modalOverlay')) closeModal(); }
 function selectShade(el){ document.querySelectorAll('.shade').forEach(s=>s.classList.remove('active')); el.classList.add('active'); }
-function changeModalQty(d){ modalQty=Math.max(1,modalQty+d); document.getElementById('modalQtyVal').textContent=modalQty; }
-function addFromModal(){ if(!currentProduct||currentProduct.soldOut) return; addToCart(currentProduct,modalQty); closeModal(); openCart(); }
+
+function selectVariant(idx){
+  const p = currentProduct;
+  const v = p.variants[idx];
+  if(!v || v.stock===0) return;
+  selectedVariant = v;
+  document.querySelectorAll('#shadeRow .shade').forEach((s,i)=>s.classList.toggle('active', i===idx));
+  document.getElementById('variantSelectedName').textContent = `${v.name} — ${v.stock<=5?`only ${v.stock} left`:`${v.stock} in stock`}`;
+  const btn=document.getElementById('modalAddBtn');
+  btn.disabled=false; btn.textContent='Add to Cart';
+}
+
+function changeModalQty(d){
+  modalQty=Math.max(1,modalQty+d);
+  document.getElementById('modalQtyVal').textContent=modalQty;
+}
+
+function addFromModal(){
+  if(!currentProduct||currentProduct.soldOut) return;
+  if(currentProduct.hasVariants && !selectedVariant){
+    showToast('Please select a shade');
+    return;
+  }
+  addToCart(currentProduct, modalQty, selectedVariant);
+  closeModal();
+  openCart();
+}
 
 async function handleSubscribe(){
   const inp=document.getElementById('emailInput');

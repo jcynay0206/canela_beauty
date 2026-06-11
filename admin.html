@@ -168,6 +168,21 @@
     .shade-add-btn{padding:7px 14px;background:none;border:1px solid var(--border2);border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:all .2s;}
     .shade-add-btn:hover{border-color:var(--gold);color:var(--gold);}
 
+    /* VARIANT EDITOR */
+    .variant-row{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;padding:10px 12px;margin-bottom:8px;}
+    .variant-swatch{width:28px;height:28px;border-radius:50%;flex-shrink:0;border:1px solid var(--border2);}
+    .variant-name{flex:1;font-size:13px;color:var(--brown);}
+    .variant-stock-badge{font-size:11px;color:var(--muted);background:var(--bg3);padding:4px 10px;border-radius:2px;min-width:70px;text-align:center;}
+    .variant-stock-badge.low{color:#C96400;}
+    .variant-stock-badge.out{color:var(--red);}
+    .variant-rm{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px 6px;transition:color .2s;}
+    .variant-rm:hover{color:var(--red);}
+    .variant-add-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+    .variant-name-input{flex:1;min-width:140px;padding:8px 12px;border:1px solid var(--border2);border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--brown);outline:none;background:#fff;}
+    .variant-name-input:focus{border-color:var(--gold);}
+    .variant-stock-input{width:70px;padding:8px 10px;border:1px solid var(--border2);border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--brown);outline:none;background:#fff;text-align:center;}
+    .variant-stock-input:focus{border-color:var(--gold);}
+
     .form-actions{display:flex;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid var(--border);}
     .btn-save{flex:1;padding:13px;background:var(--brown);color:#FAF6EF;border:none;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;font-weight:500;cursor:pointer;transition:background .2s;}
     .btn-save:hover{background:var(--brown2);}
@@ -490,14 +505,35 @@
           <button onclick="addCustomBadge()">+ Add</button>
         </div>
       </div>
-      <!-- Shades -->
+      <!-- Variants / Shades -->
       <div class="field">
-        <label>Color Shades</label>
+        <div class="toggle-row">
+          <span>This product has color variants (e.g. foundation shades, eyeshadow colors)</span>
+          <label class="toggle"><input type="checkbox" id="fHasVariants" onchange="toggleVariantMode()"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- Simple shades (decorative only, no separate stock) -->
+      <div class="field" id="simpleShadesField">
+        <label>Color Swatches (decorative)</label>
         <div class="shades-area" id="shadesArea"></div>
         <div class="shade-add-row">
           <input type="color" class="shade-color-input" id="shadeColorPicker" value="#C07850"/>
           <button class="shade-add-btn" onclick="addShade()">+ Add Shade</button>
         </div>
+      </div>
+
+      <!-- Variant editor (each shade = own stock) -->
+      <div class="field" id="variantsField" style="display:none">
+        <label>Shade Variants — each has its own stock</label>
+        <div id="variantsList"></div>
+        <div class="variant-add-row">
+          <input type="color" class="shade-color-input" id="variantColorPicker" value="#D4A574"/>
+          <input type="text" id="variantNameInput" placeholder="Shade name (e.g. Medium 220)" class="variant-name-input"/>
+          <input type="number" id="variantStockInput" placeholder="Stock" min="0" class="variant-stock-input"/>
+          <button class="shade-add-btn" onclick="addVariant()">+ Add</button>
+        </div>
+        <p class="field-hint">Total stock = sum of all variant stock. Customers must select a shade before adding to cart.</p>
       </div>
       <!-- Toggles -->
       <div class="field">
@@ -721,6 +757,7 @@ let editingId=null, currentShades=[], currentImage=null;
 function openForm(id){
   editingId=id;
   currentShades=[];
+  currentVariants=[];
   currentImage=null;
   document.getElementById('formOverlay').classList.add('open');
   document.body.style.overflow='hidden';
@@ -731,12 +768,15 @@ function openForm(id){
     document.getElementById('fPrice').value='';
     document.getElementById('fOldPrice').value='';
     document.getElementById('fStock').value='';
+    document.getElementById('fStock').disabled=false;
+    document.getElementById('fStock').placeholder='20';
     document.getElementById('fDesc').value='';
     document.getElementById('fCollection').value='';
     document.getElementById('fWeight').value='0.3';
     document.getElementById('fPackaging').value='envelope';
     document.getElementById('fIsNew').checked=false;
     document.getElementById('fSoldOut').checked=false;
+    document.getElementById('fHasVariants').checked=false;
     resetBadges([]);
   } else {
     const p=getProducts().find(x=>x.id===id);
@@ -752,11 +792,15 @@ function openForm(id){
     document.getElementById('fWeight').value=p.weight||0.3;
     document.getElementById('fPackaging').value=p.packaging||'envelope';
     document.getElementById('fSoldOut').checked=!!p.soldOut;
+    document.getElementById('fHasVariants').checked=!!p.hasVariants;
     currentShades=[...(p.shades||[])];
+    currentVariants=p.variants?JSON.parse(JSON.stringify(p.variants)):[];
     currentImage=p.image||null;
     resetBadges(p.badges||[]);
   }
   renderShades();
+  renderVariants();
+  toggleVariantMode();
   updateImgPreview();
 }
 
@@ -772,8 +816,14 @@ function saveProduct(){
   const name  = document.getElementById('fName').value.trim();
   const price = parseFloat(document.getElementById('fPrice').value);
   const oldP  = parseFloat(document.getElementById('fOldPrice').value)||null;
-  const stockV= document.getElementById('fStock').value;
-  const stock = stockV!==''?parseInt(stockV):null;
+  const hasVariants = document.getElementById('fHasVariants').checked;
+  let stock;
+  if(hasVariants){
+    stock = currentVariants.reduce((s,v)=>s+(v.stock||0),0);
+  } else {
+    const stockV = document.getElementById('fStock').value;
+    stock = stockV!==''?parseInt(stockV):null;
+  }
   const desc  = document.getElementById('fDesc').value.trim();
   const isNew = document.getElementById('fIsNew').checked;
   const collection = document.getElementById('fCollection').value.trim();
@@ -784,21 +834,24 @@ function saveProduct(){
 
   if(!name){showToast('Name is required');return;}
   if(!price||price<=0){showToast('Valid price required');return;}
-  if(stock!==null&&stock<0){showToast('Stock cannot be negative');return;}
+  if(hasVariants && !currentVariants.length){showToast('Add at least one shade variant');return;}
+  if(!hasVariants && stock!==null&&stock<0){showToast('Stock cannot be negative');return;}
 
   const soldOut = forcedSoldOut || (stock!==null&&stock===0);
+  const shadesForDisplay = hasVariants ? currentVariants.map(v=>v.color) : currentShades;
   const products = getProducts();
 
   if(editingId===null){
     products.push({
       id:Date.now(),name,price,oldPrice:oldP,stock,desc,isNew,soldOut,collection,weight,packaging,
-      badges,shades:currentShades,image:currentImage,
-      bg:shadeGradient(currentShades),capClass:'mgc1',tubeClass:'mg1'
+      hasVariants,variants:hasVariants?currentVariants:[],
+      badges,shades:shadesForDisplay,image:currentImage,
+      bg:shadeGradient(shadesForDisplay),capClass:'mgc1',tubeClass:'mg1'
     });
     showToast(`${name} added!`);
   } else {
     const idx=products.findIndex(x=>x.id===editingId);
-    if(idx>-1) products[idx]={...products[idx],name,price,oldPrice:oldP,stock,desc,isNew,soldOut,collection,weight,packaging,badges,shades:currentShades,image:currentImage,bg:shadeGradient(currentShades)};
+    if(idx>-1) products[idx]={...products[idx],name,price,oldPrice:oldP,stock,desc,isNew,soldOut,collection,weight,packaging,hasVariants,variants:hasVariants?currentVariants:[],badges,shades:shadesForDisplay,image:currentImage,bg:shadeGradient(shadesForDisplay)};
     showToast(`${name} saved!`);
   }
 
@@ -846,6 +899,64 @@ function renderShades(){
 function addShade(){ const c=document.getElementById('shadeColorPicker').value; if(!currentShades.includes(c)) currentShades.push(c); renderShades(); }
 function removeShade(i){ currentShades.splice(i,1); renderShades(); }
 
+// ── VARIANTS ─────────────────────────────────────────────────
+let currentVariants = [];
+
+function toggleVariantMode(){
+  const has = document.getElementById('fHasVariants').checked;
+  document.getElementById('simpleShadesField').style.display = has ? 'none' : 'block';
+  document.getElementById('variantsField').style.display = has ? 'block' : 'none';
+  // Disable manual stock field — derived from variants
+  const stockField = document.getElementById('fStock');
+  if(has){
+    stockField.disabled = true;
+    stockField.value = currentVariants.reduce((s,v)=>s+(v.stock||0),0);
+    stockField.placeholder = 'Auto-calculated from variants';
+  } else {
+    stockField.disabled = false;
+    stockField.placeholder = '20';
+  }
+}
+
+function renderVariants(){
+  const list = document.getElementById('variantsList');
+  if(!currentVariants.length){
+    list.innerHTML = '<p style="font-size:11px;color:var(--muted);padding:8px 0;">No variants yet — add shades below.</p>';
+  } else {
+    list.innerHTML = currentVariants.map((v,i)=>{
+      const cls = v.stock===0?'out':v.stock<=5?'low':'';
+      const label = v.stock===0?'Sold out':`${v.stock} units`;
+      return `
+      <div class="variant-row">
+        <div class="variant-swatch" style="background:${v.color}"></div>
+        <span class="variant-name">${v.name}</span>
+        <span class="variant-stock-badge ${cls}">${label}</span>
+        <button class="variant-rm" onclick="removeVariant(${i})">✕</button>
+      </div>`;
+    }).join('');
+  }
+  // Update total stock if in variant mode
+  if(document.getElementById('fHasVariants').checked){
+    document.getElementById('fStock').value = currentVariants.reduce((s,v)=>s+(v.stock||0),0);
+  }
+}
+
+function addVariant(){
+  const color = document.getElementById('variantColorPicker').value;
+  const name  = document.getElementById('variantNameInput').value.trim();
+  const stock = parseInt(document.getElementById('variantStockInput').value)||0;
+  if(!name){ showToast('Enter a shade name'); return; }
+  currentVariants.push({ color, name, stock });
+  document.getElementById('variantNameInput').value='';
+  document.getElementById('variantStockInput').value='';
+  renderVariants();
+}
+
+function removeVariant(i){
+  currentVariants.splice(i,1);
+  renderVariants();
+}
+
 // ── BADGES ───────────────────────────────────────────────────
 function resetBadges(selected){
   document.querySelectorAll('#badgeChips .badge-chip[data-custom]').forEach(c=>c.remove());
@@ -879,7 +990,31 @@ function addCustomBadge(){
 function renderInventory(){
   const products=getProducts();
   const tbody=document.getElementById('invTableBody');
-  tbody.innerHTML=products.map(p=>`
+  tbody.innerHTML=products.map(p=>{
+    if(p.hasVariants && p.variants?.length){
+      // Variant product — show breakdown, no manual adjust row
+      return `
+      <tr>
+        <td><strong style="color:var(--brown)">${p.name}</strong><br><span style="font-size:11px;color:var(--muted)">$${p.price.toFixed(2)} · ${p.variants.length} shades</span></td>
+        <td><strong style="font-size:18px;font-family:'Cormorant Garamond',serif;color:var(--brown)">${p.stock||0}</strong> units total</td>
+        <td>${stockPill(p)}</td>
+        <td colspan="2">
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            ${p.variants.map((v,vi)=>{
+              const cls=v.stock===0?'out':v.stock<=5?'low':'';
+              return `<div class="variant-row" style="margin:0;padding:4px 8px;">
+                <div class="variant-swatch" style="width:18px;height:18px;background:${v.color}"></div>
+                <span class="variant-name" style="font-size:11px;">${v.name}</span>
+                <button class="sc-btn" style="width:20px;height:20px;font-size:12px;" onclick="adjustVariantStock(${p.id},${vi},-1)">−</button>
+                <span class="variant-stock-badge ${cls}" style="min-width:50px;font-size:10px;">${v.stock}</span>
+                <button class="sc-btn" style="width:20px;height:20px;font-size:12px;" onclick="adjustVariantStock(${p.id},${vi},1)">+</button>
+              </div>`;
+            }).join('')}
+          </div>
+        </td>
+      </tr>`;
+    }
+    return `
     <tr>
       <td><strong style="color:var(--brown)">${p.name}</strong><br><span style="font-size:11px;color:var(--muted)">$${p.price.toFixed(2)}</span></td>
       <td><strong style="font-size:18px;font-family:'Cormorant Garamond',serif;color:var(--brown)">${p.stock||0}</strong> units</td>
@@ -898,7 +1033,21 @@ function renderInventory(){
         </label>
         <span style="font-size:10px;color:var(--muted);margin-left:8px">${p.soldOut?'Forced out':'Auto'}</span>
       </td>
-    </tr>`).join('');
+    </tr>`;
+  }).join('');
+}
+
+function adjustVariantStock(productId, variantIdx, delta){
+  const products=getProducts();
+  const p=products.find(x=>x.id===productId); if(!p||!p.variants) return;
+  const v=p.variants[variantIdx]; if(!v) return;
+  v.stock=Math.max(0,(v.stock||0)+delta);
+  p.stock=p.variants.reduce((s,vv)=>s+(vv.stock||0),0);
+  if(p.stock===0) p.soldOut=true;
+  else if(delta>0) p.soldOut=false;
+  saveProducts(products);
+  renderInventory();
+  renderProducts();
 }
 
 function adjustStock(id, direction){
