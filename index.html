@@ -724,16 +724,32 @@ const DEFAULT_PRODUCTS = [
     badges:['Vegan','Argan Oil','Shea Butter'], shades:['#B06040','#D08060','#906040','#C07858'] }
 ];
 
-// Read from localStorage (admin panel), fall back to defaults
+// Catálogo: se intenta cargar desde el servidor (Firestore, vía
+// /api/products) para que todos los visitantes vean el mismo catálogo que
+// se gestiona en /admin. Mientras carga, o si falla, se usa el catálogo
+// guardado localmente o los productos de ejemplo.
 function getProducts(){
   try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || DEFAULT_PRODUCTS; }
   catch{ return DEFAULT_PRODUCTS; }
 }
+function applySoldOut(p){
+  return { ...p, soldOut: (p.stock !== null && p.stock !== undefined) ? p.stock === 0 : p.soldOut };
+}
 // Auto-apply soldOut based on stock before using products
-const PRODUCTS = getProducts().map(p => ({
-  ...p,
-  soldOut: (p.stock !== null && p.stock !== undefined) ? p.stock === 0 : p.soldOut
-}));
+let PRODUCTS = getProducts().map(applySoldOut);
+
+async function refreshProductsFromServer(){
+  try{
+    const res = await fetch('/api/products');
+    const data = await res.json();
+    if(Array.isArray(data.products) && data.products.length){
+      PRODUCTS = data.products.map(applySoldOut);
+      renderProducts();
+    }
+  } catch(err){
+    console.warn('No se pudo cargar el catálogo del servidor, usando datos locales.', err);
+  }
+}
 
 
 
@@ -1088,7 +1104,7 @@ function closeMobileMenu(){
   document.body.style.overflow = '';
 }
 
-renderProducts(); updateCartUI(); initAuthState(); loadReviews();
+renderProducts(); updateCartUI(); initAuthState(); loadReviews(); refreshProductsFromServer();
 
 // ── SCROLL REVEAL ──────────────────────────────────────────
 const revealObserver = new IntersectionObserver((entries)=>{
