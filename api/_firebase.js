@@ -15,7 +15,8 @@ if (!admin.apps.length) {
     credential: admin.credential.cert({
       projectId: process.env.FIREBASE_PROJECT_ID,
       clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      privateKey: privateKey: (process.env.FIREBASE_PRIVATE_KEY || "").split(String.fromCharCode(10)).join("\n").replace(/\\n/g, "\n"),
+      // Vercel puede quitar el \n final — lo forzamos aquí.
+      privateKey: ((process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n").trimEnd()) + "\n",
     }),
     storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
   });
