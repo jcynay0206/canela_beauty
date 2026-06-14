@@ -89,8 +89,20 @@
     .nav-actions{display:flex;gap:20px;align-items:center;}
     .nav-actions a{text-decoration:none;color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;transition:color .2s;}
     .nav-actions a:hover{color:var(--brown);}
-    .cart-btn{background:var(--brown);color:#FAF6EF;padding:8px 20px;border-radius:2px;font-size:10px;font-weight:500;cursor:pointer;border:none;letter-spacing:2px;text-transform:uppercase;transition:background .2s;font-family:'DM Sans',sans-serif;}
-    .cart-btn:hover{background:var(--brown2);}
+    /* CART / BAG BUTTON */
+    .cart-btn{position:relative;background:none;border:none;cursor:pointer;padding:6px;color:var(--brown);transition:color .2s;display:flex;align-items:center;justify-content:center;}
+    .cart-btn:hover{color:var(--brown2);}
+    .cart-btn svg{width:26px;height:26px;stroke:currentColor;stroke-width:1.5;fill:none;transition:transform .2s;}
+    .cart-btn:hover svg{transform:scale(1.08);}
+    .cart-btn.bump svg{animation:bagBump .4s cubic-bezier(.22,1,.36,1);}
+    @keyframes bagBump{0%{transform:scale(1)}40%{transform:scale(1.28) rotate(-6deg)}70%{transform:scale(0.95) rotate(3deg)}100%{transform:scale(1) rotate(0)}}
+    .cart-badge{position:absolute;top:-2px;right:-4px;min-width:17px;height:17px;background:var(--brown);color:#FAF6EF;border-radius:50%;font-size:9px;font-family:'DM Sans',sans-serif;font-weight:600;display:flex;align-items:center;justify-content:center;padding:0 3px;opacity:0;transform:scale(0);transition:all .25s cubic-bezier(.22,1,.36,1);pointer-events:none;border:1.5px solid #FDF9F5;}
+    .cart-badge.visible{opacity:1;transform:scale(1);}
+    .cart-btn.has-items .bag-empty{display:none;}
+    .cart-btn.has-items .bag-full{display:block;}
+    .cart-btn:not(.has-items) .bag-full{display:none;}
+    .cart-btn:not(.has-items) .bag-empty{display:block;}
+    .mobile-cart-icon{background:none!important;border:none!important;padding:6px!important;}
 
     /* HAMBURGER */
     .hamburger{display:none;flex-direction:column;justify-content:center;gap:5px;width:36px;height:36px;background:none;border:none;cursor:pointer;padding:4px;z-index:302;}
@@ -768,9 +780,39 @@
     <span id="navAuthArea">
       <a href="/auth" id="navSignIn">Sign In</a>
     </span>
-    <button class="cart-btn desktop-only" onclick="openCart()">Cart (<span id="cartCount">0</span>)</button>
+    <!-- Desktop bag icon -->
+    <button class="cart-btn desktop-only" id="cartBtnDesktop" onclick="openCart()" aria-label="Open cart">
+      <!-- Empty bag -->
+      <svg class="bag-empty" viewBox="0 0 24 24">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <path d="M16 10a4 4 0 01-8 0" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <!-- Full bag (shown when items present) -->
+      <svg class="bag-full" viewBox="0 0 24 24">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke-linecap="round" stroke-linejoin="round" fill="var(--brown)" fill-opacity="0.12"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <path d="M16 10a4 4 0 01-8 0" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="12" cy="14" r="1.5" fill="var(--gold)" stroke="none"/>
+      </svg>
+      <span class="cart-badge" id="cartCount">0</span>
+    </button>
     <a id="mobileUserGreet" href="/account"></a>
-    <button class="cart-btn mobile-cart-icon" onclick="openCart()" style="display:none;padding:8px 14px;">🛍 <span id="cartCountMobile">0</span></button>
+    <!-- Mobile bag icon -->
+    <button class="cart-btn mobile-cart-icon" id="cartBtnMobile" onclick="openCart()" style="display:none;" aria-label="Open cart">
+      <svg class="bag-empty" viewBox="0 0 24 24">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke-linecap="round" stroke-linejoin="round"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <path d="M16 10a4 4 0 01-8 0" stroke-linecap="round" stroke-linejoin="round"/>
+      </svg>
+      <svg class="bag-full" viewBox="0 0 24 24">
+        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke-linecap="round" stroke-linejoin="round" fill="var(--brown)" fill-opacity="0.12"/>
+        <line x1="3" y1="6" x2="21" y2="6"/>
+        <path d="M16 10a4 4 0 01-8 0" stroke-linecap="round" stroke-linejoin="round"/>
+        <circle cx="12" cy="14" r="1.5" fill="var(--gold)" stroke="none"/>
+      </svg>
+      <span class="cart-badge" id="cartCountMobile">0</span>
+    </button>
     <button class="hamburger" id="hamburger" onclick="toggleMobileMenu()">
       <span></span><span></span><span></span>
     </button>
@@ -1131,6 +1173,15 @@ function addToCart(product, qty, variant){
     });
   }
   updateCartUI();
+  // Bump animation on bag icon
+  ['cartBtnDesktop','cartBtnMobile'].forEach(id=>{
+    const btn=document.getElementById(id);
+    if(!btn) return;
+    btn.classList.remove('bump');
+    void btn.offsetWidth; // reflow to restart animation
+    btn.classList.add('bump');
+    setTimeout(()=>btn.classList.remove('bump'), 450);
+  });
   showToast(`${variant ? `${product.name} (${variant.name})` : product.name} added`);
 }
 function removeFromCart(cartId){ cart=cart.filter(i=>i.cartId!==cartId); updateCartUI(); }
@@ -1144,12 +1195,23 @@ function updateCartUI(){
   const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
   const count = cart.reduce((s,i)=>s+i.qty,0);
 
-  // Counts
-  document.getElementById('cartCount').textContent=count;
-  document.getElementById('cartCountMobile').textContent=count;
+  // Counts + bag icon state
+  ['cartCount','cartCountMobile'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(!el) return;
+    el.textContent=count;
+    el.classList.toggle('visible', count>0);
+  });
   if(document.getElementById('mobileCartCount')) document.getElementById('mobileCartCount').textContent=count;
   document.getElementById('cartTotal').textContent=`$${total.toFixed(2)}`;
   document.getElementById('checkoutBtn').disabled=!cart.length;
+
+  // Toggle filled/empty bag icon
+  ['cartBtnDesktop','cartBtnMobile'].forEach(id=>{
+    const btn=document.getElementById(id);
+    if(!btn) return;
+    btn.classList.toggle('has-items', count>0);
+  });
 
   // Item count label
   const countEl = document.getElementById('cartItemCount');
