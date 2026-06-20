@@ -1,66 +1,79 @@
-const { db } = require("./_firebase");
-const { requireAdmin } = require("./_auth");
-const { rateLimit } = require("./_ratelimit");
-const DEFAULT_PRODUCTS = require("./_default-products");
+// ── /api/products ─────────────────────────────────────────────
+// GET  → load product catalog from Firestore
+// PUT  → save product catalog to Firestore (admin only)
 
-const DOC_PATH = "catalog/products";
+const PROJECT_ID = 'canela-beauty-dc884';
+const ADMIN_PW   = process.env.ADMIN_PASSWORD || 'Jonara2026!';
+const FS_URL     = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/catalog/products`;
 
 module.exports = async function handler(req, res) {
-  if (req.method === "GET") {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, PUT, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-admin-token');
+  if (req.method === 'OPTIONS') return res.status(200).end();
+
+  // ── GET: load products ───────────────────────────────────────
+  if (req.method === 'GET') {
     try {
-      const snap = await db.doc(DOC_PATH).get();
-
-      if (!snap.exists) {
-        // Primera vez: siembra el catálogo con los productos de ejemplo.
-        await db.doc(DOC_PATH).set({
-          items: DEFAULT_PRODUCTS,
-          updatedAt: new Date().toISOString(),
-        });
-        return res.status(200).json({ products: DEFAULT_PRODUCTS });
+      const fsRes = await fetch(FS_URL);
+      if (fsRes.status === 404) {
+        // No products yet — return empty list
+        return res.status(200).json({ products: [] });
       }
-
-      const data = snap.data();
-      return res.status(200).json({ products: data.items || [] });
+      const data = await fsRes.json();
+      // Decode Firestore format → plain JS array
+      const raw = data.fields?.data?.stringValue;
+      const products = raw ? JSON.parse(raw) : [];
+      return res.status(200).json({ products });
     } catch (err) {
-      console.error("GET /api/products error:", err);
+      console.error('GET products error:', err.message);
       return res.status(500).json({ error: err.message });
     }
   }
 
-  if (req.method === "PUT") {
-    // Límite general de escrituras (incluso con clave válida): protege
-    // contra un script descontrolado o una clave filtrada.
-    const writeRl = await rateLimit(req, { action: "products-write", maxAttempts: 30, windowMs: 15 * 60 * 1000 });
-    if (!writeRl.allowed) {
-      return res.status(429).json({ error: "Demasiadas solicitudes. Intenta de nuevo en unos minutos." });
-    }
-
-    if (!requireAdmin(req)) {
-      // Límite más estricto para intentos con clave incorrecta (fuerza bruta).
-      const authRl = await rateLimit(req, { action: "products-auth-fail", maxAttempts: 5, windowMs: 15 * 60 * 1000 });
-      if (!authRl.allowed) {
-        return res.status(429).json({ error: "Demasiados intentos fallidos. Espera unos minutos." });
-      }
-      return res.status(401).json({ error: "No autorizado" });
-    }
-
-    const { products } = req.body || {};
-    if (!Array.isArray(products)) {
-      return res.status(400).json({ error: "Se esperaba { products: [...] }" });
+  // ── PUT: save products ───────────────────────────────────────
+  if (req.method === 'PUT') {
+    // Verify admin token
+    const token = req.headers['x-admin-token'] || '';
+    if (token !== ADMIN_PW) {
+      return res.status(401).json({ error: 'Unauthorized' });
     }
 
     try {
-      await db.doc(DOC_PATH).set({
-        items: products,
-        updatedAt: new Date().toISOString(),
+      let body = req.body;
+      if (typeof body === 'string') body = JSON.parse(body);
+      const { products } = body;
+
+      if (!Array.isArray(products)) {
+        return res.status(400).json({ error: 'products must be an array' });
+      }
+
+      // Save to Firestore as a single document — products stored as JSON string
+      const fsRes = await fetch(`${FS_URL}?updateMask.fieldPaths=data`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fields: {
+            data: { stringValue: JSON.stringify(products) },
+            updatedAt: { stringValue: new Date().toISOString() }
+          }
+        })
       });
+
+      if (!fsRes.ok) {
+        const err = await fsRes.json();
+        console.error('Firestore write error:', JSON.stringify(err));
+        return res.status(500).json({ error: err.error?.message || 'Firestore write failed' });
+      }
+
+      console.log(`Products saved: ${products.length} items`);
       return res.status(200).json({ ok: true, count: products.length });
+
     } catch (err) {
-      console.error("PUT /api/products error:", err);
+      console.error('PUT products error:', err.message);
       return res.status(500).json({ error: err.message });
     }
   }
 
-  res.setHeader("Allow", "GET, PUT");
-  return res.status(405).json({ error: "Method not allowed" });
+  return res.status(405).json({ error: 'Method not allowed' });
 };
