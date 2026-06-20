@@ -89,20 +89,8 @@
     .nav-actions{display:flex;gap:20px;align-items:center;}
     .nav-actions a{text-decoration:none;color:var(--muted);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;transition:color .2s;}
     .nav-actions a:hover{color:var(--brown);}
-    /* CART / BAG BUTTON */
-    .cart-btn{position:relative;background:none;border:none;cursor:pointer;padding:6px;color:var(--brown);transition:color .2s;display:flex;align-items:center;justify-content:center;}
-    .cart-btn:hover{color:var(--brown2);}
-    .cart-btn svg{width:26px;height:26px;stroke:currentColor;stroke-width:1.5;fill:none;transition:transform .2s;}
-    .cart-btn:hover svg{transform:scale(1.08);}
-    .cart-btn.bump svg{animation:bagBump .4s cubic-bezier(.22,1,.36,1);}
-    @keyframes bagBump{0%{transform:scale(1)}40%{transform:scale(1.28) rotate(-6deg)}70%{transform:scale(0.95) rotate(3deg)}100%{transform:scale(1) rotate(0)}}
-    .cart-badge{position:absolute;top:-2px;right:-4px;min-width:17px;height:17px;background:var(--brown);color:#FAF6EF;border-radius:50%;font-size:9px;font-family:'DM Sans',sans-serif;font-weight:600;display:flex;align-items:center;justify-content:center;padding:0 3px;opacity:0;transform:scale(0);transition:all .25s cubic-bezier(.22,1,.36,1);pointer-events:none;border:1.5px solid #FDF9F5;}
-    .cart-badge.visible{opacity:1;transform:scale(1);}
-    .cart-btn.has-items .bag-empty{display:none;}
-    .cart-btn.has-items .bag-full{display:block;}
-    .cart-btn:not(.has-items) .bag-full{display:none;}
-    .cart-btn:not(.has-items) .bag-empty{display:block;}
-    .mobile-cart-icon{background:none!important;border:none!important;padding:6px!important;}
+    .cart-btn{background:var(--brown);color:#FAF6EF;padding:8px 20px;border-radius:2px;font-size:10px;font-weight:500;cursor:pointer;border:none;letter-spacing:2px;text-transform:uppercase;transition:background .2s;font-family:'DM Sans',sans-serif;}
+    .cart-btn:hover{background:var(--brown2);}
 
     /* HAMBURGER */
     .hamburger{display:none;flex-direction:column;justify-content:center;gap:5px;width:36px;height:36px;background:none;border:none;cursor:pointer;padding:4px;z-index:302;}
@@ -281,255 +269,41 @@
     .footer-bottom a{color:var(--muted);text-decoration:none;font-size:10px;letter-spacing:1px;transition:color .2s;}
     .footer-bottom a:hover{color:var(--brown);}
 
-    /* ── CART DRAWER — LUXURY REDESIGN ─────────────────────────── */
-    .cart-overlay{
-      position:fixed;inset:0;
-      background:rgba(30,8,12,0.55);
-      backdrop-filter:blur(3px);-webkit-backdrop-filter:blur(3px);
-      z-index:900;opacity:0;pointer-events:none;
-      transition:opacity .4s ease;
-    }
+    /* CART DRAWER */
+    .cart-overlay{position:fixed;inset:0;background:rgba(61,31,0,0.35);z-index:900;opacity:0;pointer-events:none;transition:opacity .32s;}
     .cart-overlay.open{opacity:1;pointer-events:all;}
-
-    .cart-drawer{
-      position:fixed;top:0;right:0;height:100%;
-      width:460px;max-width:100vw;
-      background:#FDF9F5;
-      border-left:1px solid rgba(184,148,60,0.15);
-      z-index:901;
-      transform:translateX(100%);
-      transition:transform .45s cubic-bezier(.22,1,.36,1);
-      display:flex;flex-direction:column;
-      box-shadow:-24px 0 60px rgba(30,8,12,0.12);
-    }
+    .cart-drawer{position:fixed;top:0;right:0;height:100%;width:400px;max-width:100vw;background:var(--bg);border-left:1px solid var(--border2);z-index:901;transform:translateX(100%);transition:transform .36s cubic-bezier(.4,0,.2,1);display:flex;flex-direction:column;}
     .cart-drawer.open{transform:translateX(0);}
-
-    /* Header */
-    .cart-header{
-      display:flex;align-items:center;justify-content:space-between;
-      padding:28px 32px 24px;
-      border-bottom:1px solid rgba(92,26,36,0.08);
-      background:#FDF9F5;
-    }
-    .cart-header-left{display:flex;flex-direction:column;gap:2px;}
-    .cart-header h2{
-      font-family:'Cormorant Garamond',serif;
-      font-size:22px;font-weight:300;
-      color:var(--brown);letter-spacing:4px;text-transform:uppercase;
-    }
-    .cart-item-count{
-      font-size:9px;letter-spacing:2px;text-transform:uppercase;
-      color:var(--muted);font-family:'DM Sans',sans-serif;
-    }
-    .cart-close{
-      width:36px;height:36px;border-radius:50%;
-      border:1px solid rgba(92,26,36,0.12);
-      background:none;cursor:pointer;
-      color:var(--muted);
-      display:flex;align-items:center;justify-content:center;
-      transition:all .2s;
-    }
-    .cart-close:hover{border-color:var(--brown);color:var(--brown);background:rgba(92,26,36,0.04);}
-    .cart-close svg{width:14px;height:14px;stroke:currentColor;stroke-width:1.5;fill:none;}
-
-    /* Free shipping progress bar */
-    .cart-progress{
-      padding:16px 32px;
-      border-bottom:1px solid rgba(92,26,36,0.06);
-      background:#FDF9F5;
-    }
-    .cart-progress-text{
-      font-size:10px;letter-spacing:1.5px;text-transform:uppercase;
-      color:var(--muted);margin-bottom:8px;
-      font-family:'DM Sans',sans-serif;
-    }
-    .cart-progress-text strong{color:var(--brown);}
-    .cart-progress-text.free{color:#1A6B3A;letter-spacing:1.5px;}
-    .cart-progress-bar-bg{
-      height:2px;background:rgba(92,26,36,0.1);border-radius:2px;overflow:hidden;
-    }
-    .cart-progress-bar-fill{
-      height:100%;background:linear-gradient(90deg,var(--gold-lite),var(--gold));
-      border-radius:2px;
-      transition:width .6s cubic-bezier(.22,1,.36,1);
-    }
-
-    /* Items */
-    .cart-items{
-      flex:1;overflow-y:auto;padding:8px 0;
-      scrollbar-width:thin;scrollbar-color:rgba(92,26,36,0.12) transparent;
-    }
-    .cart-items::-webkit-scrollbar{width:3px;}
-    .cart-items::-webkit-scrollbar-thumb{background:rgba(92,26,36,0.15);border-radius:2px;}
-
-    .cart-empty{
-      display:flex;flex-direction:column;align-items:center;
-      justify-content:center;height:100%;gap:16px;
-      padding:48px 32px;
-    }
-    .cart-empty-icon{
-      width:72px;height:72px;border-radius:50%;
-      border:1px solid rgba(92,26,36,0.12);
-      display:flex;align-items:center;justify-content:center;
-      color:rgba(92,26,36,0.2);
-    }
-    .cart-empty-icon svg{width:28px;height:28px;stroke:currentColor;stroke-width:1;fill:none;}
-    .cart-empty-title{
-      font-family:'Cormorant Garamond',serif;font-size:20px;
-      font-weight:300;color:var(--brown);
-    }
-    .cart-empty-sub{
-      font-size:10px;letter-spacing:2px;text-transform:uppercase;
-      color:var(--muted);text-align:center;line-height:1.9;
-    }
-    .cart-empty-cta{
-      margin-top:4px;font-family:'DM Sans',sans-serif;
-      font-size:9px;letter-spacing:2.5px;text-transform:uppercase;
-      color:var(--brown);border-bottom:1px solid var(--gold);
-      padding-bottom:2px;cursor:pointer;background:none;border-top:none;
-      border-left:none;border-right:none;
-    }
-
-    .cart-item{
-      display:flex;gap:18px;
-      padding:20px 32px;
-      border-bottom:1px solid rgba(92,26,36,0.06);
-      transition:background .2s;
-      animation:cartItemIn .35s ease both;
-    }
-    .cart-item:hover{background:rgba(92,26,36,0.02);}
-    @keyframes cartItemIn{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
-
-    /* Thumbnail — más grande y con shade swatch */
-    .cart-item-thumb{
-      width:76px;height:96px;border-radius:4px;
-      border:1px solid rgba(184,148,60,0.2);
-      display:flex;align-items:center;justify-content:center;
-      flex-shrink:0;overflow:hidden;position:relative;
-    }
-    .cart-item-shade{
-      position:absolute;bottom:0;left:0;right:0;height:4px;
-    }
-
-    .cart-item-info{flex:1;display:flex;flex-direction:column;gap:3px;}
-    .cart-item-collection{
-      font-size:8px;letter-spacing:2.5px;text-transform:uppercase;
-      color:var(--gold);font-family:'DM Sans',sans-serif;
-    }
-    .cart-item-name{
-      font-family:'Cormorant Garamond',serif;
-      font-size:17px;font-weight:300;color:var(--brown);
-      line-height:1.2;
-    }
-    .cart-item-variant{
-      font-size:9px;letter-spacing:1.5px;text-transform:uppercase;
-      color:var(--muted);font-family:'DM Sans',sans-serif;margin-top:1px;
-    }
-    .cart-item-price{
-      font-family:'Cormorant Garamond',serif;
-      font-size:17px;color:var(--gold);font-weight:400;
-      margin-top:auto;padding-top:8px;
-    }
-    .cart-item-bottom{display:flex;align-items:center;justify-content:space-between;margin-top:4px;}
-
-    /* Qty controls */
-    .qty-row{display:flex;align-items:center;gap:0;}
-    .qty-btn{
-      width:28px;height:28px;
-      border:1px solid rgba(92,26,36,0.15);
-      background:none;color:var(--brown2);cursor:pointer;
-      font-size:16px;font-family:'DM Sans',sans-serif;
-      display:flex;align-items:center;justify-content:center;
-      transition:all .18s;
-    }
-    .qty-btn:first-child{border-radius:4px 0 0 4px;}
-    .qty-btn:last-child{border-radius:0 4px 4px 0;}
-    .qty-btn:hover{border-color:var(--gold);color:var(--gold);background:rgba(184,148,60,0.06);}
-    .qty-val{
-      font-size:12px;color:var(--brown);
-      min-width:32px;text-align:center;
-      border-top:1px solid rgba(92,26,36,0.15);
-      border-bottom:1px solid rgba(92,26,36,0.15);
-      height:28px;line-height:26px;
-      font-family:'DM Sans',sans-serif;
-    }
-    .remove-btn{
-      background:none;border:none;cursor:pointer;
-      color:rgba(92,26,36,0.25);
-      font-size:8px;letter-spacing:1.5px;text-transform:uppercase;
-      font-family:'DM Sans',sans-serif;
-      transition:color .2s;padding:4px 0;
-    }
-    .remove-btn:hover{color:#b83232;}
-
-    /* Footer */
-    .cart-footer{
-      padding:20px 32px 28px;
-      border-top:1px solid rgba(92,26,36,0.08);
-      background:#FDF9F5;
-    }
-    .cart-subtotal{
-      display:flex;justify-content:space-between;align-items:baseline;
-      margin-bottom:4px;
-    }
-    .cart-subtotal span{
-      font-size:9px;letter-spacing:2.5px;text-transform:uppercase;
-      color:var(--muted);font-family:'DM Sans',sans-serif;
-    }
-    .cart-subtotal strong{
-      font-family:'Cormorant Garamond',serif;
-      font-size:26px;color:var(--brown);font-weight:300;
-    }
-    .cart-note{
-      font-size:9px;letter-spacing:1px;
-      color:var(--muted);margin-bottom:18px;
-      font-family:'DM Sans',sans-serif;line-height:1.7;
-    }
-    .checkout-btn{
-      width:100%;padding:16px;
-      background:var(--brown);color:#FAF6EF;
-      border:none;border-radius:3px;
-      font-family:'DM Sans',sans-serif;font-size:9px;
-      letter-spacing:3.5px;text-transform:uppercase;font-weight:500;
-      cursor:pointer;
-      transition:all .28s;
-      position:relative;overflow:hidden;
-    }
-    .checkout-btn::after{
-      content:'';position:absolute;inset:0;
-      background:linear-gradient(135deg,rgba(255,255,255,0.08),transparent);
-      pointer-events:none;
-    }
-    .checkout-btn:hover:not(:disabled){background:var(--brown2);letter-spacing:4px;}
+    .cart-header{display:flex;align-items:center;justify-content:space-between;padding:22px 26px;border-bottom:1px solid var(--border);}
+    .cart-header h2{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;color:var(--brown);letter-spacing:3px;text-transform:uppercase;}
+    .cart-close{background:none;border:none;cursor:pointer;color:var(--muted);font-size:20px;transition:color .2s;padding:4px;line-height:1;}
+    .cart-close:hover{color:var(--brown);}
+    .cart-items{flex:1;overflow-y:auto;padding:18px 26px;}
+    .cart-empty{display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;gap:14px;color:var(--muted);}
+    .cart-empty svg{opacity:.2;}
+    .cart-empty p{font-size:10px;letter-spacing:2.5px;text-transform:uppercase;}
+    .cart-item{display:flex;gap:14px;padding:16px 0;border-bottom:1px solid var(--border);}
+    .cart-item:last-child{border-bottom:none;}
+    .cart-item-thumb{width:64px;height:84px;border-radius:2px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+    .cart-item-info{flex:1;}
+    .cart-item-name{font-family:'Cormorant Garamond',serif;font-size:15px;color:var(--brown);margin-bottom:3px;}
+    .cart-item-price{font-size:11px;color:var(--gold);margin-bottom:10px;}
+    .qty-row{display:flex;align-items:center;gap:8px;}
+    .qty-btn{width:26px;height:26px;border-radius:2px;border:1px solid var(--border2);background:none;color:var(--brown2);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:border-color .2s,color .2s;font-family:'DM Sans',sans-serif;}
+    .qty-btn:hover{border-color:var(--gold);color:var(--gold);}
+    .qty-val{font-size:13px;color:var(--brown);min-width:18px;text-align:center;}
+    .remove-btn{margin-left:auto;background:none;border:none;cursor:pointer;color:var(--muted);font-size:9px;letter-spacing:1px;text-transform:uppercase;transition:color .2s;font-family:'DM Sans',sans-serif;}
+    .remove-btn:hover{color:#C03030;}
+    .cart-footer{padding:18px 26px;border-top:1px solid var(--border);}
+    .cart-subtotal{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px;}
+    .cart-subtotal span{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+    .cart-subtotal strong{font-size:22px;color:var(--brown);font-weight:400;font-family:'Cormorant Garamond',serif;}
+    .cart-note{font-size:10px;color:var(--muted);margin-bottom:14px;}
+    .checkout-btn{width:100%;padding:15px;background:var(--brown);color:#FAF6EF;border:none;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;font-weight:500;cursor:pointer;transition:background .2s;}
+    .checkout-btn:hover{background:var(--brown2);}
     .checkout-btn:disabled{opacity:.3;cursor:not-allowed;}
-    .continue-btn{
-      width:100%;padding:12px;background:none;
-      color:var(--muted);
-      border:1px solid rgba(92,26,36,0.12);
-      border-radius:3px;
-      font-family:'DM Sans',sans-serif;font-size:9px;
-      letter-spacing:2.5px;text-transform:uppercase;
-      cursor:pointer;margin-top:10px;
-      transition:all .2s;
-    }
-    .continue-btn:hover{color:var(--brown);border-color:rgba(92,26,36,0.3);}
-
-    /* Secure badge */
-    .cart-secure{
-      display:flex;align-items:center;justify-content:center;
-      gap:6px;margin-top:14px;
-      font-size:8.5px;letter-spacing:1.5px;text-transform:uppercase;
-      color:rgba(92,26,36,0.3);font-family:'DM Sans',sans-serif;
-    }
-    .cart-secure svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.5;opacity:.5;}
-
-    @media(max-width:960px){
-      .cart-drawer{width:100vw;}
-      .cart-header{padding:22px 22px 18px;}
-      .cart-progress{padding:14px 22px;}
-      .cart-item{padding:18px 22px;}
-      .cart-footer{padding:16px 22px 24px;}
-    }
+    .continue-btn{width:100%;padding:11px;background:none;color:var(--muted);border:1px solid var(--border2);border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;margin-top:8px;transition:color .2s,border-color .2s;}
+    .continue-btn:hover{color:var(--brown);border-color:var(--brown);}
 
     /* PRODUCT MODAL */
     .modal-overlay{position:fixed;inset:0;background:rgba(61,31,0,0.45);z-index:800;opacity:0;pointer-events:none;transition:opacity .28s;display:flex;align-items:center;justify-content:center;padding:20px;}
@@ -666,30 +440,11 @@
 <!-- CART -->
 <div class="cart-overlay" id="cartOverlay" onclick="closeCart()"></div>
 <div class="cart-drawer" id="cartDrawer">
-
-  <!-- Header -->
   <div class="cart-header">
-    <div class="cart-header-left">
-      <h2>Your Bag</h2>
-      <span class="cart-item-count" id="cartItemCount">0 items</span>
-    </div>
-    <button class="cart-close" onclick="closeCart()" aria-label="Close cart">
-      <svg viewBox="0 0 24 24"><path d="M5 5l14 14M19 5L5 19" stroke-linecap="round"/></svg>
-    </button>
+    <h2>Cart</h2>
+    <button class="cart-close" onclick="closeCart()">✕</button>
   </div>
-
-  <!-- Free shipping progress -->
-  <div class="cart-progress" id="cartProgress">
-    <p class="cart-progress-text" id="cartProgressText">Add <strong>$50.00</strong> more for free shipping</p>
-    <div class="cart-progress-bar-bg">
-      <div class="cart-progress-bar-fill" id="cartProgressBar" style="width:0%"></div>
-    </div>
-  </div>
-
-  <!-- Items -->
   <div class="cart-items" id="cartItems"></div>
-
-  <!-- Footer -->
   <div class="cart-footer">
     <div class="cart-subtotal">
       <span>Subtotal</span>
@@ -698,10 +453,6 @@
     <p class="cart-note" id="cartShippingNote">Shipping & taxes calculated at checkout</p>
     <button class="checkout-btn" id="checkoutBtn" onclick="goCheckout()">Proceed to Checkout</button>
     <button class="continue-btn" onclick="closeCart()">Continue Shopping</button>
-    <div class="cart-secure">
-      <svg viewBox="0 0 24 24"><path d="M12 2L4 6v6c0 5.25 3.5 10.15 8 11.25C16.5 22.15 20 17.25 20 12V6l-8-4z"/></svg>
-      Secure checkout · SSL encrypted
-    </div>
   </div>
 </div>
 
@@ -780,39 +531,9 @@
     <span id="navAuthArea">
       <a href="/auth" id="navSignIn">Sign In</a>
     </span>
-    <!-- Desktop bag icon -->
-    <button class="cart-btn desktop-only" id="cartBtnDesktop" onclick="openCart()" aria-label="Open cart">
-      <!-- Empty bag -->
-      <svg class="bag-empty" viewBox="0 0 24 24">
-        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke-linecap="round" stroke-linejoin="round"/>
-        <line x1="3" y1="6" x2="21" y2="6"/>
-        <path d="M16 10a4 4 0 01-8 0" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <!-- Full bag (shown when items present) -->
-      <svg class="bag-full" viewBox="0 0 24 24">
-        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke-linecap="round" stroke-linejoin="round" fill="var(--brown)" fill-opacity="0.12"/>
-        <line x1="3" y1="6" x2="21" y2="6"/>
-        <path d="M16 10a4 4 0 01-8 0" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="12" cy="14" r="1.5" fill="var(--gold)" stroke="none"/>
-      </svg>
-      <span class="cart-badge" id="cartCount">0</span>
-    </button>
+    <button class="cart-btn desktop-only" onclick="openCart()">Cart (<span id="cartCount">0</span>)</button>
     <a id="mobileUserGreet" href="/account"></a>
-    <!-- Mobile bag icon -->
-    <button class="cart-btn mobile-cart-icon" id="cartBtnMobile" onclick="openCart()" style="display:none;" aria-label="Open cart">
-      <svg class="bag-empty" viewBox="0 0 24 24">
-        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke-linecap="round" stroke-linejoin="round"/>
-        <line x1="3" y1="6" x2="21" y2="6"/>
-        <path d="M16 10a4 4 0 01-8 0" stroke-linecap="round" stroke-linejoin="round"/>
-      </svg>
-      <svg class="bag-full" viewBox="0 0 24 24">
-        <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke-linecap="round" stroke-linejoin="round" fill="var(--brown)" fill-opacity="0.12"/>
-        <line x1="3" y1="6" x2="21" y2="6"/>
-        <path d="M16 10a4 4 0 01-8 0" stroke-linecap="round" stroke-linejoin="round"/>
-        <circle cx="12" cy="14" r="1.5" fill="var(--gold)" stroke="none"/>
-      </svg>
-      <span class="cart-badge" id="cartCountMobile">0</span>
-    </button>
+    <button class="cart-btn mobile-cart-icon" onclick="openCart()" style="display:none;padding:8px 14px;">🛍 <span id="cartCountMobile">0</span></button>
     <button class="hamburger" id="hamburger" onclick="toggleMobileMenu()">
       <span></span><span></span><span></span>
     </button>
@@ -1003,32 +724,16 @@ const DEFAULT_PRODUCTS = [
     badges:['Vegan','Argan Oil','Shea Butter'], shades:['#B06040','#D08060','#906040','#C07858'] }
 ];
 
-// Catálogo: se intenta cargar desde el servidor (Firestore, vía
-// /api/products) para que todos los visitantes vean el mismo catálogo que
-// se gestiona en /admin. Mientras carga, o si falla, se usa el catálogo
-// guardado localmente o los productos de ejemplo.
+// Read from localStorage (admin panel), fall back to defaults
 function getProducts(){
   try{ return JSON.parse(localStorage.getItem(STORAGE_KEY)) || DEFAULT_PRODUCTS; }
   catch{ return DEFAULT_PRODUCTS; }
 }
-function applySoldOut(p){
-  return { ...p, soldOut: (p.stock !== null && p.stock !== undefined) ? p.stock === 0 : p.soldOut };
-}
 // Auto-apply soldOut based on stock before using products
-let PRODUCTS = getProducts().map(applySoldOut);
-
-async function refreshProductsFromServer(){
-  try{
-    const res = await fetch('/api/products');
-    const data = await res.json();
-    if(Array.isArray(data.products) && data.products.length){
-      PRODUCTS = data.products.map(applySoldOut);
-      renderProducts();
-    }
-  } catch(err){
-    console.warn('No se pudo cargar el catálogo del servidor, usando datos locales.', err);
-  }
-}
+const PRODUCTS = getProducts().map(p => ({
+  ...p,
+  soldOut: (p.stock !== null && p.stock !== undefined) ? p.stock === 0 : p.soldOut
+}));
 
 
 
@@ -1173,15 +878,6 @@ function addToCart(product, qty, variant){
     });
   }
   updateCartUI();
-  // Bump animation on bag icon
-  ['cartBtnDesktop','cartBtnMobile'].forEach(id=>{
-    const btn=document.getElementById(id);
-    if(!btn) return;
-    btn.classList.remove('bump');
-    void btn.offsetWidth; // reflow to restart animation
-    btn.classList.add('bump');
-    setTimeout(()=>btn.classList.remove('bump'), 450);
-  });
   showToast(`${variant ? `${product.name} (${variant.name})` : product.name} added`);
 }
 function removeFromCart(cartId){ cart=cart.filter(i=>i.cartId!==cartId); updateCartUI(); }
@@ -1192,113 +888,51 @@ function changeQty(cartId,d){
 }
 
 function updateCartUI(){
-  const total = cart.reduce((s,i)=>s+i.price*i.qty,0);
-  const count = cart.reduce((s,i)=>s+i.qty,0);
-
-  // Counts + bag icon state
-  ['cartCount','cartCountMobile'].forEach(id=>{
-    const el=document.getElementById(id);
-    if(!el) return;
-    el.textContent=count;
-    el.classList.toggle('visible', count>0);
-  });
+  const total=cart.reduce((s,i)=>s+i.price*i.qty,0);
+  const count=cart.reduce((s,i)=>s+i.qty,0);
+  document.getElementById('cartCount').textContent=count;
+  document.getElementById('cartCountMobile').textContent=count;
   if(document.getElementById('mobileCartCount')) document.getElementById('mobileCartCount').textContent=count;
   document.getElementById('cartTotal').textContent=`$${total.toFixed(2)}`;
   document.getElementById('checkoutBtn').disabled=!cart.length;
-
-  // Toggle filled/empty bag icon
-  ['cartBtnDesktop','cartBtnMobile'].forEach(id=>{
-    const btn=document.getElementById(id);
-    if(!btn) return;
-    btn.classList.toggle('has-items', count>0);
-  });
-
-  // Item count label
-  const countEl = document.getElementById('cartItemCount');
-  if(countEl) countEl.textContent = count===1?'1 item':`${count} items`;
-
-  // Free shipping progress bar
-  const FREE_THRESHOLD = 50;
-  const progressBar  = document.getElementById('cartProgressBar');
-  const progressText = document.getElementById('cartProgressText');
-  if(progressBar && progressText){
-    const pct = Math.min((total/FREE_THRESHOLD)*100, 100);
-    progressBar.style.width = pct+'%';
-    if(total >= FREE_THRESHOLD){
-      progressText.className = 'cart-progress-text free';
-      progressText.innerHTML = '🎉 You\'ve unlocked <strong>free shipping!</strong>';
-    } else {
-      const remaining = (FREE_THRESHOLD - total).toFixed(2);
-      progressText.className = 'cart-progress-text';
-      progressText.innerHTML = `Add <strong>$${remaining}</strong> more for free shipping`;
-    }
-  }
-
-  // Shipping note
+  // Shipping estimate
   const note = document.getElementById('cartShippingNote');
   if(note){
     const totalQty = cart.reduce((s,i)=>s+i.qty,0);
     const needsBox = cart.some(i=>i.packaging==='box') || totalQty > 3;
     const stdPrice = needsBox ? 7.99 : 5.99;
-    if(total >= FREE_THRESHOLD){
-      note.innerHTML = '';
+    if(total >= 50){
+      note.innerHTML = `🎉 <strong>Free shipping</strong> applied!`;
+      note.style.color = '#22783C';
     } else {
-      note.innerHTML = `Est. shipping <strong>$${stdPrice.toFixed(2)}</strong> · Taxes at checkout`;
+      const remaining = (50 - total).toFixed(2);
+      note.innerHTML = `Est. shipping <strong>$${stdPrice.toFixed(2)}</strong> · Add <strong>$${remaining}</strong> for free shipping`;
+      note.style.color = 'var(--muted)';
     }
-    note.style.color='var(--muted)';
   }
-
-  // Render items
-  const el = document.getElementById('cartItems');
+  const el=document.getElementById('cartItems');
   if(!cart.length){
-    el.innerHTML=`
-      <div class="cart-empty">
-        <div class="cart-empty-icon">
-          <svg viewBox="0 0 24 24">
-            <path d="M6 2L3 6v14a2 2 0 002 2h14a2 2 0 002-2V6l-3-4z" stroke-linecap="round" stroke-linejoin="round"/>
-            <line x1="3" y1="6" x2="21" y2="6" stroke-linecap="round"/>
-            <path d="M16 10a4 4 0 01-8 0" stroke-linecap="round" stroke-linejoin="round"/>
-          </svg>
-        </div>
-        <p class="cart-empty-title">Your bag is empty</p>
-        <p class="cart-empty-sub">Discover our handmade<br>vegan lip glosses</p>
-        <button class="cart-empty-cta" onclick="closeCart()">Shop Now</button>
-      </div>`;
+    el.innerHTML=`<div class="cart-empty">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1">
+        <circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/>
+        <path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/>
+      </svg><p>Your cart is empty</p></div>`;
     return;
   }
-
-  el.innerHTML = cart.map(item=>{
-    const thumbBg = item.variantColor
-      ? `linear-gradient(160deg,${item.variantColor}44,${item.variantColor}88)`
-      : item.bg;
-    const shadeBar = item.variantColor
-      ? `<div class="cart-item-shade" style="background:${item.variantColor}"></div>`
-      : '';
-    const variantLabel = item.variantName
-      ? `<p class="cart-item-variant">${item.variantName}</p>`
-      : '';
-    return `
-    <div class="cart-item" id="ci-${item.cartId}">
-      <div class="cart-item-thumb" style="background:${thumbBg}">
-        ${gloss(item.capClass,item.tubeClass,0.65)}
-        ${shadeBar}
-      </div>
+  el.innerHTML=cart.map(item=>`
+    <div class="cart-item">
+      <div class="cart-item-thumb" style="background:${item.variantColor?`linear-gradient(160deg,${item.variantColor}33,${item.variantColor}66)`:item.bg}">${gloss(item.capClass,item.tubeClass,0.6)}</div>
       <div class="cart-item-info">
-        <p class="cart-item-collection">Jonara Beauty</p>
         <p class="cart-item-name">${item.displayName||item.name}</p>
-        ${variantLabel}
-        <div class="cart-item-bottom">
-          <div class="qty-row">
-            <button class="qty-btn" onclick="changeQty('${item.cartId}',-1)">−</button>
-            <span class="qty-val">${item.qty}</span>
-            <button class="qty-btn" onclick="changeQty('${item.cartId}',1)">+</button>
-          </div>
-          <p class="cart-item-price">$${(item.price*item.qty).toFixed(2)}</p>
+        <p class="cart-item-price">$${item.price.toFixed(2)} USD</p>
+        <div class="qty-row">
+          <button class="qty-btn" onclick="changeQty('${item.cartId}',-1)">−</button>
+          <span class="qty-val">${item.qty}</span>
+          <button class="qty-btn" onclick="changeQty('${item.cartId}',1)">+</button>
+          <button class="remove-btn" onclick="removeFromCart('${item.cartId}')">Remove</button>
         </div>
-        <button class="remove-btn" onclick="removeFromCart('${item.cartId}')">Remove</button>
       </div>
-    </div>`;
-  }).join('');
+    </div>`).join('');
 }
 
 function openCart(){ document.getElementById('cartOverlay').classList.add('open'); document.getElementById('cartDrawer').classList.add('open'); document.body.style.overflow='hidden'; }
@@ -1454,7 +1088,7 @@ function closeMobileMenu(){
   document.body.style.overflow = '';
 }
 
-renderProducts(); updateCartUI(); initAuthState(); loadReviews(); refreshProductsFromServer();
+renderProducts(); updateCartUI(); initAuthState(); loadReviews();
 
 // ── SCROLL REVEAL ──────────────────────────────────────────
 const revealObserver = new IntersectionObserver((entries)=>{
