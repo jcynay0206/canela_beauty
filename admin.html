@@ -20,6 +20,7 @@
 
     /* LOGIN */
     #loginScreen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;}
+    #changePwScreen{position:fixed;inset:0;background:rgba(61,31,0,0.45);display:flex;align-items:center;justify-content:center;z-index:1000;}
     .login-box{background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:48px 40px;width:100%;max-width:360px;text-align:center;}
     .login-logo{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;letter-spacing:5px;text-transform:uppercase;color:var(--brown);margin-bottom:4px;}
     .login-logo em{font-style:italic;color:var(--gold);}
@@ -300,6 +301,23 @@
   </div>
 </div>
 
+<!-- CHANGE PASSWORD (obligatorio en el primer ingreso, o voluntario desde el menú) -->
+<div id="changePwScreen" style="display:none;">
+  <div class="login-box">
+    <p class="login-logo">Jonara <em>Beauty</em></p>
+    <p class="login-sub" id="changePwTitle">Cambia tu contraseña</p>
+    <p style="font-size:12px;color:var(--muted);margin:-12px 0 20px;line-height:1.6;" id="changePwHint">
+      Por seguridad, debes establecer una nueva contraseña antes de continuar.
+    </p>
+    <input type="password" id="currentPwInput" placeholder="Contraseña actual" style="display:none;"/>
+    <input type="password" id="newPwInput" placeholder="Nueva contraseña (mín. 8 caracteres)"/>
+    <input type="password" id="confirmPwInput" placeholder="Confirmar nueva contraseña" onkeydown="if(event.key==='Enter')submitChangePassword()"/>
+    <button onclick="submitChangePassword()">Guardar nueva contraseña</button>
+    <button id="cancelChangePwBtn" onclick="closeChangePassword()" style="display:none;background:none;border:1px solid var(--border2);color:var(--muted);margin-top:8px;">Cancelar</button>
+    <p class="login-err" id="changePwErr"></p>
+  </div>
+</div>
+
 <!-- ADMIN SHELL -->
 <div id="adminShell">
   <div class="top-bar">
@@ -314,6 +332,7 @@
     </div>
     <div class="top-bar-right">
       <a href="/" target="_blank">← Store</a>
+      <button class="logout-btn" onclick="openChangePassword(false)">Change Password</button>
       <button class="logout-btn" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
@@ -557,61 +576,176 @@
 
 <script>
 // ── CONFIG ──────────────────────────────────────────────────
-const ADMIN_PW   = 'Jonara2026!';
-const STORE_KEY  = 'canela_products';
 const SESSION_KEY= 'canela_admin_auth';
+const TOKEN_KEY  = 'canela_admin_token';
 const LABELS_KEY = 'canela_order_labels';
 
+function adminToken(){ return sessionStorage.getItem(TOKEN_KEY) || ''; }
+
 // ── LOGIN ───────────────────────────────────────────────────
-function doLogin(){
+async function doLogin(){
   const val = document.getElementById('pwInput').value;
-  if(val === ADMIN_PW){
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
+  if(!val){ errEl.textContent='Ingresa tu contraseña.'; return; }
+
+  try{
+    const res = await fetch('/api/admin-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'login', password: val })
+    });
+    const data = await res.json();
+
+    if(!res.ok){
+      errEl.textContent = data.error || 'Contraseña incorrecta.';
+      document.getElementById('pwInput').value='';
+      return;
+    }
+
     sessionStorage.setItem(SESSION_KEY,'1');
+    sessionStorage.setItem(TOKEN_KEY, data.token);
     document.getElementById('loginScreen').style.display='none';
     document.getElementById('adminShell').style.display='block';
     initAdmin();
-  } else {
-    document.getElementById('loginErr').textContent='Incorrect password.';
-    document.getElementById('pwInput').value='';
+
+    if(data.mustChangePassword){
+      openChangePassword(true);
+    }
+  } catch(err){
+    errEl.textContent = 'No se pudo conectar. Intenta de nuevo.';
   }
 }
+
 function doLogout(){
   sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
   location.reload();
 }
-if(sessionStorage.getItem(SESSION_KEY)==='1'){
+
+// Si el servidor responde 401 (sesión expirada), volver al login.
+function handleSessionExpired(){
+  sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+  showToast('⚠ Tu sesión expiró, vuelve a iniciar sesión');
+  setTimeout(()=>location.reload(), 1500);
+}
+
+// ── CAMBIO DE CONTRASEÑA ──────────────────────────────────────
+// mandatory=true: primer ingreso, no se puede cancelar ni usar el resto
+// del admin hasta guardar una nueva contraseña.
+// mandatory=false: cambio voluntario desde el botón "Change Password".
+let pwChangeMandatory = false;
+
+function openChangePassword(mandatory){
+  pwChangeMandatory = mandatory;
+  document.getElementById('currentPwInput').style.display = mandatory ? 'none' : 'block';
+  document.getElementById('cancelChangePwBtn').style.display = mandatory ? 'none' : 'block';
+  document.getElementById('changePwHint').textContent = mandatory
+    ? 'Por seguridad, debes establecer una nueva contraseña antes de continuar.'
+    : 'Ingresa tu contraseña actual y la nueva contraseña.';
+  document.getElementById('currentPwInput').value='';
+  document.getElementById('newPwInput').value='';
+  document.getElementById('confirmPwInput').value='';
+  document.getElementById('changePwErr').textContent='';
+  document.getElementById('changePwScreen').style.display='flex';
+}
+
+function closeChangePassword(){
+  if(pwChangeMandatory) return; // no se puede cerrar si es obligatorio
+  document.getElementById('changePwScreen').style.display='none';
+}
+
+async function submitChangePassword(){
+  const current = document.getElementById('currentPwInput').value;
+  const next    = document.getElementById('newPwInput').value;
+  const confirm = document.getElementById('confirmPwInput').value;
+  const errEl   = document.getElementById('changePwErr');
+  errEl.textContent='';
+
+  if(next.length < 8){ errEl.textContent='La nueva contraseña debe tener al menos 8 caracteres.'; return; }
+  if(next !== confirm){ errEl.textContent='Las contraseñas no coinciden.'; return; }
+  if(!pwChangeMandatory && !current){ errEl.textContent='Ingresa tu contraseña actual.'; return; }
+
+  try{
+    const res = await fetch('/api/admin-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'change-password',
+        token: adminToken(),
+        currentPassword: current || undefined,
+        newPassword: next
+      })
+    });
+    const data = await res.json();
+
+    if(!res.ok){
+      if(res.status===401){ handleSessionExpired(); return; }
+      errEl.textContent = data.error || 'No se pudo cambiar la contraseña.';
+      return;
+    }
+
+    sessionStorage.setItem(TOKEN_KEY, data.token);
+    document.getElementById('changePwScreen').style.display='none';
+    showToast('✓ Contraseña actualizada');
+  } catch(err){
+    errEl.textContent = 'No se pudo conectar. Intenta de nuevo.';
+  }
+}
+if(sessionStorage.getItem(SESSION_KEY)==='1' && adminToken()){
   document.getElementById('loginScreen').style.display='none';
   document.getElementById('adminShell').style.display='block';
 }
 
-// ── DEFAULTS ────────────────────────────────────────────────
-const DEFAULT_PRODUCTS = [
-  {id:1,name:'Sweet Cinnamon',price:10.50,oldPrice:null,stock:20,soldOut:false,isNew:true,
-   bg:'linear-gradient(160deg,#F5E0D0,#EDD0BE)',capClass:'mgc1',tubeClass:'mg1',
-   desc:'A warm honey-tinted gloss with a hint of real cinnamon extract.',
-   badges:['Vegan','Hydrating','Long-lasting'],shades:['#C07850','#A05830','#E09870'],image:null},
-  {id:2,name:'Rose Petal',price:9.50,oldPrice:12.00,stock:12,soldOut:false,isNew:false,
-   bg:'linear-gradient(160deg,#F5DDD8,#EDD0CC)',capClass:'mgc2',tubeClass:'mg2',
-   desc:'Delicate rose-tinted gloss infused with rose hip oil and vitamin E.',
-   badges:['Vegan','Rose Hip Oil','Vitamin E'],shades:['#C0507A','#E090B0','#A03060'],image:null},
-  {id:3,name:'Golden Honey',price:8.00,oldPrice:null,stock:0,soldOut:true,isNew:false,
-   bg:'linear-gradient(160deg,#F5E4C8,#EDD8B8)',capClass:'mgc3',tubeClass:'mg3',
-   desc:'A golden-nude gloss with pure raw honey extract and jojoba oil.',
-   badges:['Vegan','Honey Extract','Jojoba Oil'],shades:['#C09050','#E0B060','#A07030'],image:null},
-  {id:4,name:'Terracotta Nude',price:11.00,oldPrice:null,stock:5,soldOut:false,isNew:false,
-   bg:'linear-gradient(160deg,#F0DDD0,#E8CEC0)',capClass:'mgc4',tubeClass:'mg4',
-   desc:'Sophisticated terracotta-nude enriched with argan oil and shea butter.',
-   badges:['Vegan','Argan Oil','Shea Butter'],shades:['#B06040','#D08060','#906040'],image:null},
-];
+// ── PRODUCTOS (Firestore vía /api/products) ────────────────
+// PRODUCTS_CACHE se carga una vez al iniciar sesión y se mantiene
+// sincronizada con Firestore. getProducts() sigue siendo síncrono para no
+// tener que tocar el resto del código del admin; saveProducts() actualiza
+// el caché local al instante y envía el catálogo completo al servidor.
+let PRODUCTS_CACHE = [];
+let productsReady = false;
 
 function getProducts(){
-  try{ return JSON.parse(localStorage.getItem(STORE_KEY)) || DEFAULT_PRODUCTS; }
-  catch{ return DEFAULT_PRODUCTS; }
+  return PRODUCTS_CACHE;
 }
-function saveProducts(list){ localStorage.setItem(STORE_KEY,JSON.stringify(list)); }
+
+async function loadProductsFromServer(){
+  try{
+    const res = await fetch('/api/products');
+    const data = await res.json();
+    PRODUCTS_CACHE = data.products || [];
+  } catch(err){
+    console.error('No se pudo cargar el catálogo:', err);
+    showToast('⚠ No se pudo conectar con el catálogo. Revisa tu conexión.');
+    PRODUCTS_CACHE = [];
+  }
+  productsReady = true;
+}
+
+function saveProducts(list){
+  PRODUCTS_CACHE = list;
+  syncProductsToServer(list);
+}
+
+async function syncProductsToServer(list){
+  try{
+    const res = await fetch('/api/products', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken() },
+      body: JSON.stringify({ products: list })
+    });
+    if(res.status===401){ handleSessionExpired(); return; }
+    if(!res.ok) throw new Error('HTTP '+res.status);
+  } catch(err){
+    console.error('No se pudo guardar en el catálogo:', err);
+    showToast('⚠ No se guardó en el servidor — revisa tu conexión e inténtalo de nuevo');
+  }
+}
 
 // ── INIT ────────────────────────────────────────────────────
-function initAdmin(){
+async async function initAdmin(){
+  if(!productsReady) await loadProductsFromServer();
   renderProducts();
   renderInventory();
   checkNewOrders();
@@ -680,6 +814,13 @@ function checkLowStock(){
 // ── RENDER PRODUCTS ──────────────────────────────────────────
 function renderProducts(){
   const products = getProducts();
+
+  if(!productsReady){
+    document.getElementById('prodStats').innerHTML = `<p style="font-size:13px;color:var(--muted);padding:8px 0;">Cargando catálogo…</p>`;
+    document.getElementById('productList').innerHTML = '';
+    return;
+  }
+
   const total    = products.length;
   const active   = products.filter(p=>!p.soldOut&&p.stock>0).length;
   const sold     = products.filter(p=>p.soldOut||p.stock===0).length;
@@ -812,7 +953,7 @@ function handleOverlayClick(e){
   if(e.target===document.getElementById('formOverlay')) closeForm();
 }
 
-function saveProduct(){
+async function saveProduct(){
   const name  = document.getElementById('fName').value.trim();
   const price = parseFloat(document.getElementById('fPrice').value);
   const oldP  = parseFloat(document.getElementById('fOldPrice').value)||null;
@@ -836,6 +977,30 @@ function saveProduct(){
   if(!price||price<=0){showToast('Valid price required');return;}
   if(hasVariants && !currentVariants.length){showToast('Add at least one shade variant');return;}
   if(!hasVariants && stock!==null&&stock<0){showToast('Stock cannot be negative');return;}
+
+  // Si se seleccionó una foto nueva (base64), subirla a Firebase Storage
+  // antes de guardar el producto, para no inflar el documento de Firestore.
+  if(currentImage && currentImage.startsWith('data:')){
+    const saveBtn = document.querySelector('#formOverlay .btn-save');
+    if(saveBtn){ saveBtn.disabled=true; saveBtn.textContent='Subiendo foto…'; }
+    try{
+      const res = await fetch('/api/upload-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken() },
+        body: JSON.stringify({ filename: `${name||'producto'}.jpg`, dataUrl: currentImage })
+      });
+      if(res.status===401){ handleSessionExpired(); return; }
+      const data = await res.json();
+      if(data.url) currentImage = data.url;
+      else throw new Error(data.error||'upload failed');
+    } catch(err){
+      console.error('No se pudo subir la imagen:', err);
+      showToast('⚠ No se pudo subir la foto, se guardará sin foto nueva');
+      currentImage = editingId!==null ? (getProducts().find(x=>x.id===editingId)?.image||null) : null;
+    } finally {
+      if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Save Product'; }
+    }
+  }
 
   const soldOut = forcedSoldOut || (stock!==null&&stock===0);
   const shadesForDisplay = hasVariants ? currentVariants.map(v=>v.color) : currentShades;
@@ -1521,7 +1686,7 @@ function filterAdminReviews(status){
 }
 
 // ── AUTO LOGIN CHECK ─────────────────────────────────────────
-if(sessionStorage.getItem(SESSION_KEY)==='1') initAdmin();
+if(sessionStorage.getItem(SESSION_KEY)==='1' && adminToken()) initAdmin();
 </script>
 </body>
 </html>
