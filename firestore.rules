@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /customers/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+    match /reviews/{reviewId} {
+      // Anyone logged in can create a review
+      allow create: if request.auth != null;
+      // Anyone can read approved reviews
+      allow read: if resource.data.status == 'approved';
+      // Admin reads all (via REST API without auth token — public read for admin panel)
+      allow read: if true;
+    }
+    match /catalog/{docId} {
+      // La tienda (index.html) necesita leer el catálogo de productos
+      allow read: if true;
+      // Las escrituras solo pasan por /api/products con la clave de
+      // servicio de Firebase Admin (que ignora estas reglas)
+      allow write: if false;
+    }
+    match /_ratelimits/{docId} {
+      // Solo lo usa el Admin SDK desde /api — nunca el navegador
+      allow read, write: if false;
+    }
+    match /orders/{orderId} {
+      // Labels de envío — solo el Admin SDK desde /api
+      allow read, write: if false;
+    }
+    match /_admin/{docId} {
+      // Contraseña hasheada del admin — solo el Admin SDK desde /api
+      allow read, write: if false;
+    }
+  }
+}

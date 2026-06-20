@@ -744,7 +744,7 @@ async function syncProductsToServer(list){
 }
 
 // ── INIT ────────────────────────────────────────────────────
-async async function initAdmin(){
+async function initAdmin(){
   if(!productsReady) await loadProductsFromServer();
   renderProducts();
   renderInventory();
@@ -1306,10 +1306,20 @@ async function loadOrders(){
   document.getElementById('ordersBody').innerHTML='<div class="loading-state">Loading orders...</div>';
   document.getElementById('orderStats').innerHTML='';
   try{
-    const res=await fetch('/api/orders');
-    const data=await res.json();
-    const stored=JSON.parse(localStorage.getItem(LABELS_KEY)||'{}');
-    ordersCache=(data.orders||[]).map(o=>({...o,...(stored[o.id]||{})}));
+    // Cargar órdenes de Stripe y labels de Firestore en paralelo
+    const [ordersRes, labelsRes] = await Promise.all([
+      fetch('/api/orders'),
+      fetch('/api/order-labels', {headers:{'x-admin-token':adminToken()}})
+    ]);
+    const ordersData = await ordersRes.json();
+    const labelsData = labelsRes.ok ? await labelsRes.json() : { labels: {} };
+
+    // Merge: label data de Firestore sobreescribe localStorage (más confiable)
+    const firestoreLabels = labelsData.labels || {};
+    const localLabels = JSON.parse(localStorage.getItem(LABELS_KEY)||'{}');
+    const allLabels = { ...localLabels, ...firestoreLabels };
+
+    ordersCache=(ordersData.orders||[]).map(o=>({...o,...(allLabels[o.id]||{})}));
     renderOrders();
   } catch(e){
     document.getElementById('ordersBody').innerHTML=`<div class="empty-state"><p>Could not load orders.<br><small>${e.message}</small></p></div>`;
@@ -1336,27 +1346,53 @@ function renderOrders(){
   document.getElementById('ordersBody').innerHTML=`
     <div style="overflow-x:auto">
     <table class="orders-table">
-      <thead><tr><th>Customer</th><th>Items</th><th>Total</th><th>Status</th><th>Actions</th></tr></thead>
-      <tbody>${orders.map(o=>`
+      <thead><tr>
+        <th>Customer & Address</th>
+        <th>Items</th>
+        <th>Total</th>
+        <th>Shipping Label</th>
+        <th>Actions</th>
+      </tr></thead>
+      <tbody>${orders.map(o=>{
+        const hasLabel = Boolean(o.trackingNumber);
+        const date = new Date(o.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+        return `
         <tr>
           <td>
             <div class="order-name">${o.customerName}</div>
             <div class="order-email">${o.email}</div>
-            <div class="order-email" style="margin-top:2px">${o.street1}, ${o.city}, ${o.state} ${o.zip}</div>
+            <div class="order-email" style="margin-top:3px">
+              ${o.street1}${o.street2?', '+o.street2:''}<br>
+              ${o.city}, ${o.state} ${o.zip}
+            </div>
+            <div class="order-email" style="color:var(--muted);margin-top:3px">${date}</div>
           </td>
           <td style="font-size:12px">${(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join('<br>')}</td>
           <td style="color:var(--brown);font-weight:500">$${o.total}</td>
           <td>
-            <span class="status-badge ${o.trackingNumber?'st-labeled':'st-pending'}">${o.trackingNumber?'Shipped':'Pending'}</span>
-            ${o.trackingNumber?`<a class="track-link" href="${o.trackingUrl}" target="_blank">${o.trackingNumber}</a>`:''}
+            ${hasLabel ? `
+              <span class="status-badge st-labeled">Shipped</span>
+              <div style="margin-top:4px">
+                <span style="font-size:10px;color:var(--muted)">${o.carrier||''} ${o.service||''}</span>
+                ${o.rate?`<span style="font-size:10px;color:var(--gold);margin-left:4px">$${parseFloat(o.rate).toFixed(2)}</span>`:''}
+              </div>
+              <div style="margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+                <a class="track-link" href="${o.trackingUrl}" target="_blank" style="font-size:10px">${o.trackingNumber}</a>
+                <button onclick="copyTracking('${o.trackingNumber}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--muted);padding:0" title="Copy tracking number">⎘</button>
+              </div>
+            ` : `<span class="status-badge st-pending">Pending</span>`}
           </td>
           <td>
-            ${!o.trackingNumber
-              ?`<button class="label-btn" onclick="createLabel('${o.id}')">🖨 Create Label</button>`
-              :`<button class="print-btn" onclick="printLabel('${o.id}')">🖨 Print</button>`
+            ${!hasLabel
+              ? `<button class="label-btn" onclick="createLabel('${o.id}')">📦 Create Label</button>`
+              : `<div style="display:flex;flex-direction:column;gap:6px">
+                  <button class="print-btn" onclick="printLabel('${o.id}')">🖨 Print Label</button>
+                  <button class="label-btn" onclick="createLabel('${o.id}')" style="font-size:8px;opacity:.6">↻ Reprint</button>
+                </div>`
             }
           </td>
-        </tr>`).join('')}
+        </tr>`;
+      }).join('')}
       </tbody>
     </table>
     </div>`;
@@ -1364,27 +1400,42 @@ function renderOrders(){
 
 async function createLabel(orderId){
   const order=ordersCache.find(o=>o.id===orderId); if(!order) return;
-  const btn=event.target; btn.disabled=true; btn.textContent='Creating...';
+  const btn=event.currentTarget||event.target;
+  btn.disabled=true; btn.textContent='Creating...';
   try{
-    const res=await fetch('/api/create-label',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({order})});
+    const res=await fetch('/api/create-label',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-admin-token':adminToken()},
+      body:JSON.stringify({order})
+    });
+    if(res.status===401){ handleSessionExpired(); return; }
     const data=await res.json();
     if(data.error) throw new Error(data.error);
-    const stored=JSON.parse(localStorage.getItem(LABELS_KEY)||'{}');
-    stored[orderId]={trackingNumber:data.trackingNumber,trackingUrl:data.trackingUrl,labelUrl:data.labelUrl,status:'labeled'};
-    localStorage.setItem(LABELS_KEY,JSON.stringify(stored));
+
+    // Guardar en Firestore (vía /api) ya lo hizo el backend.
+    // Reflejar en el caché local para actualizar la UI al instante.
+    const idx=ordersCache.findIndex(o=>o.id===orderId);
+    if(idx>=0) ordersCache[idx]={...ordersCache[idx],...data};
+
     window.open(data.labelUrl,'_blank');
-    showToast(`Label created — ${data.trackingNumber}`);
-    loadOrders();
+    showToast(`✓ Label created — ${data.trackingNumber} · ${data.carrier} ${data.service} · $${parseFloat(data.rate).toFixed(2)}`);
+    renderOrders();
   } catch(e){
     showToast('Error: '+e.message);
-    btn.disabled=false; btn.textContent='🖨 Create Label';
+    btn.disabled=false; btn.textContent='📦 Create Label';
   }
 }
 
 function printLabel(orderId){
-  const stored=JSON.parse(localStorage.getItem(LABELS_KEY)||'{}');
-  if(stored[orderId]?.labelUrl) window.open(stored[orderId].labelUrl,'_blank');
+  const order=ordersCache.find(o=>o.id===orderId);
+  if(order?.labelUrl) window.open(order.labelUrl,'_blank');
   else showToast('Label URL not found');
+}
+
+function copyTracking(trackingNumber){
+  navigator.clipboard.writeText(trackingNumber)
+    .then(()=>showToast('Tracking number copied!'))
+    .catch(()=>showToast(trackingNumber));
 }
 
 // ── TOAST ────────────────────────────────────────────────────
