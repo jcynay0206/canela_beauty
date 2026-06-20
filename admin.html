@@ -1311,11 +1311,14 @@ async function loadOrders(){
       fetch('/api/orders'),
       fetch('/api/order-labels', {headers:{'x-admin-token':adminToken()}})
     ]);
-    const ordersData = await ordersRes.json();
+
+    let ordersData = { orders: [] };
     let labelsData = { labels: {} };
-    try {
-      if(labelsRes.ok) labelsData = await labelsRes.json();
-    } catch(e) { /* Firestore labels no disponibles aún — ignorar */ }
+    try { ordersData = await ordersRes.json(); } catch(e) { console.error('orders parse error:', e); }
+    try { 
+      const lt = await labelsRes.text();
+      if(labelsRes.ok && lt.trim().startsWith('{')) labelsData = JSON.parse(lt);
+    } catch(e) { /* labels vacíos — ignorar */ }
 
     // Merge: label data de Firestore sobreescribe localStorage (más confiable)
     const firestoreLabels = labelsData.labels || {};
