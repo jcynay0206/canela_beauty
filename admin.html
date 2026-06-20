@@ -1312,7 +1312,10 @@ async function loadOrders(){
       fetch('/api/order-labels', {headers:{'x-admin-token':adminToken()}})
     ]);
     const ordersData = await ordersRes.json();
-    const labelsData = labelsRes.ok ? await labelsRes.json() : { labels: {} };
+    let labelsData = { labels: {} };
+    try {
+      if(labelsRes.ok) labelsData = await labelsRes.json();
+    } catch(e) { /* Firestore labels no disponibles aún — ignorar */ }
 
     // Merge: label data de Firestore sobreescribe localStorage (más confiable)
     const firestoreLabels = labelsData.labels || {};
