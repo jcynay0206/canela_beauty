@@ -22,9 +22,11 @@ module.exports = async function handler(req, res) {
     snap.forEach(doc => {
       labels[doc.id] = doc.data();
     });
+    res.setHeader("Content-Type", "application/json");
     return res.status(200).json({ labels });
   } catch (err) {
     console.error("order-labels error:", err.message);
-    return res.status(500).json({ error: err.message });
+    res.setHeader("Content-Type", "application/json");
+    return res.status(200).json({ labels: {} }); // devolver vacío en vez de error
   }
 };
