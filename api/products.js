@@ -30,7 +30,7 @@ module.exports = async function handler(req, res) {
   if (req.method === "PUT") {
     // Límite general de escrituras (incluso con clave válida): protege
     // contra un script descontrolado o una clave filtrada.
-    const writeRl = await rateLimit(req, { action: "products-write", maxAttempts: 30, windowMs: 15 * 60 * 1000 });
+    const writeRl = await rateLimit(req, { action: "products-write", maxAttempts: 200, windowMs: 15 * 60 * 1000 });
     if (!writeRl.allowed) {
       return res.status(429).json({ error: "Demasiadas solicitudes. Intenta de nuevo en unos minutos." });
     }

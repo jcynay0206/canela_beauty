@@ -13,7 +13,7 @@ module.exports = async function handler(req, res) {
   }
 
   // Límite general de subidas (incluso con clave válida).
-  const uploadRl = await rateLimit(req, { action: "image-upload", maxAttempts: 20, windowMs: 15 * 60 * 1000 });
+  const uploadRl = await rateLimit(req, { action: "image-upload", maxAttempts: 50, windowMs: 15 * 60 * 1000 });
   if (!uploadRl.allowed) {
     return res.status(429).json({ error: "Demasiadas subidas. Intenta de nuevo en unos minutos." });
   }

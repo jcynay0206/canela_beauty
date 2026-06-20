@@ -1,4 +1,5 @@
 const Stripe = require("stripe");
+const { db }   = require("./_firebase");
 
 // Lee el cuerpo crudo de la petición — necesario para verificar la firma
 // de Stripe (no se puede usar req.body ya parseado).
@@ -133,6 +134,48 @@ module.exports = async function handler(req, res) {
 </div>`
       }),
     });
+
+    // ── Auto-disminuir stock en Firestore ─────────────────────
+    // Obtenemos los line_items de la sesión para saber qué productos compró.
+    // Buscamos por nombre del producto en el catálogo y restamos la cantidad.
+    try {
+      const stripe2 = new Stripe(stripeKey);
+      const lineItems = await stripe2.checkout.sessions.listLineItems(session.id, { limit: 100 });
+      const catalogSnap = await db.doc("catalog/products").get();
+      if (catalogSnap.exists) {
+        const products = catalogSnap.data().items || [];
+        let changed = false;
+        lineItems.data.forEach(li => {
+          // Stripe guarda el nombre del producto en li.description
+          const productName = li.description?.split(" —")[0]?.split(" - ")[0]?.trim();
+          const qty = li.quantity || 1;
+          const idx = products.findIndex(p =>
+            p.name?.toLowerCase() === productName?.toLowerCase()
+          );
+          if (idx >= 0 && products[idx].stock !== null && products[idx].stock !== undefined) {
+            products[idx].stock = Math.max(0, (products[idx].stock || 0) - qty);
+            // Si llega a 0, marcar como soldOut
+            if (products[idx].stock === 0) products[idx].soldOut = true;
+            // Si tenía variantes, restar del total también
+            if (products[idx].hasVariants && products[idx].variants?.length) {
+              // No tenemos info del shade específico desde Stripe — restar del total
+              // El admin puede ajustar variantes manualmente si necesita detalle
+            }
+            changed = true;
+          }
+        });
+        if (changed) {
+          await db.doc("catalog/products").set(
+            { items: products, updatedAt: new Date().toISOString() },
+            { merge: true }
+          );
+          console.log("Stock updated for order:", session.id);
+        }
+      }
+    } catch (stockErr) {
+      // No fallar el webhook si el stock no se pudo actualizar
+      console.error("Stock update error (non-fatal):", stockErr.message);
+    }
 
     return res.status(200).json({ received: true });
 
