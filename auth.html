@@ -141,7 +141,8 @@
   import { initializeApp }                        from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
   import { getAuth, signInWithEmailAndPassword,
            createUserWithEmailAndPassword,
-           GoogleAuthProvider, signInWithPopup,
+           GoogleAuthProvider, signInWithPopup, signInWithRedirect, getRedirectResult,
+           getAdditionalUserInfo,
            sendPasswordResetEmail, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
   import { getFirestore, doc, setDoc, getDoc }    from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
@@ -171,16 +172,53 @@
   function showError(id, msg){ const el=document.getElementById(id); el.textContent=msg; el.classList.add('show'); }
   function hideError(id){ document.getElementById(id)?.classList.remove('show'); }
 
+  // Muestra el error solo en el formulario que está visible en este momento
+  // (evita que un error del botón de Google aparezca duplicado en Sign In y Create Account a la vez)
+  function showActiveError(msg){
+    const activeForm = document.querySelector('.auth-form.active');
+    const errorEl = activeForm?.querySelector('.auth-error');
+    if(errorEl){ errorEl.textContent = msg; errorEl.classList.add('show'); }
+  }
+
+  // Traduce los códigos de error de Firebase para Google Sign-In a mensajes
+  // legibles. Si el mensaje apunta a un problema de configuración, dice
+  // exactamente qué revisar en Firebase Console.
+  function friendlyGoogleError(code){
+    const msgs = {
+      'auth/unauthorized-domain':        'This domain isn\'t authorized for Google Sign-In yet. (Fix: Firebase Console → Authentication → Settings → Authorized domains)',
+      'auth/operation-not-allowed':      'Google Sign-In isn\'t enabled for this project yet. (Fix: Firebase Console → Authentication → Sign-in method → Google)',
+      'auth/account-exists-with-different-credential': 'An account with this email already exists using a different sign-in method. Try signing in with your password instead.',
+      'auth/popup-blocked':              'Your browser blocked the sign-in popup. Please allow popups for this site and try again.',
+      'auth/network-request-failed':     'Network error — please check your connection and try again.',
+    };
+    return msgs[code] || null;
+  }
+
   // ── SAVE USER TO FIRESTORE ──
+  // Si el usuario ya existe (por ejemplo, vuelve a entrar con Google después
+  // de haberse registrado antes), solo actualiza email/nombre/teléfono —
+  // nunca pisa createdAt ni orders. Si es la primera vez, crea el documento
+  // completo.
   async function saveUser(user, extra={}){
-    await setDoc(doc(db,'customers',user.uid), {
-      uid:       user.uid,
-      email:     user.email,
-      name:      user.displayName || extra.name || '',
-      phone:     extra.phone || '',
-      createdAt: new Date().toISOString(),
-      orders:    [],
-    }, { merge: true });
+    const ref  = doc(db,'customers',user.uid);
+    const snap = await getDoc(ref);
+
+    if(snap.exists()){
+      await setDoc(ref, {
+        email: user.email,
+        name:  user.displayName || extra.name || snap.data().name || '',
+        phone: extra.phone || snap.data().phone || '',
+      }, { merge: true });
+    } else {
+      await setDoc(ref, {
+        uid:       user.uid,
+        email:     user.email,
+        name:      user.displayName || extra.name || '',
+        phone:     extra.phone || '',
+        createdAt: new Date().toISOString(),
+        orders:    [],
+      });
+    }
   }
 
   // ── REDIRECT AFTER LOGIN ──
@@ -246,17 +284,56 @@
   };
 
   // ── GOOGLE ──
-  window.doGoogleLogin = async function(){
-    try {
-      const provider = new GoogleAuthProvider();
-      const cred     = await signInWithPopup(auth, provider);
-      await saveUser(cred.user);
+  // Después de guardar/actualizar el usuario en Firestore, si es su primera
+  // vez (isNewUser), lo mandamos al beauty-profile quiz igual que a los
+  // usuarios que se registran con email — antes se le mandaba directo a "/"
+  // sin distinción, lo cual podía sentirse como que "no pasó nada".
+  async function completeGoogleSignIn(cred){
+    const isNewUser = getAdditionalUserInfo(cred)?.isNewUser;
+    await saveUser(cred.user);
+    if(isNewUser){
+      localStorage.setItem('canela_user', JSON.stringify({
+        uid:   cred.user.uid,
+        email: cred.user.email,
+        name:  cred.user.displayName || cred.user.email.split('@')[0],
+      }));
+      location.href = '/beauty-profile';
+    } else {
       afterLogin(cred.user);
+    }
+  }
+
+  window.doGoogleLogin = async function(){
+    const provider = new GoogleAuthProvider();
+    try {
+      const cred = await signInWithPopup(auth, provider);
+      await completeGoogleSignIn(cred);
     } catch(e) {
-      showError('loginError', e.message);
-      showError('registerError', e.message);
+      // Si el navegador bloqueó o cerró el popup (común en Safari, o en
+      // navegadores in-app como Instagram/Facebook), reintentar con
+      // redirect en vez de popup.
+      if(['auth/popup-blocked','auth/popup-closed-by-user','auth/cancelled-popup-request'].includes(e.code)){
+        try {
+          await signInWithRedirect(auth, provider);
+          return; // la página se recarga y getRedirectResult() abajo termina el flujo
+        } catch(e2) {
+          showActiveError(friendlyGoogleError(e2.code) || e2.message);
+          return;
+        }
+      }
+      showActiveError(friendlyGoogleError(e.code) || e.message);
     }
   };
+
+  // Si volvimos de un signInWithRedirect (fallback del popup), terminar el
+  // flujo de login aquí al cargar la página.
+  getRedirectResult(auth).then(async (result) => {
+    if(result && result.user){
+      await completeGoogleSignIn(result);
+    }
+  }).catch((e) => {
+    showActiveError(friendlyGoogleError(e.code) || e.message);
+  });
 
   // ── RESET ──
   window.doReset = async function(){
