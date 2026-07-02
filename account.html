@@ -31,7 +31,9 @@
     .section-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;color:var(--brown);margin-bottom:20px;}
     .section-title em{font-style:italic;color:var(--gold);}
     .orders-list{display:flex;flex-direction:column;gap:12px;margin-bottom:48px;}
-    .order-card{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:20px 24px;}
+    .order-card{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:20px 24px;cursor:pointer;transition:border-color .2s,transform .15s;}
+    .order-card:hover{border-color:var(--gold);transform:translateY(-1px);}
+    .order-card:active{transform:translateY(0);}
     .order-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
     .order-id{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
     .order-date{font-size:11px;color:var(--muted);}
@@ -52,6 +54,32 @@
     .info-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
     .info-value{font-size:14px;color:var(--brown);}
     @media(max-width:600px){nav{padding:14px 20px;} .main{padding:32px 16px;} .info-grid{grid-template-columns:1fr;}}
+
+    /* ORDER DETAIL MODAL */
+    .order-modal-overlay{position:fixed;inset:0;background:rgba(74,36,24,0.45);backdrop-filter:blur(2px);z-index:200;opacity:0;pointer-events:none;transition:opacity .3s;display:flex;align-items:center;justify-content:center;padding:24px;}
+    .order-modal-overlay.open{opacity:1;pointer-events:all;}
+    .order-modal{background:var(--bg);border-radius:4px;max-width:520px;width:100%;max-height:88vh;overflow-y:auto;transform:translateY(16px) scale(.98);transition:transform .3s cubic-bezier(.22,1,.36,1);box-shadow:0 24px 60px rgba(74,36,24,0.2);}
+    .order-modal-overlay.open .order-modal{transform:translateY(0) scale(1);}
+    .order-modal-header{display:flex;justify-content:space-between;align-items:flex-start;padding:28px 28px 20px;border-bottom:1px solid var(--border);}
+    .order-modal-title{font-family:'Cormorant Garamond',serif;font-size:24px;font-weight:300;color:var(--brown);letter-spacing:1px;}
+    .order-modal-sub{font-size:11px;color:var(--muted);margin-top:4px;letter-spacing:1px;}
+    .order-modal-close{background:none;border:1px solid var(--border2);color:var(--muted);width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:16px;line-height:1;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0;}
+    .order-modal-close:hover{border-color:var(--brown);color:var(--brown);}
+    .order-modal-body{padding:24px 28px 28px;}
+    .order-modal-section{margin-bottom:24px;}
+    .order-modal-section:last-child{margin-bottom:0;}
+    .order-modal-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;}
+    .order-modal-items{display:flex;flex-direction:column;gap:10px;}
+    .order-modal-item{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--brown2);padding-bottom:10px;border-bottom:1px solid var(--border);}
+    .order-modal-item:last-child{border-bottom:none;padding-bottom:0;}
+    .order-modal-item-qty{color:var(--muted);font-size:12px;}
+    .order-modal-address{font-size:13px;color:var(--brown2);line-height:1.8;background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:14px 16px;}
+    .order-modal-totalrow{display:flex;justify-content:space-between;align-items:baseline;padding-top:16px;margin-top:4px;border-top:1px solid var(--border2);}
+    .order-modal-totalrow span:first-child{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+    .order-modal-totalrow strong{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--brown);font-weight:300;}
+    .order-modal-track{display:block;text-align:center;margin-top:20px;background:var(--brown);color:#FAF6EF;padding:13px;border-radius:2px;text-decoration:none;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;transition:background .2s;}
+    .order-modal-track:hover{background:var(--brown2);}
+    .order-modal-notrack{text-align:center;margin-top:20px;font-size:11px;color:var(--muted);padding:13px;background:var(--bg2);border-radius:2px;border:1px dashed var(--border2);}
 
     /* REVIEW FORM */
     .review-section{margin-top:48px;padding-top:40px;border-top:1px solid var(--border);}
@@ -212,8 +240,9 @@
       }
 
       loadProductsForReview(mine);
+      myOrders = mine;
       document.getElementById('ordersList').innerHTML = mine.map(o=>`
-        <div class="order-card">
+        <div class="order-card" onclick="openOrderDetail('${o.id}')">
           <div class="order-top">
             <div>
               <p class="order-id">${o.id.slice(-12).toUpperCase()}</p>
@@ -224,7 +253,7 @@
           <p class="order-items-list">${o.items.map(i=>`${i.name} × ${i.qty}`).join(' · ')}</p>
           <div class="order-bottom">
             <span class="order-total">$${o.total} USD</span>
-            ${o.trackingUrl?`<a class="track-link" href="${o.trackingUrl}" target="_blank">Track package →</a>`:''}
+            ${o.trackingUrl?`<a class="track-link" href="${o.trackingUrl}" target="_blank" onclick="event.stopPropagation()">Track package →</a>`:'<span style="font-size:10px;color:var(--muted);letter-spacing:1px">View details →</span>'}
           </div>
         </div>`).join('');
     } catch(e) {
@@ -241,6 +270,7 @@
   // ── REVIEWS ─────────────────────────────────────────────
   let selectedRating = 0;
   let reviewPhotoBase64 = null;
+  let myOrders = [];
 
   window.setRating = function(n){
     selectedRating = n;
@@ -328,7 +358,80 @@
     selector.innerHTML = '<option value="">Choose a product you purchased...</option>' +
       products.map(p=>`<option value="${p}">${p}</option>`).join('');
   }
+
+  // ── ORDER DETAIL MODAL ──────────────────────────────────────
+  window.openOrderDetail = function(orderId){
+    const order = myOrders.find(o=>o.id===orderId);
+    if(!order) return;
+
+    const dateStr = new Date(order.createdAt).toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'});
+    const statusLabel = (order.status||'pending').replace('_',' ');
+
+    document.getElementById('orderModalTitle').textContent = `Order ${order.id.slice(-12).toUpperCase()}`;
+    document.getElementById('orderModalSub').innerHTML = `${dateStr} &nbsp;·&nbsp; <span class="order-status status-${order.status||'pending'}" style="margin-left:2px">${statusLabel}</span>`;
+
+    document.getElementById('orderModalItems').innerHTML = order.items.map(i=>`
+      <div class="order-modal-item">
+        <span>${i.name}</span>
+        <span class="order-modal-item-qty">× ${i.qty}</span>
+      </div>`).join('');
+
+    const addressParts = [
+      order.street1,
+      order.street2,
+      [order.city, order.state, order.zip].filter(Boolean).join(', '),
+      order.country && order.country!=='US' ? order.country : ''
+    ].filter(Boolean);
+    document.getElementById('orderModalAddress').innerHTML = addressParts.length
+      ? addressParts.join('<br>')
+      : 'No shipping address on file';
+
+    document.getElementById('orderModalTotal').textContent = `$${order.total} ${order.currency||'USD'}`;
+
+    const trackEl = document.getElementById('orderModalTrack');
+    if(order.trackingUrl){
+      trackEl.outerHTML = `<a id="orderModalTrack" class="order-modal-track" href="${order.trackingUrl}" target="_blank">Track Package →</a>`;
+    } else {
+      trackEl.outerHTML = `<div id="orderModalTrack" class="order-modal-notrack">Your order is being prepared — tracking will appear here once it ships</div>`;
+    }
+
+    document.getElementById('orderModalOverlay').classList.add('open');
+    document.body.style.overflow='hidden';
+  }
+
+  window.closeOrderDetail = function(){
+    document.getElementById('orderModalOverlay').classList.remove('open');
+    document.body.style.overflow='';
+  }
 </script>
+
+<!-- ORDER DETAIL MODAL -->
+<div class="order-modal-overlay" id="orderModalOverlay" onclick="if(event.target===this)closeOrderDetail()">
+  <div class="order-modal">
+    <div class="order-modal-header">
+      <div>
+        <p class="order-modal-title" id="orderModalTitle">Order</p>
+        <p class="order-modal-sub" id="orderModalSub"></p>
+      </div>
+      <button class="order-modal-close" onclick="closeOrderDetail()" aria-label="Close">✕</button>
+    </div>
+    <div class="order-modal-body">
+      <div class="order-modal-section">
+        <p class="order-modal-label">Items</p>
+        <div class="order-modal-items" id="orderModalItems"></div>
+        <div class="order-modal-totalrow">
+          <span>Total</span>
+          <strong id="orderModalTotal"></strong>
+        </div>
+      </div>
+      <div class="order-modal-section">
+        <p class="order-modal-label">Shipping Address</p>
+        <div class="order-modal-address" id="orderModalAddress"></div>
+      </div>
+      <div id="orderModalTrack" class="order-modal-notrack">—</div>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
