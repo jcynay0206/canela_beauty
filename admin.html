@@ -225,6 +225,12 @@
     .status-badge{display:inline-block;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;padding:3px 8px;border-radius:2px;font-weight:500;}
     .st-pending{background:rgba(201,148,26,.12);color:#8A6010;border:1px solid rgba(201,148,26,.25);}
     .st-labeled{background:rgba(59,130,196,.1);color:#1A5C96;border:1px solid rgba(59,130,196,.2);}
+    .st-request{background:rgba(192,48,48,.1);color:#C03030;border:1px solid rgba(192,48,48,.25);}
+    .st-resolved{background:rgba(34,120,60,.08);color:#22783C;border:1px solid rgba(34,120,60,.2);}
+    .request-box{margin-top:8px;padding:8px 10px;background:rgba(192,48,48,.05);border:1px solid rgba(192,48,48,.15);border-radius:2px;}
+    .request-reason{font-size:10px;color:var(--brown2);margin-top:4px;line-height:1.5;}
+    .resolve-btn{background:none;border:1px solid rgba(34,120,60,.3);color:#22783C;font-size:8px;letter-spacing:1px;text-transform:uppercase;padding:4px 8px;border-radius:2px;cursor:pointer;margin-top:6px;transition:all .2s;}
+    .resolve-btn:hover{background:rgba(34,120,60,.08);}
     .st-delivered{background:rgba(34,120,60,.1);color:var(--green);border:1px solid rgba(34,120,60,.2);}
     .label-btn{background:var(--brown);color:#FAF6EF;border:none;padding:7px 12px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:background .2s;white-space:nowrap;}
     .label-btn:hover{background:var(--brown2);}
@@ -1337,12 +1343,14 @@ function renderOrders(){
   const total=orders.reduce((s,o)=>s+parseFloat(o.total),0);
   const pending=orders.filter(o=>!o.trackingNumber).length;
   const shipped=orders.filter(o=>o.trackingNumber).length;
+  const openRequests=orders.filter(o=>o.request?.status==='pending').length;
 
   document.getElementById('orderStats').innerHTML=`
     <div class="stat-card"><p class="stat-label">Total Orders</p><p class="stat-value">${orders.length}</p></div>
     <div class="stat-card"><p class="stat-label">Revenue</p><p class="stat-value"><em>$</em>${total.toFixed(2)}</p></div>
     <div class="stat-card"><p class="stat-label">To Pack</p><p class="stat-value">${pending}</p></div>
-    <div class="stat-card"><p class="stat-label">Shipped</p><p class="stat-value">${shipped}</p></div>`;
+    <div class="stat-card"><p class="stat-label">Shipped</p><p class="stat-value">${shipped}</p></div>
+    <div class="stat-card" style="${openRequests?'border-color:rgba(192,48,48,.3)':''}"><p class="stat-label">Open Requests</p><p class="stat-value" style="${openRequests?'color:#C03030':''}">${openRequests}</p></div>`;
 
   if(!orders.length){
     document.getElementById('ordersBody').innerHTML='<div class="empty-state"><p>No paid orders yet.</p></div>';
@@ -1374,7 +1382,14 @@ function renderOrders(){
             <div class="order-email" style="color:var(--muted);margin-top:3px">${date}</div>
           </td>
           <td style="font-size:12px">${(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join('<br>')}</td>
-          <td style="color:var(--brown);font-weight:500">$${o.total}</td>
+          <td style="color:var(--brown);font-weight:500">
+            $${o.total}
+            <div style="font-size:9px;color:var(--muted);font-weight:400;margin-top:3px;line-height:1.6">
+              ${o.subtotal?`Subtotal $${o.subtotal}<br>`:''}
+              ${o.shipping&&parseFloat(o.shipping)>0?`Shipping $${o.shipping}<br>`:o.shipping?'Shipping Free<br>':''}
+              ${o.tax&&parseFloat(o.tax)>0?`Tax $${o.tax}`:''}
+            </div>
+          </td>
           <td>
             ${hasLabel ? `
               <span class="status-badge st-labeled">Shipped</span>
@@ -1387,6 +1402,7 @@ function renderOrders(){
                 <button onclick="copyTracking('${o.trackingNumber}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--muted);padding:0" title="Copy tracking number">⎘</button>
               </div>
             ` : `<span class="status-badge st-pending">Pending</span>`}
+            ${renderRequestBox(o)}
           </td>
           <td>
             ${!hasLabel
@@ -1402,6 +1418,60 @@ function renderOrders(){
       </tbody>
     </table>
     </div>`;
+}
+
+// Muestra la solicitud de cancelación/reembolso de una orden (si existe)
+// con un botón para marcarla como resuelta. El reembolso en sí se procesa
+// manualmente en el Dashboard de Stripe — este botón solo actualiza el
+// estado interno para dejar de mostrarla como pendiente.
+function renderRequestBox(o){
+  const req = o.request;
+  if(!req) return '';
+
+  const typeLabel = { cancel:'Cancellation', damaged:'Damaged Product', other:'Support' }[req.type] || 'Request';
+
+  if(req.status === 'pending'){
+    return `
+      <div class="request-box">
+        <span class="status-badge st-request">⚠ ${typeLabel} Requested</span>
+        ${req.reason ? `<p class="request-reason">"${req.reason}"</p>` : ''}
+        ${req.evidenceUrl ? `<a href="${req.evidenceUrl}" target="_blank" style="display:inline-block;margin-top:6px;font-size:10px;color:var(--gold)">📷 View damage photo →</a>` : ''}
+        <div>
+          <button class="resolve-btn" onclick="resolveRequest('${o.id}')">✓ Mark Resolved</button>
+        </div>
+      </div>`;
+  }
+
+  return `
+    <div class="request-box" style="opacity:.6">
+      <span class="status-badge st-resolved">${typeLabel} Resolved</span>
+      ${req.evidenceUrl ? `<a href="${req.evidenceUrl}" target="_blank" style="display:inline-block;margin-top:4px;font-size:10px;color:var(--muted)">📷 Photo</a>` : ''}
+    </div>`;
+}
+
+async function resolveRequest(orderId){
+  const btn = event?.target;
+  if(btn){ btn.disabled = true; btn.textContent = 'Saving...'; }
+  try {
+    const res = await fetch('/api/order-resolve', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken() },
+      body: JSON.stringify({ orderId, status: 'resolved' })
+    });
+    if(res.status===401){ handleSessionExpired(); return; }
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+
+    const idx = ordersCache.findIndex(o=>o.id===orderId);
+    if(idx>=0 && ordersCache[idx].request){
+      ordersCache[idx].request.status = 'resolved';
+    }
+    showToast('✓ Request marked as resolved');
+    renderOrders();
+  } catch(e){
+    showToast('Error: '+e.message);
+    if(btn){ btn.disabled = false; btn.textContent = '✓ Mark Resolved'; }
+  }
 }
 
 async function createLabel(orderId){
