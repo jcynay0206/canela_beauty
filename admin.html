@@ -1391,13 +1391,19 @@ function renderOrders(){
             ${renderRequestBox(o)}
           </td>
           <td>
-            ${!hasLabel
-              ? `<button class="label-btn" onclick="createLabel('${o.id}')">📦 Create Label</button>`
-              : `<div style="display:flex;flex-direction:column;gap:6px">
+            ${(() => {
+              const cancelPending = o.request?.type === 'cancel' && o.request?.status === 'pending';
+              if(!hasLabel && cancelPending){
+                return `<span class="status-badge st-request" style="display:block;text-align:center;padding:6px 8px;line-height:1.5">⚠ Cancellation pending — resolve request first</span>`;
+              }
+              if(!hasLabel){
+                return `<button class="label-btn" onclick="createLabel('${o.id}')">📦 Create Label</button>`;
+              }
+              return `<div style="display:flex;flex-direction:column;gap:6px">
                   <button class="print-btn" onclick="printLabel('${o.id}')">🖨 Print Label</button>
                   <button class="label-btn" onclick="createLabel('${o.id}')" style="font-size:8px;opacity:.6">↻ Reprint</button>
-                </div>`
-            }
+                </div>`;
+            })()}
           </td>
         </tr>`;
       }).join('')}
@@ -1462,6 +1468,15 @@ async function resolveRequest(orderId){
 
 async function createLabel(orderId){
   const order=ordersCache.find(o=>o.id===orderId); if(!order) return;
+
+  // Segunda capa de seguridad — el botón ya no debería mostrarse en este
+  // caso (ver renderOrders), pero si de todos modos se llega a llamar,
+  // no se crea el label mientras haya una cancelación pendiente.
+  if(order.request?.type === 'cancel' && order.request?.status === 'pending'){
+    showToast('⚠ This order has a pending cancellation request — resolve it first');
+    return;
+  }
+
   const btn=event.currentTarget||event.target;
   btn.disabled=true; btn.textContent='Creating...';
   try{
