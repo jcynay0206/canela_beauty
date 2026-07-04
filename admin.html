@@ -1390,14 +1390,26 @@ function renderOrders(){
                 <a class="track-link" href="${o.trackingUrl}" target="_blank" style="font-size:10px">${o.trackingNumber}</a>
                 <button onclick="copyTracking('${o.trackingNumber}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--muted);padding:0" title="Copy tracking number">⎘</button>
               </div>
-            ` : `<span class="status-badge st-pending">Pending</span>`}
+            ` : (o.request?.type === 'cancel' && o.request?.resolution === 'refunded'
+                  ? `<span class="status-badge st-resolved">Cancelled & Refunded</span>`
+                  : `<span class="status-badge st-pending">Pending</span>`)}
             ${renderRequestBox(o)}
           </td>
           <td>
             ${(() => {
-              const cancelPending = o.request?.type === 'cancel' && o.request?.status === 'pending';
+              // Bloquea "Create Label" mientras la cancelación está
+              // pendiente de revisar, Y para siempre una vez que se
+              // resolvió como reembolsada (esa orden ya no se envía).
+              // Si se resuelve como "denied", el botón vuelve a la
+              // normalidad — la orden sigue su curso normal.
+              const cancelPending  = o.request?.type === 'cancel' && o.request?.status === 'pending';
+              const cancelRefunded = o.request?.type === 'cancel' && o.request?.resolution === 'refunded';
+
               if(!hasLabel && cancelPending){
                 return `<span class="status-badge st-request" style="display:block;text-align:center;padding:6px 8px;line-height:1.5">⚠ Cancellation pending — resolve request first</span>`;
+              }
+              if(!hasLabel && cancelRefunded){
+                return `<span class="status-badge st-resolved" style="display:block;text-align:center;padding:6px 8px;line-height:1.5">✓ Cancelled & Refunded — no label needed</span>`;
               }
               if(!hasLabel){
                 return `<button class="label-btn" onclick="createLabel('${o.id}')">📦 Create Label</button>`;
@@ -1502,10 +1514,14 @@ async function createLabel(orderId){
   const order=ordersCache.find(o=>o.id===orderId); if(!order) return;
 
   // Segunda capa de seguridad — el botón ya no debería mostrarse en este
-  // caso (ver renderOrders), pero si de todos modos se llega a llamar,
-  // no se crea el label mientras haya una cancelación pendiente.
+  // caso (ver renderOrders), pero si de todos modos se llega a llamar:
+  // ni con cancelación pendiente, ni con una ya reembolsada.
   if(order.request?.type === 'cancel' && order.request?.status === 'pending'){
     showToast('⚠ This order has a pending cancellation request — resolve it first');
+    return;
+  }
+  if(order.request?.type === 'cancel' && order.request?.resolution === 'refunded'){
+    showToast('⚠ This order was cancelled and refunded — no label needed');
     return;
   }
 
