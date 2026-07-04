@@ -1,24 +1,36 @@
 const Stripe = require("stripe");
 const { db } = require("./_firebase");
 const { rateLimit } = require("./_ratelimit");
+const { requireAdmin } = require("./_auth");
 
 // POST /api/order-request
-// Endpoint público (lo llama el cliente desde su cuenta) — protegido por
-// rate limit en vez de token de admin. Verifica que el email coincida con
-// el de la orden en Stripe antes de guardar nada.
 //
-// Body: { orderId, email, type: 'cancel'|'damaged'|'other', reason, evidenceUrl }
+// Dos acciones en un mismo endpoint (mismo patrón que /api/admin-auth) —
+// consolidado para no pasar el límite de 12 Serverless Functions del plan
+// gratuito de Vercel.
 //
-// Política de venta final (labiales):
-//  - 'cancel'  → SOLO si la orden todavía no tiene shipping label
-//                (orders/{orderId}.trackingNumber). Antes de enviarse,
-//                cancelar = reembolso completo.
-//  - 'damaged' → SOLO si la orden YA fue enviada. Es la única razón de
-//                reembolso válida después del envío, y requiere foto de
-//                evidencia (evidenceUrl, subida antes vía
-//                /api/upload-evidence) + una descripción del daño.
-//  - 'other'   → siempre permitido, para preguntas generales que no
-//                necesariamente implican reembolso.
+//  action: 'submit' (default si se omite, para compatibilidad)
+//    Público — lo llama el cliente desde su cuenta. Protegido por rate
+//    limit en vez de token de admin. Verifica que el email coincida con
+//    el de la orden en Stripe antes de guardar nada.
+//    Body: { orderId, email, type: 'cancel'|'damaged'|'other', reason, evidenceUrl }
+//
+//    Política de venta final (labiales):
+//     - 'cancel'  → SOLO si la orden todavía no tiene shipping label
+//                   (orders/{orderId}.trackingNumber). Antes de enviarse,
+//                   cancelar = reembolso completo.
+//     - 'damaged' → SOLO si la orden YA fue enviada. Es la única razón de
+//                   reembolso válida después del envío, y requiere foto
+//                   de evidencia (evidenceUrl, subida antes vía
+//                   /api/upload con context:'evidence') + descripción.
+//     - 'other'   → siempre permitido, para preguntas generales.
+//
+//  action: 'resolve'
+//    Solo admin (x-admin-token). Marca una solicitud como resuelta (o la
+//    reabre). No procesa el reembolso en sí — eso se hace manualmente en
+//    el Dashboard de Stripe, a propósito, para que siempre haya revisión
+//    humana antes de que salga dinero real.
+//    Body: { orderId, status: 'resolved'|'pending' }
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
@@ -26,6 +38,43 @@ module.exports = async function handler(req, res) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
+  const action = req.body?.action || "submit";
+
+  if (action === "resolve") {
+    return handleResolve(req, res);
+  }
+  return handleSubmit(req, res);
+};
+
+async function handleResolve(req, res) {
+  if (!requireAdmin(req)) {
+    return res.status(401).json({ error: "No autorizado" });
+  }
+
+  const { orderId, status } = req.body || {};
+  if (!orderId || !["resolved", "pending"].includes(status)) {
+    return res.status(400).json({ error: "Missing orderId or invalid status" });
+  }
+
+  try {
+    await db.collection("orders").doc(orderId).set(
+      {
+        request: {
+          status,
+          resolvedAt: status === "resolved" ? new Date().toISOString() : null,
+        },
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true }
+    );
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("order-request (resolve) error:", err.message);
+    return res.status(500).json({ error: err.message });
+  }
+}
+
+async function handleSubmit(req, res) {
   const rl = await rateLimit(req, { action: "order-request", maxAttempts: 10, windowMs: 60 * 60 * 1000 });
   if (!rl.allowed) {
     return res.status(429).json({ error: "Too many requests. Please try again later." });
@@ -140,7 +189,7 @@ module.exports = async function handler(req, res) {
     return res.status(200).json({ ok: true });
 
   } catch (err) {
-    console.error("order-request error:", err.message);
+    console.error("order-request (submit) error:", err.message);
     return res.status(500).json({ error: "Could not submit your request. Please try again or contact us directly." });
   }
-};
+}
