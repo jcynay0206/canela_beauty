@@ -73,7 +73,11 @@ module.exports = async function handler(req, res) {
         labelUrl:       fsData.labelUrl       || null,
         carrier:        fsData.carrier        || null,
         service:        fsData.service        || null,
-        status:         fsData.trackingNumber ? "shipped" : "pending",
+        // "cancelled" tiene prioridad — una orden cancelada y reembolsada
+        // nunca debe seguir mostrándose como "pending to ship".
+        status:         (fsData.request?.type === "cancel" && fsData.request?.resolution === "refunded")
+                          ? "cancelled"
+                          : fsData.trackingNumber ? "shipped" : "pending",
         request:        fsData.request        || null,
       };
     });
