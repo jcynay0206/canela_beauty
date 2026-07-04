@@ -18,7 +18,7 @@ module.exports = async function handler(req, res) {
     if (!items || !items.length) return res.status(400).json({ error: "No items" });
 
     const subtotal = items.reduce((sum, item) => sum + (item.price * item.qty), 0);
-    const freeShipping = subtotal >= 25;
+    const freeShipping = subtotal >= 50;
 
     const origin = "https://canelabeauty.vercel.app";
     const params = new URLSearchParams();
@@ -36,7 +36,7 @@ module.exports = async function handler(req, res) {
     });
 
     if (freeShipping) {
-      // $25+ → free standard + paid express
+      // $50+ → free standard + paid express
       params.append("shipping_options[0][shipping_rate_data][type]", "fixed_amount");
       params.append("shipping_options[0][shipping_rate_data][display_name]", "Free Standard Shipping (5-7 days)");
       params.append("shipping_options[0][shipping_rate_data][fixed_amount][amount]", "0");
@@ -47,7 +47,7 @@ module.exports = async function handler(req, res) {
       params.append("shipping_options[1][shipping_rate_data][fixed_amount][amount]", "1299");
       params.append("shipping_options[1][shipping_rate_data][fixed_amount][currency]", "usd");
     } else {
-      // Under $25 → only paid options, no free shipping available
+      // Under $50 → only paid options, no free shipping available
       params.append("shipping_options[0][shipping_rate_data][type]", "fixed_amount");
       params.append("shipping_options[0][shipping_rate_data][display_name]", "Standard Shipping (5-7 days)");
       params.append("shipping_options[0][shipping_rate_data][fixed_amount][amount]", "599");
