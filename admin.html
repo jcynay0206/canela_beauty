@@ -227,10 +227,13 @@
     .st-labeled{background:rgba(59,130,196,.1);color:#1A5C96;border:1px solid rgba(59,130,196,.2);}
     .st-request{background:rgba(192,48,48,.1);color:#C03030;border:1px solid rgba(192,48,48,.25);}
     .st-resolved{background:rgba(34,120,60,.08);color:#22783C;border:1px solid rgba(34,120,60,.2);}
+    .st-denied{background:rgba(120,120,120,.1);color:#5A5A5A;border:1px solid rgba(120,120,120,.25);}
     .request-box{margin-top:8px;padding:8px 10px;background:rgba(192,48,48,.05);border:1px solid rgba(192,48,48,.15);border-radius:2px;}
     .request-reason{font-size:10px;color:var(--brown2);margin-top:4px;line-height:1.5;}
     .resolve-btn{background:none;border:1px solid rgba(34,120,60,.3);color:#22783C;font-size:8px;letter-spacing:1px;text-transform:uppercase;padding:4px 8px;border-radius:2px;cursor:pointer;margin-top:6px;transition:all .2s;}
     .resolve-btn:hover{background:rgba(34,120,60,.08);}
+    .deny-btn{border-color:rgba(192,48,48,.3)!important;color:#C03030!important;}
+    .deny-btn:hover{background:rgba(192,48,48,.08)!important;}
     .st-delivered{background:rgba(34,120,60,.1);color:var(--green);border:1px solid rgba(34,120,60,.2);}
     .label-btn{background:var(--brown);color:#FAF6EF;border:none;padding:7px 12px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:background .2s;white-space:nowrap;}
     .label-btn:hover{background:var(--brown2);}
@@ -1421,34 +1424,60 @@ function renderRequestBox(o){
   if(!req) return '';
 
   const typeLabel = { cancel:'Cancellation', damaged:'Damaged Product', other:'Support' }[req.type] || 'Request';
+  const isMoneyRequest = req.type === 'cancel' || req.type === 'damaged';
 
   if(req.status === 'pending'){
+    // Para solicitudes de dinero (cancelar/dañado), el admin debe elegir
+    // explícitamente el resultado — nunca queda un "resuelto" ambiguo que
+    // no le diga al cliente si recibió su reembolso o no.
+    const actionButtons = isMoneyRequest
+      ? `<button class="resolve-btn" onclick="resolveRequest('${o.id}','refunded')">✓ Refunded</button>
+         <button class="resolve-btn deny-btn" onclick="resolveRequest('${o.id}','denied')">✗ Denied</button>`
+      : `<button class="resolve-btn" onclick="resolveRequest('${o.id}','resolved')">✓ Mark Resolved</button>`;
+
     return `
       <div class="request-box">
         <span class="status-badge st-request">⚠ ${typeLabel} Requested</span>
         ${req.reason ? `<p class="request-reason">"${req.reason}"</p>` : ''}
         ${req.evidenceUrl ? `<a href="${req.evidenceUrl}" target="_blank" style="display:inline-block;margin-top:6px;font-size:10px;color:var(--gold)">📷 View damage photo →</a>` : ''}
-        <div>
-          <button class="resolve-btn" onclick="resolveRequest('${o.id}')">✓ Mark Resolved</button>
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+          ${actionButtons}
         </div>
       </div>`;
   }
 
+  // Resuelta — mostrar el resultado exacto, no solo "resolved" genérico.
+  const outcomeLabel = { refunded:'Refunded', denied:'Denied', resolved:'Resolved' }[req.resolution] || 'Resolved';
+  const outcomeClass = req.resolution === 'refunded' ? 'st-resolved' : req.resolution === 'denied' ? 'st-denied' : 'st-resolved';
+
   return `
-    <div class="request-box" style="opacity:.6">
-      <span class="status-badge st-resolved">${typeLabel} Resolved</span>
+    <div class="request-box" style="opacity:.75">
+      <span class="status-badge ${outcomeClass}">${typeLabel} — ${outcomeLabel}</span>
+      ${req.adminNote ? `<p class="request-reason">Note: "${req.adminNote}"</p>` : ''}
       ${req.evidenceUrl ? `<a href="${req.evidenceUrl}" target="_blank" style="display:inline-block;margin-top:4px;font-size:10px;color:var(--muted)">📷 Photo</a>` : ''}
     </div>`;
 }
 
-async function resolveRequest(orderId){
+async function resolveRequest(orderId, resolution){
   const btn = event?.target;
+  const originalText = btn ? btn.textContent : '';
+
+  // Nota opcional visible para el cliente — útil sobre todo al negar una
+  // solicitud, para explicar por qué (ej. política de venta final).
+  const adminNote = window.prompt(
+    resolution === 'denied'
+      ? 'Optional note to the customer (e.g. why this was denied):'
+      : 'Optional note to the customer:',
+    ''
+  );
+  if(adminNote === null) return; // canceló el prompt
+
   if(btn){ btn.disabled = true; btn.textContent = 'Saving...'; }
   try {
     const res = await fetch('/api/order-request', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken() },
-      body: JSON.stringify({ action: 'resolve', orderId, status: 'resolved' })
+      body: JSON.stringify({ action: 'resolve', orderId, resolution, adminNote: adminNote.trim() || null })
     });
     if(res.status===401){ handleSessionExpired(); return; }
     const data = await res.json();
@@ -1457,12 +1486,15 @@ async function resolveRequest(orderId){
     const idx = ordersCache.findIndex(o=>o.id===orderId);
     if(idx>=0 && ordersCache[idx].request){
       ordersCache[idx].request.status = 'resolved';
+      ordersCache[idx].request.resolution = resolution;
+      ordersCache[idx].request.adminNote = adminNote.trim() || null;
     }
-    showToast('✓ Request marked as resolved');
+    const outcomeLabel = { refunded:'Refunded', denied:'Denied', resolved:'Resolved' }[resolution] || 'Resolved';
+    showToast(`✓ Marked as ${outcomeLabel} — customer notified by email`);
     renderOrders();
   } catch(e){
     showToast('Error: '+e.message);
-    if(btn){ btn.disabled = false; btn.textContent = '✓ Mark Resolved'; }
+    if(btn){ btn.disabled = false; btn.textContent = originalText; }
   }
 }
 

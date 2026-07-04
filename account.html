@@ -100,7 +100,8 @@
     .order-help-cancel:hover{color:var(--brown);border-color:var(--brown);}
     .order-help-msg{font-size:12px;line-height:1.7;padding:12px 14px;border-radius:2px;}
     .order-help-msg.pending{background:rgba(196,120,74,.08);border:1px solid rgba(196,120,74,.25);color:var(--brown2);}
-    .order-help-msg.resolved{background:var(--bg2);border:1px solid var(--border2);color:var(--muted);}
+    .order-help-msg.resolved{background:rgba(34,120,60,.06);border:1px solid rgba(34,120,60,.2);color:var(--brown2);}
+    .order-help-msg.denied{background:var(--bg2);border:1px solid var(--border2);color:var(--muted);}
     .order-help-error{font-size:12px;color:#C03030;background:rgba(192,48,48,.06);border:1px solid rgba(192,48,48,.2);border-radius:2px;padding:10px 14px;display:none;}
     .order-help-error.show{display:block;}
     .order-help-policy{font-size:11px;color:var(--muted);line-height:1.7;background:var(--bg2);border:1px solid var(--border);border-radius:2px;padding:11px 14px;margin-top:12px;}
@@ -474,8 +475,23 @@
     }
 
     if(req && req.status === 'resolved'){
+      // Mensaje específico según el resultado real — nunca un "resuelto"
+      // ambiguo que deje al cliente sin saber si recibió su dinero.
+      const outcomeMsg = {
+        refunded: req.type === 'cancel'
+          ? 'Your order has been cancelled and your payment has been refunded.'
+          : 'Your refund has been processed.',
+        denied: `After review, we weren't able to approve this ${typeLabels[req.type]||'support'} request.`,
+        resolved: `Your ${typeLabels[req.type]||'support'} request has been addressed.`,
+      }[req.resolution] || `Your ${typeLabels[req.type]||'support'} request has been resolved.`;
+
+      const msgClass = req.resolution === 'denied' ? 'denied' : 'resolved';
+
       section.innerHTML = `
-        <div class="order-help-msg resolved">Your ${typeLabels[req.type]||'support'} request has been resolved.</div>
+        <div class="order-help-msg ${msgClass}">
+          ${outcomeMsg}
+          ${req.adminNote ? `<br><em>"${req.adminNote}"</em>` : ''}
+        </div>
         <button class="order-help-toggle" style="margin-top:10px" onclick="toggleHelpForm('${order.id}')">Need more help?</button>
         <div class="order-help-form" id="orderHelpForm"></div>`;
       return;
