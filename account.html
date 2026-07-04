@@ -624,10 +624,10 @@
       let evidenceUrl = null;
 
       if(helpPhotoDataUrl){
-        const upRes = await fetch('/api/upload-evidence', {
+        const upRes = await fetch('/api/upload', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: `order-${orderId}.jpg`, dataUrl: helpPhotoDataUrl })
+          body: JSON.stringify({ context: 'evidence', filename: `order-${orderId}.jpg`, dataUrl: helpPhotoDataUrl })
         });
         const upData = await upRes.json();
         if(!upRes.ok) throw new Error(upData.error || 'Could not upload photo.');
@@ -639,7 +639,7 @@
       const res = await fetch('/api/order-request', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ orderId, email: currentUserEmail, type, reason, evidenceUrl })
+        body: JSON.stringify({ action: 'submit', orderId, email: currentUserEmail, type, reason, evidenceUrl })
       });
       const data = await res.json();
 

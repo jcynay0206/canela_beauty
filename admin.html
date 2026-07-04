@@ -990,10 +990,10 @@ async function saveProduct(){
     const saveBtn = document.querySelector('#formOverlay .btn-save');
     if(saveBtn){ saveBtn.disabled=true; saveBtn.textContent='Subiendo foto…'; }
     try{
-      const res = await fetch('/api/upload-image', {
+      const res = await fetch('/api/upload', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken() },
-        body: JSON.stringify({ filename: `${name||'producto'}.jpg`, dataUrl: currentImage })
+        body: JSON.stringify({ context: 'product', filename: `${name||'producto'}.jpg`, dataUrl: currentImage })
       });
       if(res.status===401){ handleSessionExpired(); return; }
       const data = await res.json();
@@ -1312,26 +1312,12 @@ async function loadOrders(){
   document.getElementById('ordersBody').innerHTML='<div class="loading-state">Loading orders...</div>';
   document.getElementById('orderStats').innerHTML='';
   try{
-    // Cargar órdenes de Stripe y labels de Firestore en paralelo
-    const [ordersRes, labelsRes] = await Promise.all([
-      fetch('/api/orders'),
-      fetch('/api/order-labels', {headers:{'x-admin-token':adminToken()}})
-    ]);
-
-    let ordersData = { orders: [] };
-    let labelsData = { labels: {} };
-    try { ordersData = await ordersRes.json(); } catch(e) { console.error('orders parse error:', e); }
-    try { 
-      const lt = await labelsRes.text();
-      if(labelsRes.ok && lt.trim().startsWith('{')) labelsData = JSON.parse(lt);
-    } catch(e) { /* labels vacíos — ignorar */ }
-
-    // Merge: label data de Firestore sobreescribe localStorage (más confiable)
-    const firestoreLabels = labelsData.labels || {};
-    const localLabels = JSON.parse(localStorage.getItem(LABELS_KEY)||'{}');
-    const allLabels = { ...localLabels, ...firestoreLabels };
-
-    ordersCache=(ordersData.orders||[]).map(o=>({...o,...(allLabels[o.id]||{})}));
+    // /api/orders ya trae fusionados los datos de Firestore (tracking,
+    // status, solicitudes de cancelación/reembolso) — no hace falta una
+    // segunda llamada aparte.
+    const res = await fetch('/api/orders');
+    const data = await res.json();
+    ordersCache = data.orders || [];
     renderOrders();
   } catch(e){
     document.getElementById('ordersBody').innerHTML=`<div class="empty-state"><p>Could not load orders.<br><small>${e.message}</small></p></div>`;
@@ -1453,10 +1439,10 @@ async function resolveRequest(orderId){
   const btn = event?.target;
   if(btn){ btn.disabled = true; btn.textContent = 'Saving...'; }
   try {
-    const res = await fetch('/api/order-resolve', {
+    const res = await fetch('/api/order-request', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken() },
-      body: JSON.stringify({ orderId, status: 'resolved' })
+      body: JSON.stringify({ action: 'resolve', orderId, status: 'resolved' })
     });
     if(res.status===401){ handleSessionExpired(); return; }
     const data = await res.json();
