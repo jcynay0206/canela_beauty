@@ -26,11 +26,13 @@ const { requireAdmin } = require("./_auth");
 //     - 'other'   → siempre permitido, para preguntas generales.
 //
 //  action: 'resolve'
-//    Solo admin (x-admin-token). Marca una solicitud como resuelta (o la
-//    reabre). No procesa el reembolso en sí — eso se hace manualmente en
-//    el Dashboard de Stripe, a propósito, para que siempre haya revisión
-//    humana antes de que salga dinero real.
-//    Body: { orderId, status: 'resolved'|'pending' }
+//    Solo admin (x-admin-token). Marca una solicitud como resuelta con un
+//    resultado específico — nunca un "resuelto" ambiguo — y le manda un
+//    email al cliente confirmando exactamente qué pasó. No procesa el
+//    reembolso en sí — eso se hace manualmente en el Dashboard de Stripe,
+//    a propósito, para que siempre haya revisión humana antes de que
+//    salga dinero real.
+//    Body: { orderId, resolution: 'refunded'|'denied'|'resolved', adminNote? }
 
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
@@ -51,22 +53,73 @@ async function handleResolve(req, res) {
     return res.status(401).json({ error: "No autorizado" });
   }
 
-  const { orderId, status } = req.body || {};
-  if (!orderId || !["resolved", "pending"].includes(status)) {
-    return res.status(400).json({ error: "Missing orderId or invalid status" });
+  const { orderId, resolution, adminNote } = req.body || {};
+  if (!orderId || !["refunded", "denied", "resolved"].includes(resolution)) {
+    return res.status(400).json({ error: "Missing orderId or invalid resolution" });
   }
 
   try {
-    await db.collection("orders").doc(orderId).set(
-      {
-        request: {
-          status,
-          resolvedAt: status === "resolved" ? new Date().toISOString() : null,
-        },
-        updatedAt: new Date().toISOString(),
-      },
-      { merge: true }
-    );
+    const orderRef  = db.collection("orders").doc(orderId);
+    const orderSnap = await orderRef.get();
+    const existing  = orderSnap.exists ? orderSnap.data() : {};
+    const existingRequest = existing.request || {};
+
+    const updatedRequest = {
+      ...existingRequest,
+      status: "resolved",
+      resolution,
+      adminNote: adminNote || null,
+      resolvedAt: new Date().toISOString(),
+    };
+
+    await orderRef.set({ request: updatedRequest, updatedAt: new Date().toISOString() }, { merge: true });
+
+    // ── Avisar al cliente por email con el resultado exacto ─────────
+    // Para que nunca se quede solo con un "resuelto" ambiguo — le decimos
+    // explícitamente si se le reembolsó, se le negó, o qué pasó.
+    const brevoKey       = process.env.BREVO_API_KEY;
+    const fromEmail      = process.env.FROM_EMAIL || "jcnay157@gmail.com";
+    const customerEmail  = existingRequest.email;
+    const shortId        = orderId.slice(-8).toUpperCase();
+    const typeLabel      = { cancel: "cancellation", damaged: "refund", other: "support" }[existingRequest.type] || "request";
+
+    if (brevoKey && customerEmail) {
+      const outcomeText = {
+        refunded: existingRequest.type === "cancel"
+          ? "Your order has been cancelled and your payment has been refunded."
+          : "Your refund has been processed.",
+        denied: "After review, we're unable to approve this request.",
+        resolved: "Your request has been addressed.",
+      }[resolution];
+
+      try {
+        await fetch("https://api.brevo.com/v3/smtp/email", {
+          method: "POST",
+          headers: { "api-key": brevoKey, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sender: { name: "Jonara Beauty", email: fromEmail },
+            to: [{ email: customerEmail }],
+            subject: `Update on your ${typeLabel} request — Order #${shortId}`,
+            htmlContent: `
+<div style="font-family:Georgia,serif;max-width:480px;margin:20px auto;background:#FDF9F7;border:1px solid rgba(92,26,36,0.12);border-radius:4px;overflow:hidden;">
+  <div style="background:#5C1A24;padding:20px 28px;">
+    <p style="color:#FAF6EF;font-size:16px;font-weight:300;letter-spacing:4px;text-transform:uppercase;margin:0;">Order #${shortId}</p>
+  </div>
+  <div style="padding:24px 28px;">
+    <p style="font-size:14px;color:#5C1A24;line-height:1.7;margin:0 0 16px;">${outcomeText}</p>
+    ${adminNote ? `<p style="font-size:13px;color:rgba(92,26,36,.7);line-height:1.6;background:#FBF6F1;border-radius:2px;padding:12px 14px;margin:0;">"${adminNote}"</p>` : ""}
+    <div style="margin-top:20px;">
+      <a href="https://jonarabeauty.vercel.app/account" style="display:inline-block;background:#5C1A24;color:#FAF6EF;padding:11px 24px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;border-radius:2px;">View Order →</a>
+    </div>
+  </div>
+</div>`,
+          }),
+        });
+      } catch (emailErr) {
+        console.error("Customer resolution email failed (non-fatal):", emailErr.message);
+      }
+    }
+
     return res.status(200).json({ ok: true });
   } catch (err) {
     console.error("order-request (resolve) error:", err.message);
