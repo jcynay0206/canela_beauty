@@ -48,6 +48,49 @@ module.exports = async function handler(req, res) {
   return handleSubmit(req, res);
 };
 
+// Devuelve al inventario las unidades de una orden cancelada — el reflejo
+// exacto de la resta que hace stripe-webhook.js al confirmarse la compra.
+// Solo se llama para cancelaciones reembolsadas ANTES del envío: el
+// producto físico nunca salió de la tienda, así que vuelve a estar
+// disponible para vender. No aplica a "damaged" (ese producto ya se
+// envió y no vuelve al inventario).
+async function restoreStock(orderId) {
+  try {
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+    const lineItems = await stripe.checkout.sessions.listLineItems(orderId, { limit: 100 });
+
+    const catalogSnap = await db.doc("catalog/products").get();
+    if (!catalogSnap.exists) return;
+
+    const products = catalogSnap.data().items || [];
+    let changed = false;
+
+    lineItems.data.forEach(li => {
+      const productName = li.description?.split(" —")[0]?.split(" - ")[0]?.trim();
+      const qty = li.quantity || 1;
+      const idx = products.findIndex(p => p.name?.toLowerCase() === productName?.toLowerCase());
+
+      if (idx >= 0 && products[idx].stock !== null && products[idx].stock !== undefined) {
+        products[idx].stock = (products[idx].stock || 0) + qty;
+        if (products[idx].stock > 0) products[idx].soldOut = false;
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      await db.doc("catalog/products").set(
+        { items: products, updatedAt: new Date().toISOString() },
+        { merge: true }
+      );
+      console.log("Stock restored for cancelled order:", orderId);
+    }
+  } catch (err) {
+    // No fallar la resolución de la solicitud si el stock no se pudo
+    // restaurar — el admin puede ajustarlo manualmente en Inventory.
+    console.error("Stock restore error (non-fatal):", err.message);
+  }
+}
+
 async function handleResolve(req, res) {
   if (!requireAdmin(req)) {
     return res.status(401).json({ error: "No autorizado" });
@@ -64,12 +107,26 @@ async function handleResolve(req, res) {
     const existing  = orderSnap.exists ? orderSnap.data() : {};
     const existingRequest = existing.request || {};
 
+    // Si se cancela y reembolsa una orden (antes de enviarse), el producto
+    // nunca salió de la tienda — se devuelve al inventario. Se protege
+    // contra restaurar dos veces si el admin resuelve la misma solicitud
+    // más de una vez (ej. reabrir por error).
+    const shouldRestoreStock =
+      resolution === "refunded" &&
+      existingRequest.type === "cancel" &&
+      !existingRequest.stockRestored;
+
+    if (shouldRestoreStock) {
+      await restoreStock(orderId);
+    }
+
     const updatedRequest = {
       ...existingRequest,
       status: "resolved",
       resolution,
       adminNote: adminNote || null,
       resolvedAt: new Date().toISOString(),
+      stockRestored: existingRequest.stockRestored || shouldRestoreStock,
     };
 
     await orderRef.set({ request: updatedRequest, updatedAt: new Date().toISOString() }, { merge: true });
