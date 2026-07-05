@@ -1502,7 +1502,9 @@ async function resolveRequest(orderId, resolution){
       ordersCache[idx].request.adminNote = adminNote.trim() || null;
     }
     const outcomeLabel = { refunded:'Refunded', denied:'Denied', resolved:'Resolved' }[resolution] || 'Resolved';
-    showToast(`✓ Marked as ${outcomeLabel} — customer notified by email`);
+    const stockNote = (resolution === 'refunded' && ordersCache[idx]?.request?.type === 'cancel')
+      ? ' · stock restored' : '';
+    showToast(`✓ Marked as ${outcomeLabel} — customer notified by email${stockNote}`);
     renderOrders();
   } catch(e){
     showToast('Error: '+e.message);
