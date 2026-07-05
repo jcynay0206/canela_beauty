@@ -97,7 +97,7 @@ async function handleResolve(req, res) {
   }
 
   const { orderId, resolution, adminNote } = req.body || {};
-  if (!orderId || !["refunded", "denied", "resolved"].includes(resolution)) {
+  if (!orderId || !["refunded", "denied", "resolved", "replaced"].includes(resolution)) {
     return res.status(400).json({ error: "Missing orderId or invalid resolution" });
   }
 
@@ -138,13 +138,14 @@ async function handleResolve(req, res) {
     const fromEmail      = process.env.FROM_EMAIL || "jcnay157@gmail.com";
     const customerEmail  = existingRequest.email;
     const shortId        = orderId.slice(-8).toUpperCase();
-    const typeLabel      = { cancel: "cancellation", damaged: "refund", other: "support" }[existingRequest.type] || "request";
+    const typeLabel      = { cancel: "cancellation", damaged: "damaged product", other: "support" }[existingRequest.type] || "request";
 
     if (brevoKey && customerEmail) {
       const outcomeText = {
         refunded: existingRequest.type === "cancel"
           ? "Your order has been cancelled and your payment has been refunded."
           : "Your refund has been processed.",
+        replaced: "We're sending you a replacement at no extra cost — no need to send anything back. You'll get a new tracking number shortly.",
         denied: "After review, we're unable to approve this request.",
         resolved: "Your request has been addressed.",
       }[resolution];

@@ -3,6 +3,19 @@ const { db }        = require("./_firebase");
 const { requireAdmin } = require("./_auth");
 const { rateLimit }    = require("./_ratelimit");
 
+// POST /api/create-label
+// Body: { order, replacement? }
+//
+// order: mismo objeto que ya usa el admin (customerName, dirección, items,
+// email, total, id).
+//
+// replacement: true → crea un envío de REPOSICIÓN (producto dañado, sin
+// costo para el cliente). Se guarda en un campo separado
+// (orders/{id}.replacement) para no perder el historial del envío
+// original que llegó dañado, y descuenta stock de nuevo (sale una unidad
+// física más de la tienda). Si se omite/false, es el envío normal de la
+// orden (comportamiento de siempre).
+
 module.exports = async function handler(req, res) {
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
@@ -16,7 +29,7 @@ module.exports = async function handler(req, res) {
   const rl = await rateLimit(req, { action: "create-label", maxAttempts: 30, windowMs: 60 * 60 * 1000 });
   if (!rl.allowed) return res.status(429).json({ error: "Demasiadas solicitudes." });
 
-  const { order } = req.body || {};
+  const { order, replacement } = req.body || {};
   if (!order?.id) return res.status(400).json({ error: "Falta order.id" });
 
   const client = new EasyPost(process.env.EASYPOST_API_KEY);
@@ -97,22 +110,62 @@ module.exports = async function handler(req, res) {
 
     // ── Guardar en Firestore ───────────────────────────────────
     try {
-      await db.collection("orders").doc(order.id).set(
-        {
-          ...labelData,
-          orderId:      order.id,
-          customerName: order.customerName,
-          email:        order.email,
-          total:        order.total,
-          updatedAt:    new Date().toISOString(),
-        },
-        { merge: true }
-      );
+      if (replacement) {
+        // Envío de reposición — separado del original para conservar el
+        // historial de qué llegó dañado.
+        await db.collection("orders").doc(order.id).set(
+          { replacement: labelData, updatedAt: new Date().toISOString() },
+          { merge: true }
+        );
+      } else {
+        await db.collection("orders").doc(order.id).set(
+          {
+            ...labelData,
+            orderId:      order.id,
+            customerName: order.customerName,
+            email:        order.email,
+            total:        order.total,
+            updatedAt:    new Date().toISOString(),
+          },
+          { merge: true }
+        );
+      }
     } catch (dbErr) {
       console.error("Firestore save (non-fatal):", dbErr.message);
     }
 
-    return res.status(200).json(labelData);
+    // ── Descontar stock del envío de reposición ─────────────────
+    // Sale una unidad física más de la tienda — mismo mecanismo que usa
+    // stripe-webhook.js al confirmarse una compra normal.
+    if (replacement) {
+      try {
+        const catalogSnap = await db.doc("catalog/products").get();
+        if (catalogSnap.exists) {
+          const products = catalogSnap.data().items || [];
+          let changed = false;
+          (order.items || []).forEach(item => {
+            const productName = item.name?.split(" —")[0]?.split(" - ")[0]?.trim();
+            const qty = item.qty || 1;
+            const idx = products.findIndex(p => p.name?.toLowerCase() === productName?.toLowerCase());
+            if (idx >= 0 && products[idx].stock !== null && products[idx].stock !== undefined) {
+              products[idx].stock = Math.max(0, (products[idx].stock || 0) - qty);
+              if (products[idx].stock === 0) products[idx].soldOut = true;
+              changed = true;
+            }
+          });
+          if (changed) {
+            await db.doc("catalog/products").set(
+              { items: products, updatedAt: new Date().toISOString() },
+              { merge: true }
+            );
+          }
+        }
+      } catch (stockErr) {
+        console.error("Replacement stock deduction error (non-fatal):", stockErr.message);
+      }
+    }
+
+    return res.status(200).json({ ...labelData, replacement: Boolean(replacement) });
 
   } catch (err) {
     console.error("EasyPost error:", err.message, err.errors || "");

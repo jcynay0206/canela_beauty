@@ -79,6 +79,7 @@ module.exports = async function handler(req, res) {
                           ? "cancelled"
                           : fsData.trackingNumber ? "shipped" : "pending",
         request:        fsData.request        || null,
+        replacement:    fsData.replacement     || null,
       };
     });
 
