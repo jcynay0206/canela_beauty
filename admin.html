@@ -216,6 +216,10 @@
     .export-btn:hover{border-color:var(--gold);color:var(--gold);}
 
     /* ORDERS TAB */
+    .order-section{margin-bottom:32px;}
+    .order-section:last-child{margin-bottom:0;}
+    .order-section-title{font-size:13px;font-weight:600;color:var(--brown);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+    .order-section-count{font-size:10px;font-weight:500;color:var(--muted);background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:2px 9px;}
     .orders-table{width:100%;border-collapse:collapse;}
     .orders-table th{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);font-weight:500;}
     .orders-table td{padding:14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--brown2);vertical-align:top;}
@@ -1330,15 +1334,20 @@ async function loadOrders(){
 function renderOrders(){
   const orders=ordersCache;
   const total=orders.reduce((s,o)=>s+parseFloat(o.total),0);
-  const pending=orders.filter(o=>!o.trackingNumber).length;
-  const shipped=orders.filter(o=>o.trackingNumber).length;
-  const openRequests=orders.filter(o=>o.request?.status==='pending').length;
+
+  // "To Pack" excluye las canceladas — una orden cancelada no necesita
+  // empacarse, y mezclarla en ese conteo hace que el número mienta.
+  const toPackList   = orders.filter(o=>!o.trackingNumber && o.status!=='cancelled');
+  const shippedList  = orders.filter(o=>o.trackingNumber);
+  const cancelledList= orders.filter(o=>o.status==='cancelled');
+  const openRequests = orders.filter(o=>o.request?.status==='pending').length;
 
   document.getElementById('orderStats').innerHTML=`
     <div class="stat-card"><p class="stat-label">Total Orders</p><p class="stat-value">${orders.length}</p></div>
     <div class="stat-card"><p class="stat-label">Revenue</p><p class="stat-value"><em>$</em>${total.toFixed(2)}</p></div>
-    <div class="stat-card"><p class="stat-label">To Pack</p><p class="stat-value">${pending}</p></div>
-    <div class="stat-card"><p class="stat-label">Shipped</p><p class="stat-value">${shipped}</p></div>
+    <div class="stat-card"><p class="stat-label">To Pack</p><p class="stat-value">${toPackList.length}</p></div>
+    <div class="stat-card"><p class="stat-label">Shipped</p><p class="stat-value">${shippedList.length}</p></div>
+    <div class="stat-card" style="${cancelledList.length?'border-color:rgba(120,120,120,.3)':''}"><p class="stat-label">Cancelled</p><p class="stat-value" style="${cancelledList.length?'color:#5A5A5A':''}">${cancelledList.length}</p></div>
     <div class="stat-card" style="${openRequests?'border-color:rgba(192,48,48,.3)':''}"><p class="stat-label">Open Requests</p><p class="stat-value" style="${openRequests?'color:#C03030':''}">${openRequests}</p></div>`;
 
   if(!orders.length){
@@ -1346,85 +1355,104 @@ function renderOrders(){
     return;
   }
 
-  document.getElementById('ordersBody').innerHTML=`
-    <div style="overflow-x:auto">
-    <table class="orders-table">
-      <thead><tr>
-        <th>Customer & Address</th>
-        <th>Items</th>
-        <th>Total</th>
-        <th>Shipping Label</th>
-        <th>Actions</th>
-      </tr></thead>
-      <tbody>${orders.map(o=>{
-        const hasLabel = Boolean(o.trackingNumber);
-        const date = new Date(o.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric'});
-        return `
-        <tr>
-          <td>
-            <div class="order-name">${o.customerName}</div>
-            <div class="order-email">${o.email}</div>
-            <div class="order-email" style="margin-top:3px">
-              ${o.street1}${o.street2?', '+o.street2:''}<br>
-              ${o.city}, ${o.state} ${o.zip}
-            </div>
-            <div class="order-email" style="color:var(--muted);margin-top:3px">${date}</div>
-          </td>
-          <td style="font-size:12px">${(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join('<br>')}</td>
-          <td style="color:var(--brown);font-weight:500">
-            $${o.total}
-            <div style="font-size:9px;color:var(--muted);font-weight:400;margin-top:3px;line-height:1.6">
-              ${o.subtotal?`Subtotal $${o.subtotal}<br>`:''}
-              ${o.shipping&&parseFloat(o.shipping)>0?`Shipping $${o.shipping}<br>`:o.shipping?'Shipping Free<br>':''}
-              ${o.tax&&parseFloat(o.tax)>0?`Tax $${o.tax}`:''}
-            </div>
-          </td>
-          <td>
-            ${hasLabel ? `
-              <span class="status-badge st-labeled">Shipped</span>
-              <div style="margin-top:4px">
-                <span style="font-size:10px;color:var(--muted)">${o.carrier||''} ${o.service||''}</span>
-                ${o.rate?`<span style="font-size:10px;color:var(--gold);margin-left:4px">$${parseFloat(o.rate).toFixed(2)}</span>`:''}
-              </div>
-              <div style="margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
-                <a class="track-link" href="${o.trackingUrl}" target="_blank" style="font-size:10px">${o.trackingNumber}</a>
-                <button onclick="copyTracking('${o.trackingNumber}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--muted);padding:0" title="Copy tracking number">⎘</button>
-              </div>
-            ` : (o.request?.type === 'cancel' && o.request?.resolution === 'refunded'
-                  ? `<span class="status-badge st-resolved">Cancelled & Refunded</span>`
-                  : `<span class="status-badge st-pending">Pending</span>`)}
-            ${renderRequestBox(o)}
-          </td>
-          <td>
-            ${(() => {
-              // Bloquea "Create Label" mientras la cancelación está
-              // pendiente de revisar, Y para siempre una vez que se
-              // resolvió como reembolsada (esa orden ya no se envía).
-              // Si se resuelve como "denied", el botón vuelve a la
-              // normalidad — la orden sigue su curso normal.
-              const cancelPending  = o.request?.type === 'cancel' && o.request?.status === 'pending';
-              const cancelRefunded = o.request?.type === 'cancel' && o.request?.resolution === 'refunded';
+  // Secciones agrupadas por estado, en vez de una sola lista mezclada —
+  // así de un vistazo se sabe cuántas realmente faltan por empacar sin
+  // tener que descartar mentalmente las canceladas una por una.
+  const sections = [
+    { title: '📦 To Pack',   list: toPackList,    emptyOk: false },
+    { title: '✅ Shipped',   list: shippedList,   emptyOk: true  },
+    { title: '✕ Cancelled', list: cancelledList, emptyOk: true  },
+  ].filter(s => s.list.length > 0 || !s.emptyOk);
 
-              if(!hasLabel && cancelPending){
-                return `<span class="status-badge st-request" style="display:block;text-align:center;padding:6px 8px;line-height:1.5">⚠ Cancellation pending — resolve request first</span>`;
-              }
-              if(!hasLabel && cancelRefunded){
-                return `<span class="status-badge st-resolved" style="display:block;text-align:center;padding:6px 8px;line-height:1.5">✓ Cancelled & Refunded — no label needed</span>`;
-              }
-              if(!hasLabel){
-                return `<button class="label-btn" onclick="createLabel('${o.id}')">📦 Create Label</button>`;
-              }
-              return `<div style="display:flex;flex-direction:column;gap:6px">
-                  <button class="print-btn" onclick="printLabel('${o.id}')">🖨 Print Label</button>
-                  <button class="label-btn" onclick="createLabel('${o.id}')" style="font-size:8px;opacity:.6">↻ Reprint</button>
-                </div>`;
-            })()}
-          </td>
-        </tr>`;
-      }).join('')}
-      </tbody>
-    </table>
-    </div>`;
+  document.getElementById('ordersBody').innerHTML = sections.map(section => `
+    <div class="order-section">
+      <h3 class="order-section-title">${section.title} <span class="order-section-count">${section.list.length}</span></h3>
+      ${section.list.length === 0
+        ? `<div class="empty-state" style="padding:20px"><p>Nothing here right now.</p></div>`
+        : `<div style="overflow-x:auto">
+            <table class="orders-table">
+              <thead><tr>
+                <th>Customer & Address</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Shipping Label</th>
+                <th>Actions</th>
+              </tr></thead>
+              <tbody>${section.list.map(renderOrderRow).join('')}</tbody>
+            </table>
+          </div>`
+      }
+    </div>`
+  ).join('');
+}
+
+// Fila de una sola orden en la tabla — usada por las 3 secciones
+// (To Pack / Shipped / Cancelled) para no repetir el markup tres veces.
+function renderOrderRow(o){
+  const hasLabel = Boolean(o.trackingNumber);
+  const date = new Date(o.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  return `
+    <tr>
+      <td>
+        <div class="order-name">${o.customerName}</div>
+        <div class="order-email">${o.email}</div>
+        <div class="order-email" style="margin-top:3px">
+          ${o.street1}${o.street2?', '+o.street2:''}<br>
+          ${o.city}, ${o.state} ${o.zip}
+        </div>
+        <div class="order-email" style="color:var(--muted);margin-top:3px">${date}</div>
+      </td>
+      <td style="font-size:12px">${(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join('<br>')}</td>
+      <td style="color:var(--brown);font-weight:500">
+        $${o.total}
+        <div style="font-size:9px;color:var(--muted);font-weight:400;margin-top:3px;line-height:1.6">
+          ${o.subtotal?`Subtotal $${o.subtotal}<br>`:''}
+          ${o.shipping&&parseFloat(o.shipping)>0?`Shipping $${o.shipping}<br>`:o.shipping?'Shipping Free<br>':''}
+          ${o.tax&&parseFloat(o.tax)>0?`Tax $${o.tax}`:''}
+        </div>
+      </td>
+      <td>
+        ${hasLabel ? `
+          <span class="status-badge st-labeled">Shipped</span>
+          <div style="margin-top:4px">
+            <span style="font-size:10px;color:var(--muted)">${o.carrier||''} ${o.service||''}</span>
+            ${o.rate?`<span style="font-size:10px;color:var(--gold);margin-left:4px">$${parseFloat(o.rate).toFixed(2)}</span>`:''}
+          </div>
+          <div style="margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+            <a class="track-link" href="${o.trackingUrl}" target="_blank" style="font-size:10px">${o.trackingNumber}</a>
+            <button onclick="copyTracking('${o.trackingNumber}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--muted);padding:0" title="Copy tracking number">⎘</button>
+          </div>
+        ` : (o.request?.type === 'cancel' && o.request?.resolution === 'refunded'
+              ? `<span class="status-badge st-resolved">Cancelled & Refunded</span>`
+              : `<span class="status-badge st-pending">Pending</span>`)}
+        ${renderRequestBox(o)}
+      </td>
+      <td>
+        ${(() => {
+          // Bloquea "Create Label" mientras la cancelación está
+          // pendiente de revisar, Y para siempre una vez que se
+          // resolvió como reembolsada (esa orden ya no se envía).
+          // Si se resuelve como "denied", el botón vuelve a la
+          // normalidad — la orden sigue su curso normal.
+          const cancelPending  = o.request?.type === 'cancel' && o.request?.status === 'pending';
+          const cancelRefunded = o.request?.type === 'cancel' && o.request?.resolution === 'refunded';
+
+          if(!hasLabel && cancelPending){
+            return `<span class="status-badge st-request" style="display:block;text-align:center;padding:6px 8px;line-height:1.5">⚠ Cancellation pending — resolve request first</span>`;
+          }
+          if(!hasLabel && cancelRefunded){
+            return `<span class="status-badge st-resolved" style="display:block;text-align:center;padding:6px 8px;line-height:1.5">✓ Cancelled & Refunded — no label needed</span>`;
+          }
+          if(!hasLabel){
+            return `<button class="label-btn" onclick="createLabel('${o.id}')">📦 Create Label</button>`;
+          }
+          return `<div style="display:flex;flex-direction:column;gap:6px">
+              <button class="print-btn" onclick="printLabel('${o.id}')">🖨 Print Label</button>
+              <button class="label-btn" onclick="createLabel('${o.id}')" style="font-size:8px;opacity:.6">↻ Reprint</button>
+            </div>`;
+        })()}
+      </td>
+    </tr>`;
 }
 
 // Muestra la solicitud de cancelación/reembolso de una orden (si existe)
