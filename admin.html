@@ -238,6 +238,8 @@
     .resolve-btn:hover{background:rgba(34,120,60,.08);}
     .deny-btn{border-color:rgba(192,48,48,.3)!important;color:#C03030!important;}
     .deny-btn:hover{background:rgba(192,48,48,.08)!important;}
+    .replace-btn{border-color:rgba(59,130,196,.35)!important;color:#1A5C96!important;}
+    .replace-btn:hover{background:rgba(59,130,196,.08)!important;}
     .st-delivered{background:rgba(34,120,60,.1);color:var(--green);border:1px solid rgba(34,120,60,.2);}
     .label-btn{background:var(--brown);color:#FAF6EF;border:none;padding:7px 12px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:background .2s;white-space:nowrap;}
     .label-btn:hover{background:var(--brown2);}
@@ -1470,10 +1472,19 @@ function renderRequestBox(o){
     // Para solicitudes de dinero (cancelar/dañado), el admin debe elegir
     // explícitamente el resultado — nunca queda un "resuelto" ambiguo que
     // no le diga al cliente si recibió su reembolso o no.
-    const actionButtons = isMoneyRequest
-      ? `<button class="resolve-btn" onclick="resolveRequest('${o.id}','refunded')">✓ Refunded</button>
-         <button class="resolve-btn deny-btn" onclick="resolveRequest('${o.id}','denied')">✗ Denied</button>`
-      : `<button class="resolve-btn" onclick="resolveRequest('${o.id}','resolved')">✓ Mark Resolved</button>`;
+    // "damaged" tiene una tercera opción: enviar reposición sin costo,
+    // en vez de reembolsar.
+    let actionButtons;
+    if(req.type === 'damaged'){
+      actionButtons = `<button class="resolve-btn" onclick="resolveRequest('${o.id}','refunded')">✓ Refunded</button>
+         <button class="resolve-btn replace-btn" onclick="resolveRequest('${o.id}','replaced')">🔄 Replace</button>
+         <button class="resolve-btn deny-btn" onclick="resolveRequest('${o.id}','denied')">✗ Denied</button>`;
+    } else if(isMoneyRequest){
+      actionButtons = `<button class="resolve-btn" onclick="resolveRequest('${o.id}','refunded')">✓ Refunded</button>
+         <button class="resolve-btn deny-btn" onclick="resolveRequest('${o.id}','denied')">✗ Denied</button>`;
+    } else {
+      actionButtons = `<button class="resolve-btn" onclick="resolveRequest('${o.id}','resolved')">✓ Mark Resolved</button>`;
+    }
 
     return `
       <div class="request-box">
@@ -1487,14 +1498,25 @@ function renderRequestBox(o){
   }
 
   // Resuelta — mostrar el resultado exacto, no solo "resolved" genérico.
-  const outcomeLabel = { refunded:'Refunded', denied:'Denied', resolved:'Resolved' }[req.resolution] || 'Resolved';
-  const outcomeClass = req.resolution === 'refunded' ? 'st-resolved' : req.resolution === 'denied' ? 'st-denied' : 'st-resolved';
+  const outcomeLabel = { refunded:'Refunded', replaced:'Replacement Sent', denied:'Denied', resolved:'Resolved' }[req.resolution] || 'Resolved';
+  const outcomeClass = req.resolution === 'denied' ? 'st-denied' : 'st-resolved';
 
   return `
     <div class="request-box" style="opacity:.75">
       <span class="status-badge ${outcomeClass}">${typeLabel} — ${outcomeLabel}</span>
       ${req.adminNote ? `<p class="request-reason">Note: "${req.adminNote}"</p>` : ''}
       ${req.evidenceUrl ? `<a href="${req.evidenceUrl}" target="_blank" style="display:inline-block;margin-top:4px;font-size:10px;color:var(--muted)">📷 Photo</a>` : ''}
+      ${o.replacement?.trackingNumber ? `
+        <div style="margin-top:6px;padding-top:6px;border-top:1px dashed rgba(92,26,36,.15)">
+          <p style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Replacement shipment</p>
+          <a class="track-link" href="${o.replacement.trackingUrl}" target="_blank" style="font-size:10px">${o.replacement.trackingNumber}</a>
+          <span style="font-size:10px;color:var(--muted);margin-left:4px">${o.replacement.carrier||''} ${o.replacement.service||''}</span>
+        </div>
+      ` : (req.resolution === 'replaced' ? `
+        <div style="margin-top:6px">
+          <p style="font-size:10px;color:#C03030;margin-bottom:4px">⚠ Replacement label not created yet</p>
+          <button class="resolve-btn" onclick="createReplacementLabel('${o.id}')">🔄 Retry Create Replacement Label</button>
+        </div>` : '')}
     </div>`;
 }
 
@@ -1507,6 +1529,8 @@ async function resolveRequest(orderId, resolution){
   const adminNote = window.prompt(
     resolution === 'denied'
       ? 'Optional note to the customer (e.g. why this was denied):'
+      : resolution === 'replaced'
+      ? 'Optional note to the customer (a replacement label will be created automatically):'
       : 'Optional note to the customer:',
     ''
   );
@@ -1529,14 +1553,42 @@ async function resolveRequest(orderId, resolution){
       ordersCache[idx].request.resolution = resolution;
       ordersCache[idx].request.adminNote = adminNote.trim() || null;
     }
-    const outcomeLabel = { refunded:'Refunded', denied:'Denied', resolved:'Resolved' }[resolution] || 'Resolved';
+    const outcomeLabel = { refunded:'Refunded', replaced:'Replacement Approved', denied:'Denied', resolved:'Resolved' }[resolution] || 'Resolved';
     const stockNote = (resolution === 'refunded' && ordersCache[idx]?.request?.type === 'cancel')
       ? ' · stock restored' : '';
     showToast(`✓ Marked as ${outcomeLabel} — customer notified by email${stockNote}`);
     renderOrders();
+
+    // "Replace" crea el envío de reposición automáticamente — mismo flujo
+    // de EasyPost que un envío normal, sin costo para el cliente.
+    if(resolution === 'replaced' && idx>=0){
+      await createReplacementLabel(orderId);
+    }
   } catch(e){
     showToast('Error: '+e.message);
     if(btn){ btn.disabled = false; btn.textContent = originalText; }
+  }
+}
+
+async function createReplacementLabel(orderId){
+  const order = ordersCache.find(o=>o.id===orderId); if(!order) return;
+  showToast('📦 Creating replacement label...');
+  try{
+    const res = await fetch('/api/create-label', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken() },
+      body: JSON.stringify({ order, replacement: true })
+    });
+    if(res.status===401){ handleSessionExpired(); return; }
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+
+    if(order.request) order.replacement = data;
+    window.open(data.labelUrl, '_blank');
+    showToast(`✓ Replacement label created — ${data.trackingNumber}`);
+    renderOrders();
+  } catch(e){
+    showToast('⚠ Replacement approved, but label creation failed: '+e.message+' — try again from the request box');
   }
 }
 

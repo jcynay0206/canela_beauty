@@ -482,17 +482,23 @@
         refunded: req.type === 'cancel'
           ? 'Your order has been cancelled and your payment has been refunded.'
           : 'Your refund has been processed.',
+        replaced: 'A replacement is on its way to you at no extra cost — no need to send anything back.',
         denied: `After review, we weren't able to approve this ${typeLabels[req.type]||'support'} request.`,
         resolved: `Your ${typeLabels[req.type]||'support'} request has been addressed.`,
       }[req.resolution] || `Your ${typeLabels[req.type]||'support'} request has been resolved.`;
 
       const msgClass = req.resolution === 'denied' ? 'denied' : 'resolved';
 
+      const replacementTrackHtml = (req.resolution === 'replaced' && order.replacement?.trackingUrl)
+        ? `<a class="order-modal-track" href="${order.replacement.trackingUrl}" target="_blank" style="margin-top:10px">Track Replacement →</a>`
+        : '';
+
       section.innerHTML = `
         <div class="order-help-msg ${msgClass}">
           ${outcomeMsg}
           ${req.adminNote ? `<br><em>"${req.adminNote}"</em>` : ''}
         </div>
+        ${replacementTrackHtml}
         <button class="order-help-toggle" style="margin-top:10px" onclick="toggleHelpForm('${order.id}')">Need more help?</button>
         <div class="order-help-form" id="orderHelpForm"></div>`;
       return;
