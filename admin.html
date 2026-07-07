@@ -405,6 +405,7 @@
     </div>
     <p style="font-size:13px;color:var(--muted);margin-bottom:24px;">Data pulled from Stripe. Use the CSV export to import into your financial system.</p>
     <div class="revenue-grid" id="revenueStats"></div>
+    <div id="customerServiceStats"></div>
     <div style="overflow-x:auto;">
       <table class="rev-table">
         <thead><tr>
@@ -1282,6 +1283,48 @@ function renderRevenue(){
     <div class="rev-card"><p class="rev-label">This Month</p><p class="rev-value"><em>$</em>${monthRev.toFixed(2)}</p><p class="rev-sub">${thisMonth.length} orders</p></div>
     <div class="rev-card"><p class="rev-label">Avg Order Value</p><p class="rev-value"><em>$</em>${avgTicket.toFixed(2)}</p><p class="rev-sub">per transaction</p></div>`;
 
+  // ── Customer Service This Month ──────────────────────────────
+  // Refunds/reposiciones/negadas resueltas este mes — separado de las
+  // ventas normales, para ver de un vistazo cuánto costó el servicio al
+  // cliente sin tener que contar orden por orden.
+  const now = new Date();
+  const isThisMonth = (dateStr) => {
+    if(!dateStr) return false;
+    const d = new Date(dateStr);
+    return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+  };
+
+  const resolvedThisMonth = orders.filter(o => o.request?.status==='resolved' && isThisMonth(o.request.resolvedAt));
+  const refundedList   = resolvedThisMonth.filter(o => o.request.resolution==='refunded');
+  const replacedList   = resolvedThisMonth.filter(o => o.request.resolution==='replaced');
+  const deniedList     = resolvedThisMonth.filter(o => o.request.resolution==='denied');
+  const refundedTotal  = refundedList.reduce((s,o)=>s+parseFloat(o.total||0), 0);
+  const replacementCost= replacedList.reduce((s,o)=>s+parseFloat(o.replacement?.rate||0), 0);
+  const csTotal = refundedList.length + replacedList.length + deniedList.length;
+
+  document.getElementById('customerServiceStats').innerHTML = `
+    <h3 style="font-size:13px;font-weight:600;color:var(--brown);margin:28px 0 12px;">Customer Service This Month</h3>
+    ${csTotal===0
+      ? `<p style="font-size:12px;color:var(--muted);padding:4px 0 8px;">No cancellations, refunds, or replacements resolved this month.</p>`
+      : `<div class="revenue-grid">
+          <div class="rev-card" style="${refundedList.length?'border-color:rgba(192,48,48,.25)':''}">
+            <p class="rev-label">Refunded</p>
+            <p class="rev-value" style="${refundedList.length?'color:#C03030':''}"><em>$</em>${refundedTotal.toFixed(2)}</p>
+            <p class="rev-sub">${refundedList.length} order${refundedList.length===1?'':'s'}</p>
+          </div>
+          <div class="rev-card" style="${replacedList.length?'border-color:rgba(59,130,196,.25)':''}">
+            <p class="rev-label">Replacements Sent</p>
+            <p class="rev-value" style="${replacedList.length?'color:#1A5C96':''}">${replacedList.length}</p>
+            <p class="rev-sub">${replacementCost>0?`~$${replacementCost.toFixed(2)} in shipping`:'no shipping cost yet'}</p>
+          </div>
+          <div class="rev-card">
+            <p class="rev-label">Denied</p>
+            <p class="rev-value">${deniedList.length}</p>
+            <p class="rev-sub">no refund issued</p>
+          </div>
+        </div>`
+    }`;
+
   if(!orders.length){
     document.getElementById('revenueTable').innerHTML=`<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)">No orders yet.</td></tr>`;
     return;
@@ -1490,7 +1533,9 @@ function renderRequestBox(o){
       <div class="request-box">
         <span class="status-badge st-request">⚠ ${typeLabel} Requested</span>
         ${req.reason ? `<p class="request-reason">"${req.reason}"</p>` : ''}
-        ${req.evidenceUrl ? `<a href="${req.evidenceUrl}" target="_blank" style="display:inline-block;margin-top:6px;font-size:10px;color:var(--gold)">📷 View damage photo →</a>` : ''}
+        ${req.evidenceUrl
+          ? `<a href="${req.evidenceUrl}" target="_blank" style="display:inline-block;margin-top:6px;font-size:10px;color:var(--gold)">📷 View damage photo →</a>`
+          : (req.type === 'damaged' ? `<p style="font-size:10px;color:var(--muted);margin-top:6px">📷 Check WhatsApp for the damage photo</p>` : '')}
         <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
           ${actionButtons}
         </div>
