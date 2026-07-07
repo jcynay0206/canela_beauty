@@ -13,16 +13,17 @@ const { requireAdmin } = require("./_auth");
 //    Público — lo llama el cliente desde su cuenta. Protegido por rate
 //    limit en vez de token de admin. Verifica que el email coincida con
 //    el de la orden en Stripe antes de guardar nada.
-//    Body: { orderId, email, type: 'cancel'|'damaged'|'other', reason, evidenceUrl }
+//    Body: { orderId, email, type: 'cancel'|'damaged'|'other', reason }
 //
 //    Política de venta final (labiales):
 //     - 'cancel'  → SOLO si la orden todavía no tiene shipping label
 //                   (orders/{orderId}.trackingNumber). Antes de enviarse,
 //                   cancelar = reembolso completo.
 //     - 'damaged' → SOLO si la orden YA fue enviada. Es la única razón de
-//                   reembolso válida después del envío, y requiere foto
-//                   de evidencia (evidenceUrl, subida antes vía
-//                   /api/upload con context:'evidence') + descripción.
+//                   reembolso válida después del envío, y requiere una
+//                   descripción. La foto de evidencia se pide por
+//                   WhatsApp (no se sube en el sitio — requeriría
+//                   Firebase Storage en plan Blaze).
 //     - 'other'   → siempre permitido, para preguntas generales.
 //
 //  action: 'resolve'
@@ -233,9 +234,9 @@ async function handleSubmit(req, res) {
       if (!reason || reason.trim().length < 10) {
         return res.status(400).json({ error: "Please describe the damage (at least a few words)." });
       }
-      if (!evidenceUrl) {
-        return res.status(400).json({ error: "Please upload a photo showing the damage before submitting." });
-      }
+      // La evidencia fotográfica ya no se sube en el sitio (requeriría
+      // Firebase Storage en plan Blaze) — el cliente la manda por
+      // WhatsApp en su lugar. Ver nota en el email al admin más abajo.
     }
 
     // No permitir duplicar una solicitud mientras haya una pendiente
@@ -282,8 +283,8 @@ async function handleSubmit(req, res) {
       <tr><td style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(92,26,36,.45);padding:8px 0;border-bottom:1px solid rgba(92,26,36,.08);">Customer</td><td style="font-size:13px;color:#5C1A24;padding:8px 0;border-bottom:1px solid rgba(92,26,36,.08);">${customerName}</td></tr>
       <tr><td style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(92,26,36,.45);padding:8px 0;border-bottom:1px solid rgba(92,26,36,.08);">Email</td><td style="font-size:13px;color:#5C1A24;padding:8px 0;border-bottom:1px solid rgba(92,26,36,.08);">${email}</td></tr>
       <tr><td style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(92,26,36,.45);padding:8px 0;${request.reason ? 'border-bottom:1px solid rgba(92,26,36,.08);' : ''}">Type</td><td style="font-size:13px;color:#B8943C;font-weight:500;padding:8px 0;${request.reason ? 'border-bottom:1px solid rgba(92,26,36,.08);' : ''}">${typeLabel}</td></tr>
-      ${request.reason ? `<tr><td style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(92,26,36,.45);padding:8px 0;vertical-align:top;${evidenceUrl ? 'border-bottom:1px solid rgba(92,26,36,.08);' : ''}">Message</td><td style="font-size:13px;color:#5C1A24;padding:8px 0;${evidenceUrl ? 'border-bottom:1px solid rgba(92,26,36,.08);' : ''}">${request.reason}</td></tr>` : ""}
-      ${evidenceUrl ? `<tr><td style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(92,26,36,.45);padding:8px 0;">Evidence</td><td style="padding:8px 0;"><a href="${evidenceUrl}" style="color:#B8943C;">View Photo →</a></td></tr>` : ""}
+      ${request.reason ? `<tr><td style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(92,26,36,.45);padding:8px 0;vertical-align:top;${type === 'damaged' ? 'border-bottom:1px solid rgba(92,26,36,.08);' : ''}">Message</td><td style="font-size:13px;color:#5C1A24;padding:8px 0;${type === 'damaged' ? 'border-bottom:1px solid rgba(92,26,36,.08);' : ''}">${request.reason}</td></tr>` : ""}
+      ${type === "damaged" ? `<tr><td style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(92,26,36,.45);padding:8px 0;">Evidence</td><td style="font-size:13px;color:#5C1A24;padding:8px 0;">📷 Check WhatsApp — customer was asked to send a photo there</td></tr>` : ""}
     </table>
     <div style="margin-top:20px;">
       <a href="https://jonarabeauty.vercel.app/admin" style="display:inline-block;background:#5C1A24;color:#FAF6EF;padding:11px 24px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;border-radius:2px;">Review in Admin →</a>
