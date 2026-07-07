@@ -247,7 +247,7 @@ async function handleSubmit(req, res) {
     const request = {
       type,
       reason: String(reason || "").slice(0, 1000),
-      evidenceUrl: type === "damaged" ? evidenceUrl : null,
+      evidenceUrl: type === "damaged" ? (evidenceUrl || null) : null,
       email,
       requestedAt: new Date().toISOString(),
       status: "pending",
