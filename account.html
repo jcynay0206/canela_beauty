@@ -360,10 +360,21 @@
         }
       };
 
+      // La regla de Firestore exige "request.auth != null" para crear
+      // reseñas — sin el token de ID de Firebase Auth en el header, la
+      // API REST rechaza la escritura (403) y esto fallaba en silencio.
+      const idToken = await user.getIdToken();
       const projectId = 'canela-beauty-dc884';
       const res = await fetch(
         `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/reviews`,
-        { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(reviewData) }
+        {
+          method:'POST',
+          headers:{
+            'Content-Type':'application/json',
+            'Authorization': `Bearer ${idToken}`
+          },
+          body: JSON.stringify(reviewData)
+        }
       );
 
       if(res.ok){
@@ -375,11 +386,12 @@
         document.getElementById('reviewPreview').style.display='none';
         btn.textContent='Review Submitted ✓';
       } else {
-        throw new Error('Failed to submit');
+        const errData = await res.json().catch(()=>null);
+        throw new Error(errData?.error?.message || `HTTP ${res.status}`);
       }
     } catch(e){
       btn.disabled=false; btn.textContent='Submit Review';
-      alert('Error submitting review. Please try again.');
+      alert('Error submitting review: ' + e.message);
     }
   };
 
