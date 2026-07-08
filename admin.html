@@ -1273,20 +1273,7 @@ async function loadRevenue(){
 
 function renderRevenue(){
   const orders=ordersCache;
-  const totalRev=orders.reduce((s,o)=>s+parseFloat(o.total),0);
-  const avgTicket=orders.length?totalRev/orders.length:0;
-  const thisMonth=orders.filter(o=>new Date(o.createdAt).getMonth()===new Date().getMonth());
-  const monthRev=thisMonth.reduce((s,o)=>s+parseFloat(o.total),0);
 
-  document.getElementById('revenueStats').innerHTML=`
-    <div class="rev-card"><p class="rev-label">Total Revenue</p><p class="rev-value"><em>$</em>${totalRev.toFixed(2)}</p><p class="rev-sub">${orders.length} orders</p></div>
-    <div class="rev-card"><p class="rev-label">This Month</p><p class="rev-value"><em>$</em>${monthRev.toFixed(2)}</p><p class="rev-sub">${thisMonth.length} orders</p></div>
-    <div class="rev-card"><p class="rev-label">Avg Order Value</p><p class="rev-value"><em>$</em>${avgTicket.toFixed(2)}</p><p class="rev-sub">per transaction</p></div>`;
-
-  // ── Customer Service This Month ──────────────────────────────
-  // Refunds/reposiciones/negadas resueltas este mes — separado de las
-  // ventas normales, para ver de un vistazo cuánto costó el servicio al
-  // cliente sin tener que contar orden por orden.
   const now = new Date();
   const isThisMonth = (dateStr) => {
     if(!dateStr) return false;
@@ -1294,6 +1281,42 @@ function renderRevenue(){
     return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
   };
 
+  // Reembolsos — se restan del bruto para llegar al ingreso REAL. Cuenta
+  // tanto cancelaciones como productos dañados que se resolvieron con
+  // reembolso (ambos tipos pueden terminar en "refunded"). Se cuentan
+  // por cuándo se RESOLVIÓ el reembolso, no por cuándo se hizo la compra
+  // original (una compra de junio reembolsada en julio cuenta como
+  // reembolso de julio).
+  const refundedOrders    = orders.filter(o => o.request?.resolution==='refunded');
+  const refundedThisMonth = refundedOrders.filter(o => isThisMonth(o.request.resolvedAt));
+
+  const grossAll    = orders.reduce((s,o)=>s+parseFloat(o.total),0);
+  const refundsAll   = refundedOrders.reduce((s,o)=>s+parseFloat(o.total||0),0);
+  const netAll       = grossAll - refundsAll;
+
+  const thisMonthOrders = orders.filter(o=>isThisMonth(o.createdAt));
+  const grossMonth   = thisMonthOrders.reduce((s,o)=>s+parseFloat(o.total),0);
+  const refundsMonth = refundedThisMonth.reduce((s,o)=>s+parseFloat(o.total||0),0);
+  const netMonth     = grossMonth - refundsMonth;
+
+  // Promedio calculado solo sobre órdenes que sí se quedaron con la
+  // venta (excluye canceladas/reembolsadas, para no bajar el promedio
+  // artificialmente con ventas que ya no cuentan).
+  const keptOrders = orders.filter(o=>o.status!=='cancelled');
+  const avgTicket  = keptOrders.length ? keptOrders.reduce((s,o)=>s+parseFloat(o.total),0)/keptOrders.length : 0;
+
+  document.getElementById('revenueStats').innerHTML=`
+    <div class="rev-card"><p class="rev-label">Gross Revenue</p><p class="rev-value"><em>$</em>${grossAll.toFixed(2)}</p><p class="rev-sub">${orders.length} orders</p></div>
+    <div class="rev-card" style="${refundsAll?'border-color:rgba(192,48,48,.25)':''}"><p class="rev-label">Refunds</p><p class="rev-value" style="${refundsAll?'color:#C03030':''}">${refundsAll?'−':''}<em>$</em>${refundsAll.toFixed(2)}</p><p class="rev-sub">${refundedOrders.length} order${refundedOrders.length===1?'':'s'}</p></div>
+    <div class="rev-card" style="border-color:rgba(34,120,60,.3)"><p class="rev-label">Net Revenue</p><p class="rev-value" style="color:#22783C"><em>$</em>${netAll.toFixed(2)}</p><p class="rev-sub">after refunds</p></div>
+    <div class="rev-card"><p class="rev-label">This Month (Net)</p><p class="rev-value"><em>$</em>${netMonth.toFixed(2)}</p><p class="rev-sub">${thisMonthOrders.length} orders${refundedThisMonth.length?`, ${refundedThisMonth.length} refunded`:''}</p></div>
+    <div class="rev-card"><p class="rev-label">Avg Order Value</p><p class="rev-value"><em>$</em>${avgTicket.toFixed(2)}</p><p class="rev-sub">per kept transaction</p></div>`;
+
+  // ── Customer Service This Month ──────────────────────────────
+  // Detalle de refunds/reposiciones/negadas resueltas este mes — el
+  // desglose detrás del número neto de arriba, para ver de un vistazo
+  // cuánto costó el servicio al cliente sin tener que contar orden por
+  // orden.
   const resolvedThisMonth = orders.filter(o => o.request?.status==='resolved' && isThisMonth(o.request.resolvedAt));
   const refundedList   = resolvedThisMonth.filter(o => o.request.resolution==='refunded');
   const replacedList   = resolvedThisMonth.filter(o => o.request.resolution==='replaced');
@@ -1551,9 +1574,13 @@ function renderRequestBox(o){
       <span class="status-badge ${outcomeClass}">${typeLabel} — ${outcomeLabel}</span>
       ${req.adminNote ? `<p class="request-reason">Note: "${req.adminNote}"</p>` : ''}
       ${req.evidenceUrl ? `<a href="${req.evidenceUrl}" target="_blank" style="display:inline-block;margin-top:4px;font-size:10px;color:var(--muted)">📷 Photo</a>` : ''}
-      ${o.replacement?.trackingNumber ? `
+      ${req.resolution === 'replaced' ? `
         <div style="margin-top:6px;padding-top:6px;border-top:1px dashed rgba(92,26,36,.15)">
-          <p style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Replacement shipment</p>
+          <p style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Replacement shipment — same items as original order</p>
+          <p style="font-size:11px;color:var(--brown2)">${(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ')}</p>
+        </div>` : ''}
+      ${o.replacement?.trackingNumber ? `
+        <div style="margin-top:4px">
           <a class="track-link" href="${o.replacement.trackingUrl}" target="_blank" style="font-size:10px">${o.replacement.trackingNumber}</a>
           <span style="font-size:10px;color:var(--muted);margin-left:4px">${o.replacement.carrier||''} ${o.replacement.service||''}</span>
         </div>
@@ -1966,21 +1993,20 @@ function renderAdminReviews(){
 
 async function updateReview(docId, newStatus){
   try {
-    const res = await fetch(
-      `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/reviews/${docId}?updateMask.fieldPaths=status`,
-      {
-        method:'PATCH',
-        headers:{'Content-Type':'application/json'},
-        body: JSON.stringify({ fields:{ status:{ stringValue: newStatus } } })
-      }
-    );
-    if(res.ok){
-      const r = reviewsCache.find(x=>x.docId===docId);
-      if(r) r.status=newStatus;
-      renderAdminReviews();
-      showToast(`Review ${newStatus}`);
-    }
-  } catch(e){ showToast('Error updating review'); }
+    const res = await fetch('/api/reviews', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken() },
+      body: JSON.stringify({ docId, status: newStatus })
+    });
+    if(res.status===401){ handleSessionExpired(); return; }
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+
+    const r = reviewsCache.find(x=>x.docId===docId);
+    if(r) r.status=newStatus;
+    renderAdminReviews();
+    showToast(`Review ${newStatus}`);
+  } catch(e){ showToast('Error updating review: '+e.message); }
 }
 
 function filterAdminReviews(status){
