@@ -18,14 +18,29 @@ module.exports = async function handler(req, res) {
   const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
   try {
-    // 1. Listar sesiones pagadas — sin expandir shipping_details aquí
-    //    porque Stripe no lo permite en list(), solo en retrieve()
-    const sessions = await stripe.checkout.sessions.list({
-      limit: 50,
-      expand: ["data.line_items"],
-    });
+    // 1. Listar TODAS las sesiones pagadas — antes solo traía las 50 más
+    //    recientes (límite fijo de Stripe), lo que hacía invisibles las
+    //    órdenes más viejas en el admin. Ahora se recorre con paginación
+    //    (starting_after) hasta traerlas todas, sin expandir
+    //    shipping_details aquí porque Stripe no lo permite en list(),
+    //    solo en retrieve().
+    let allSessions = [];
+    let startingAfter;
+    let page = 0;
+    const MAX_PAGES = 10; // hasta 1000 órdenes — de sobra por ahora
 
-    const paid = sessions.data.filter(s => s.payment_status === "paid");
+    do {
+      const batch = await stripe.checkout.sessions.list({
+        limit: 100,
+        starting_after: startingAfter,
+        expand: ["data.line_items"],
+      });
+      allSessions = allSessions.concat(batch.data);
+      startingAfter = batch.has_more ? batch.data[batch.data.length - 1]?.id : undefined;
+      page++;
+    } while (startingAfter && page < MAX_PAGES);
+
+    const paid = allSessions.filter(s => s.payment_status === "paid");
 
     // 2. Para cada sesión, hacer retrieve() para obtener shipping_details
     const detailed = await Promise.all(
