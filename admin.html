@@ -98,6 +98,7 @@
     .sd-ok{background:var(--green);} .sd-low{background:#C96400;} .sd-out{background:var(--red);}
 
     .flag-new{background:var(--brown);color:#FAF6EF;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;padding:2px 7px;border-radius:2px;}
+    .flag-bundle{background:rgba(59,130,196,.12);color:#1A5C96;border:1px solid rgba(59,130,196,.25);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;padding:2px 7px;border-radius:2px;}
 
     /* INLINE STOCK CONTROL */
     .stock-ctrl{display:flex;align-items:center;gap:6px;flex-shrink:0;}
@@ -570,6 +571,23 @@
         </div>
         <p class="field-hint">Total stock = sum of all variant stock. Customers must select a shade before adding to cart.</p>
       </div>
+      <!-- Bundle / Combo -->
+      <div class="field">
+        <div class="toggle-row">
+          <span>This is a bundle/combo of other products</span>
+          <label class="toggle"><input type="checkbox" id="fIsBundle" onchange="toggleBundleMode()"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+      <div class="field" id="bundleField" style="display:none">
+        <label>Bundle Contents</label>
+        <div id="bundleItemsList"></div>
+        <div class="variant-add-row">
+          <select id="bundleProductPicker" class="variant-name-input" style="flex:1"></select>
+          <input type="number" id="bundleQtyInput" placeholder="Qty" min="1" value="1" class="variant-stock-input"/>
+          <button class="shade-add-btn" onclick="addBundleItem()">+ Add</button>
+        </div>
+        <p class="field-hint">The number you set in "Stock Units" above is how many bundles will be available. That quantity is deducted once from each component's own inventory below, so you can never accidentally oversell the individual products.</p>
+      </div>
       <!-- Toggles -->
       <div class="field">
         <label>Flags</label>
@@ -863,9 +881,11 @@ function renderProducts(){
       <div class="prod-main">
         <p class="prod-name">${p.name}</p>
         <p class="prod-meta">$${p.price.toFixed(2)} USD${p.oldPrice?` · was $${p.oldPrice.toFixed(2)}`:''}</p>
+        ${p.isBundle && p.bundleItems?.length ? `<p style="font-size:10px;color:var(--muted);margin-top:2px">🎁 ${p.bundleItems.map(bi=>`${bi.name} ×${bi.qty}`).join(' + ')}</p>` : ''}
         <div class="prod-flags">
           ${stockPill(p)}
           ${p.isNew?'<span class="flag-new">New</span>':''}
+          ${p.isBundle?'<span class="flag-bundle">🎁 Bundle</span>':''}
         </div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
@@ -888,6 +908,16 @@ function quickStock(id, delta){
   const products = getProducts();
   const p = products.find(x=>x.id===id);
   if(!p) return;
+
+  // Los bundles no se ajustan con el +/- rápido — ese cambio no
+  // reservaría/devolvería el inventario de sus componentes, lo que
+  // dejaría el conteo inconsistente. Hay que editarlos desde el
+  // formulario completo, donde sí se recalcula todo correctamente.
+  if(p.isBundle){
+    showToast('Bundles can\'t be adjusted here — edit the bundle to change its quantity');
+    return;
+  }
+
   p.stock = Math.max(0, (p.stock||0) + delta);
   if(p.stock===0) p.soldOut=true;
   else if(p.soldOut && delta>0) p.soldOut=false;
@@ -901,8 +931,15 @@ function quickStock(id, delta){
 function deleteProduct(id){
   const p = getProducts().find(x=>x.id===id);
   if(!p) return;
-  if(!confirm(`Delete "${p.name}"? This cannot be undone.`)) return;
-  saveProducts(getProducts().filter(x=>x.id!==id));
+  const confirmMsg = p.isBundle
+    ? `Delete "${p.name}"? This will return its reserved stock to the individual products.`
+    : `Delete "${p.name}"? This cannot be undone.`;
+  if(!confirm(confirmMsg)) return;
+
+  const products = getProducts();
+  if(p.isBundle) returnBundleStock(products, p);
+
+  saveProducts(products.filter(x=>x.id!==id));
   renderProducts();
   renderInventory();
   showToast(`${p.name} deleted`);
@@ -915,6 +952,7 @@ function openForm(id){
   editingId=id;
   currentShades=[];
   currentVariants=[];
+  currentBundleItems=[];
   currentImage=null;
   document.getElementById('formOverlay').classList.add('open');
   document.body.style.overflow='hidden';
@@ -934,6 +972,7 @@ function openForm(id){
     document.getElementById('fIsNew').checked=false;
     document.getElementById('fSoldOut').checked=false;
     document.getElementById('fHasVariants').checked=false;
+    document.getElementById('fIsBundle').checked=false;
     resetBadges([]);
   } else {
     const p=getProducts().find(x=>x.id===id);
@@ -950,14 +989,18 @@ function openForm(id){
     document.getElementById('fPackaging').value=p.packaging||'envelope';
     document.getElementById('fSoldOut').checked=!!p.soldOut;
     document.getElementById('fHasVariants').checked=!!p.hasVariants;
+    document.getElementById('fIsBundle').checked=!!p.isBundle;
     currentShades=[...(p.shades||[])];
     currentVariants=p.variants?JSON.parse(JSON.stringify(p.variants)):[];
+    currentBundleItems=p.bundleItems?JSON.parse(JSON.stringify(p.bundleItems)):[];
     currentImage=p.image||null;
     resetBadges(p.badges||[]);
   }
   renderShades();
   renderVariants();
+  renderBundleItems();
   toggleVariantMode();
+  toggleBundleMode();
   updateImgPreview();
 }
 
@@ -987,12 +1030,15 @@ async function saveProduct(){
   const weight = parseFloat(document.getElementById('fWeight').value)||0.3;
   const packaging = document.getElementById('fPackaging').value||'envelope';
   const forcedSoldOut = document.getElementById('fSoldOut').checked;
+  const isBundle = document.getElementById('fIsBundle').checked;
   const badges=[...document.querySelectorAll('#badgeChips .badge-chip.selected')].map(b=>b.textContent);
 
   if(!name){showToast('Name is required');return;}
   if(!price||price<=0){showToast('Valid price required');return;}
   if(hasVariants && !currentVariants.length){showToast('Add at least one shade variant');return;}
   if(!hasVariants && stock!==null&&stock<0){showToast('Stock cannot be negative');return;}
+  if(isBundle && !currentBundleItems.length){showToast('Add at least one product to the bundle');return;}
+  if(isBundle && (stock===null||stock<0)){showToast('Set how many bundles are available (Stock Units)');return;}
 
   // Si se seleccionó una foto nueva (base64), subirla a Firebase Storage
   // antes de guardar el producto, para no inflar el documento de Firestore.
@@ -1022,17 +1068,54 @@ async function saveProduct(){
   const shadesForDisplay = hasVariants ? currentVariants.map(v=>v.color) : currentShades;
   const products = getProducts();
 
+  // ── Bundle: devolver la reserva anterior (si se está editando un
+  //    bundle que ya existía) y aplicar la nueva, validando que alcance
+  //    el stock de cada componente antes de tocar nada. ────────────────
+  if(isBundle){
+    if(editingId!==null){
+      const oldProduct = products.find(x=>x.id===editingId);
+      returnBundleStock(products, oldProduct);
+    }
+
+    const shortages = [];
+    currentBundleItems.forEach(bi=>{
+      const comp = products.find(x=>x.id===bi.productId);
+      const needed = bi.qty * stock;
+      const available = comp?.stock ?? 0;
+      if(!comp || available < needed){
+        shortages.push(`${bi.name} (needs ${needed}, has ${available})`);
+      }
+    });
+    if(shortages.length){
+      showToast('⚠ Not enough stock for: ' + shortages.join(', '));
+      return; // nada se guardó todavía — getProducts() siempre relee de
+              // la fuente original, así que no queda ningún cambio a medias
+    }
+
+    currentBundleItems.forEach(bi=>{
+      const comp = products.find(x=>x.id===bi.productId);
+      comp.stock -= bi.qty * stock;
+      if(comp.stock<=0){ comp.stock=0; comp.soldOut=true; }
+    });
+  } else if(editingId!==null){
+    // Si el producto DEJÓ de ser un bundle (se destildó el toggle),
+    // devolver lo que tenía reservado antes de guardarlo como normal.
+    const oldProduct = products.find(x=>x.id===editingId);
+    if(oldProduct?.isBundle) returnBundleStock(products, oldProduct);
+  }
+
   if(editingId===null){
     products.push({
       id:Date.now(),name,price,oldPrice:oldP,stock,desc,isNew,soldOut,collection,weight,packaging,
       hasVariants,variants:hasVariants?currentVariants:[],
+      isBundle,bundleItems:isBundle?currentBundleItems:[],
       badges,shades:shadesForDisplay,image:currentImage,
       bg:shadeGradient(shadesForDisplay),capClass:'mgc1',tubeClass:'mg1'
     });
     showToast(`${name} added!`);
   } else {
     const idx=products.findIndex(x=>x.id===editingId);
-    if(idx>-1) products[idx]={...products[idx],name,price,oldPrice:oldP,stock,desc,isNew,soldOut,collection,weight,packaging,hasVariants,variants:hasVariants?currentVariants:[],badges,shades:shadesForDisplay,image:currentImage,bg:shadeGradient(shadesForDisplay)};
+    if(idx>-1) products[idx]={...products[idx],name,price,oldPrice:oldP,stock,desc,isNew,soldOut,collection,weight,packaging,hasVariants,variants:hasVariants?currentVariants:[],isBundle,bundleItems:isBundle?currentBundleItems:[],badges,shades:shadesForDisplay,image:currentImage,bg:shadeGradient(shadesForDisplay)};
     showToast(`${name} saved!`);
   }
 
@@ -1079,6 +1162,82 @@ function renderShades(){
 }
 function addShade(){ const c=document.getElementById('shadeColorPicker').value; if(!currentShades.includes(c)) currentShades.push(c); renderShades(); }
 function removeShade(i){ currentShades.splice(i,1); renderShades(); }
+
+// ── BUNDLE / COMBO ───────────────────────────────────────────
+// Un bundle es un producto normal con isBundle:true + bundleItems (qué
+// productos lo componen y cuántas unidades de cada uno). El inventario
+// de los componentes se resta UNA VEZ al guardar (o se devuelve al
+// editar/borrar) — desde ahí el bundle tiene su propio stock
+// independiente y se vende/descuenta exactamente igual que cualquier
+// otro producto (stripe-webhook.js, order-request.js, create-label.js
+// no necesitan saber nada de esto).
+let currentBundleItems = [];
+
+function toggleBundleMode(){
+  const isBundle = document.getElementById('fIsBundle').checked;
+  document.getElementById('bundleField').style.display = isBundle ? 'block' : 'none';
+  if(isBundle) renderBundlePicker();
+}
+
+function renderBundlePicker(){
+  const picker = document.getElementById('bundleProductPicker');
+  const options = getProducts()
+    .filter(p => !p.isBundle && p.id !== editingId) // no anidar bundles ni auto-referenciarse
+    .map(p => `<option value="${p.id}">${p.name} (${p.stock ?? '∞'} in stock)</option>`)
+    .join('');
+  picker.innerHTML = options || '<option value="">No products available</option>';
+}
+
+function renderBundleItems(){
+  const list = document.getElementById('bundleItemsList');
+  if(!currentBundleItems.length){
+    list.innerHTML = '<p class="field-hint" style="margin:0 0 8px">No products added yet.</p>';
+    return;
+  }
+  list.innerHTML = currentBundleItems.map((bi,i)=>`
+    <div class="variant-row">
+      <span class="variant-name">${bi.name}</span>
+      <span class="variant-stock-badge">× ${bi.qty}</span>
+      <button class="variant-rm" onclick="removeBundleItem(${i})">✕</button>
+    </div>`).join('');
+}
+
+function addBundleItem(){
+  const picker = document.getElementById('bundleProductPicker');
+  const qtyInput = document.getElementById('bundleQtyInput');
+  const productId = parseInt(picker.value);
+  const qty = parseInt(qtyInput.value) || 1;
+  if(!productId){ showToast('Select a product first'); return; }
+
+  const product = getProducts().find(p=>p.id===productId);
+  if(!product) return;
+
+  const existing = currentBundleItems.find(bi=>bi.productId===productId);
+  if(existing){ existing.qty += qty; }
+  else { currentBundleItems.push({ productId, name: product.name, qty }); }
+
+  qtyInput.value = 1;
+  renderBundleItems();
+}
+
+function removeBundleItem(i){
+  currentBundleItems.splice(i,1);
+  renderBundleItems();
+}
+
+// Devuelve al inventario de cada componente lo que un bundle tenía
+// reservado con su composición/cantidad ANTERIOR — se usa antes de
+// aplicar una nueva reserva al editar, y al borrar un bundle.
+function returnBundleStock(products, bundleProduct){
+  if(!bundleProduct?.isBundle || !bundleProduct.bundleItems?.length) return;
+  bundleProduct.bundleItems.forEach(bi=>{
+    const comp = products.find(x=>x.id===bi.productId);
+    if(comp && comp.stock !== null && comp.stock !== undefined){
+      comp.stock += bi.qty * (bundleProduct.stock||0);
+      if(comp.stock > 0) comp.soldOut = false;
+    }
+  });
+}
 
 // ── VARIANTS ─────────────────────────────────────────────────
 let currentVariants = [];
@@ -1197,15 +1356,18 @@ function renderInventory(){
     }
     return `
     <tr>
-      <td><strong style="color:var(--brown)">${p.name}</strong><br><span style="font-size:11px;color:var(--muted)">$${p.price.toFixed(2)}</span></td>
+      <td><strong style="color:var(--brown)">${p.name}</strong>${p.isBundle?' <span class="flag-bundle">🎁</span>':''}<br><span style="font-size:11px;color:var(--muted)">$${p.price.toFixed(2)}${p.isBundle&&p.bundleItems?.length?` · ${p.bundleItems.map(bi=>`${bi.name} ×${bi.qty}`).join(' + ')}`:''}</span></td>
       <td><strong style="font-size:18px;font-family:'Cormorant Garamond',serif;color:var(--brown)">${p.stock||0}</strong> units</td>
       <td>${stockPill(p)}</td>
       <td>
-        <div class="adjust-row">
-          <input type="number" class="adj-input" id="adj-${p.id}" placeholder="0" min="1" value="1"/>
-          <button class="adj-btn adj-add" onclick="adjustStock(${p.id},1)">+ Add</button>
-          <button class="adj-btn adj-sub" onclick="adjustStock(${p.id},-1)">− Remove</button>
-        </div>
+        ${p.isBundle
+          ? `<span style="font-size:11px;color:var(--muted)">Edit bundle to change quantity →</span>`
+          : `<div class="adjust-row">
+              <input type="number" class="adj-input" id="adj-${p.id}" placeholder="0" min="1" value="1"/>
+              <button class="adj-btn adj-add" onclick="adjustStock(${p.id},1)">+ Add</button>
+              <button class="adj-btn adj-sub" onclick="adjustStock(${p.id},-1)">− Remove</button>
+            </div>`
+        }
       </td>
       <td>
         <label class="toggle">
@@ -1232,9 +1394,17 @@ function adjustVariantStock(productId, variantIdx, delta){
 }
 
 function adjustStock(id, direction){
-  const amt = parseInt(document.getElementById(`adj-${id}`)?.value)||1;
   const products=getProducts();
   const p=products.find(x=>x.id===id); if(!p) return;
+
+  // Mismo motivo que en quickStock() — ajustar un bundle acá no
+  // reservaría/devolvería el inventario de sus componentes.
+  if(p.isBundle){
+    showToast('Bundles can\'t be adjusted here — edit the bundle to change its quantity');
+    return;
+  }
+
+  const amt = parseInt(document.getElementById(`adj-${id}`)?.value)||1;
   const delta = direction * amt;
   p.stock=Math.max(0,(p.stock||0)+delta);
   if(p.stock===0) p.soldOut=true;
