@@ -1,0 +1,2211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Admin — Jonara Beauty</title>
+  <meta name="robots" content="noindex"/>
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+
+  <!-- PWA — permite "Agregar a pantalla de inicio" y abrir el admin
+       como app, sin la barra del navegador -->
+  <link rel="manifest" href="/admin-manifest.json"/>
+  <meta name="theme-color" content="#3D1F00"/>
+  <link rel="apple-touch-icon" href="/admin-icon-apple-touch.png"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Jonara Admin"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root{
+      --bg:#FAF6EF; --bg2:#F4EDE0; --bg3:#EDE3D4;
+      --brown:#3D1F00; --brown2:#5C3200;
+      --gold:#C9941A; --gold-lite:#DFB045;
+      --border:rgba(139,90,30,0.16); --border2:rgba(139,90,30,0.3);
+      --muted:rgba(61,31,0,0.45); --red:#C03030; --green:#22783C;
+    }
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--brown2);min-height:100vh;}
+
+    /* LOGIN */
+    #loginScreen{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:999;}
+    #changePwScreen{position:fixed;inset:0;background:rgba(61,31,0,0.45);display:flex;align-items:center;justify-content:center;z-index:1000;}
+    .login-box{background:var(--bg2);border:1px solid var(--border2);border-radius:4px;padding:48px 40px;width:100%;max-width:360px;text-align:center;}
+    .login-logo{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:300;letter-spacing:5px;text-transform:uppercase;color:var(--brown);margin-bottom:4px;}
+    .login-logo em{font-style:italic;color:var(--gold);}
+    .login-sub{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:28px;}
+    .login-box input{width:100%;padding:12px 16px;border:1px solid var(--border2);border-radius:2px;background:#fff;font-family:'DM Sans',sans-serif;font-size:14px;color:var(--brown);outline:none;margin-bottom:12px;transition:border-color .2s;}
+    .login-box input:focus{border-color:var(--gold);}
+    .login-box button{width:100%;padding:13px;background:var(--brown);color:#FAF6EF;border:none;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;font-weight:500;cursor:pointer;}
+    .login-err{font-size:11px;color:var(--red);margin-top:8px;min-height:16px;}
+
+    /* SHELL */
+    #adminShell{display:none;}
+    .top-bar{background:var(--brown);color:#FAF6EF;padding:13px 32px;display:flex;align-items:center;justify-content:space-between;gap:16px;}
+    .top-bar-logo{font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:300;letter-spacing:4px;text-transform:uppercase;white-space:nowrap;}
+    .top-bar-logo em{font-style:italic;color:var(--gold);}
+    .top-bar-nav{display:flex;gap:4px;}
+    .tab-btn{background:none;border:none;color:rgba(250,246,239,.5);padding:7px 14px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+    .tab-btn:hover{color:#FAF6EF;}
+    .tab-btn.active{background:rgba(255,255,255,.12);color:#FAF6EF;}
+    .top-bar-right{display:flex;gap:12px;align-items:center;}
+    .top-bar-right a{color:rgba(250,246,239,.5);text-decoration:none;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;transition:color .2s;}
+    .top-bar-right a:hover{color:var(--gold);}
+    .logout-btn{background:none;border:1px solid rgba(250,246,239,.2);color:rgba(250,246,239,.5);padding:6px 14px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+    .logout-btn:hover{border-color:var(--gold);color:var(--gold);}
+
+    /* TABS */
+    .tab-panel{display:none;padding:28px 32px;}
+    .tab-panel.active{display:block;}
+
+    /* COMMON */
+    .panel-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+    .panel-title{font-family:'Cormorant Garamond',serif;font-size:26px;font-weight:300;color:var(--brown);}
+    .panel-title em{font-style:italic;color:var(--gold);}
+    .btn-primary{background:var(--gold);color:#FAF6EF;border:none;padding:10px 20px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;font-weight:500;cursor:pointer;transition:background .2s;}
+    .btn-primary:hover{background:var(--gold-lite);}
+    .btn-secondary{background:none;border:1px solid var(--border2);color:var(--muted);padding:9px 18px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+    .btn-secondary:hover{border-color:var(--gold);color:var(--gold);}
+    .btn-danger{background:none;border:1px solid rgba(192,48,48,.25);color:rgba(192,48,48,.6);padding:6px 12px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+    .btn-danger:hover{border-color:var(--red);color:var(--red);}
+
+    /* STATS ROW */
+    .stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:28px;}
+    .stat-card{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:18px 20px;}
+    .stat-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;}
+    .stat-value{font-family:'Cormorant Garamond',serif;font-size:30px;font-weight:300;color:var(--brown);}
+    .stat-value em{font-size:16px;font-style:normal;color:var(--gold);}
+    .stat-sub{font-size:10px;color:var(--muted);margin-top:4px;}
+
+    /* LOW STOCK BANNER */
+    .low-stock-banner{display:none;background:rgba(201,100,0,.07);border:1px solid rgba(201,100,0,.22);border-radius:3px;padding:12px 16px;margin-bottom:20px;}
+    .low-stock-banner.visible{display:flex;align-items:flex-start;gap:12px;}
+    .lsb-icon{font-size:16px;flex-shrink:0;margin-top:1px;}
+    .lsb-body{flex:1;}
+    .lsb-title{font-size:11px;font-weight:500;color:#C96400;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;}
+    .lsb-items{display:flex;flex-wrap:wrap;gap:6px;}
+    .lsb-chip{font-size:11px;color:var(--brown2);background:rgba(201,100,0,.08);border:1px solid rgba(201,100,0,.18);border-radius:2px;padding:3px 8px;}
+
+    /* PRODUCT LIST */
+    .product-list{display:flex;flex-direction:column;gap:8px;}
+    .product-row{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:14px 16px;display:flex;align-items:center;gap:14px;transition:border-color .2s;}
+    .product-row:hover{border-color:var(--border2);}
+    .prod-thumb{width:48px;height:62px;border-radius:2px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;flex-shrink:0;overflow:hidden;background:var(--bg3);}
+    .prod-thumb img{width:100%;height:100%;object-fit:cover;}
+    .prod-thumb-icon{font-size:18px;opacity:.3;}
+    .prod-main{flex:1;min-width:0;}
+    .prod-name{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--brown);margin-bottom:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+    .prod-meta{font-size:11px;color:var(--muted);}
+    .prod-flags{display:flex;gap:6px;margin-top:5px;flex-wrap:wrap;align-items:center;}
+
+    /* STOCK PILL */
+    .stock-pill{display:inline-flex;align-items:center;gap:4px;font-size:9px;font-weight:500;padding:3px 8px;border-radius:20px;letter-spacing:.5px;white-space:nowrap;}
+    .s-ok{background:rgba(34,120,60,.1);color:var(--green);border:1px solid rgba(34,120,60,.2);}
+    .s-low{background:rgba(201,100,0,.1);color:#C96400;border:1px solid rgba(201,100,0,.22);}
+    .s-out{background:rgba(192,48,48,.1);color:var(--red);border:1px solid rgba(192,48,48,.2);}
+    .s-dot{width:5px;height:5px;border-radius:50%;}
+    .sd-ok{background:var(--green);} .sd-low{background:#C96400;} .sd-out{background:var(--red);}
+
+    .flag-new{background:var(--brown);color:#FAF6EF;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;padding:2px 7px;border-radius:2px;}
+    .flag-bundle{background:rgba(59,130,196,.12);color:#1A5C96;border:1px solid rgba(59,130,196,.25);font-size:8px;letter-spacing:1.5px;text-transform:uppercase;padding:2px 7px;border-radius:2px;}
+
+    /* INLINE STOCK CONTROL */
+    .stock-ctrl{display:flex;align-items:center;gap:6px;flex-shrink:0;}
+    .sc-btn{width:26px;height:26px;border-radius:2px;border:1px solid var(--border2);background:none;color:var(--brown2);cursor:pointer;font-size:15px;display:flex;align-items:center;justify-content:center;transition:all .2s;font-family:'DM Sans',sans-serif;}
+    .sc-btn:hover{border-color:var(--gold);color:var(--gold);}
+    .sc-val{font-size:14px;color:var(--brown);min-width:28px;text-align:center;font-weight:500;}
+    .sc-label{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);text-align:center;margin-top:2px;}
+
+    /* SOLD OUT TOGGLE */
+    .toggle{position:relative;width:36px;height:20px;cursor:pointer;flex-shrink:0;}
+    .toggle input{opacity:0;width:0;height:0;}
+    .toggle-slider{position:absolute;inset:0;background:rgba(61,31,0,.15);border-radius:10px;transition:.3s;}
+    .toggle-slider::before{content:'';position:absolute;width:14px;height:14px;border-radius:50%;background:#fff;left:3px;top:3px;transition:.3s;box-shadow:0 1px 3px rgba(0,0,0,.2);}
+    .toggle input:checked + .toggle-slider{background:var(--red);}
+    .toggle input:checked + .toggle-slider::before{transform:translateX(16px);}
+
+    /* PROD ACTIONS */
+    .prod-actions{display:flex;gap:8px;align-items:center;flex-shrink:0;}
+    .btn-edit{background:none;border:1px solid var(--border2);color:var(--muted);padding:6px 12px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+    .btn-edit:hover{border-color:var(--gold);color:var(--gold);}
+
+    /* FORM MODAL */
+    .modal-overlay{position:fixed;inset:0;background:rgba(61,31,0,.4);z-index:800;opacity:0;pointer-events:none;transition:opacity .28s;display:flex;align-items:center;justify-content:center;padding:20px;}
+    .modal-overlay.open{opacity:1;pointer-events:all;}
+    .form-modal{background:var(--bg);border:1px solid var(--border2);border-radius:4px;width:100%;max-width:560px;max-height:90vh;overflow-y:auto;animation:modalIn .25s ease;}
+    .form-modal-header{display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid var(--border);}
+    .form-modal-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:300;color:var(--brown);}
+    .form-modal-title em{font-style:italic;color:var(--gold);}
+    .modal-close-btn{background:none;border:none;cursor:pointer;color:var(--muted);font-size:20px;line-height:1;transition:color .2s;padding:4px;}
+    .modal-close-btn:hover{color:var(--brown);}
+    .form-body{padding:24px;}
+    .field{margin-bottom:16px;}
+    .field label{display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:7px;}
+    .field input,.field textarea,.field select{width:100%;padding:11px 14px;border:1px solid var(--border2);border-radius:2px;background:#fff;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--brown);outline:none;transition:border-color .2s;}
+    .field input:focus,.field textarea:focus{border-color:var(--gold);}
+    .field textarea{resize:vertical;min-height:80px;line-height:1.6;}
+    .field-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+    .field-row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .field-hint{font-size:10px;color:var(--muted);margin-top:5px;}
+    .toggle-row{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border:1px solid var(--border2);border-radius:2px;background:#fff;margin-bottom:10px;}
+    .toggle-row span{font-size:13px;color:var(--brown2);}
+
+    /* IMG UPLOAD */
+    .img-upload{border:1.5px dashed var(--border2);border-radius:3px;padding:20px;text-align:center;cursor:pointer;position:relative;overflow:hidden;transition:border-color .2s;}
+    .img-upload:hover{border-color:var(--gold);}
+    .img-upload input{position:absolute;inset:0;opacity:0;cursor:pointer;}
+    .img-upload p{font-size:11px;color:var(--muted);}
+    .img-upload span{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);display:block;margin-top:4px;}
+    .img-preview{width:100%;max-height:140px;object-fit:cover;border-radius:2px;display:none;margin-bottom:8px;}
+
+    /* BADGES */
+    .badge-chips{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px;}
+    .badge-chip{padding:4px 11px;border-radius:2px;border:1px solid var(--border2);font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;color:var(--muted);}
+    .badge-chip.selected{background:var(--brown);color:#FAF6EF;border-color:var(--brown);}
+    .badge-custom-row{display:flex;gap:8px;}
+    .badge-custom-row input{flex:1;padding:8px 12px;border:1px solid var(--border2);border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--brown);outline:none;background:#fff;}
+    .badge-custom-row input:focus{border-color:var(--gold);}
+    .badge-custom-row button{padding:8px 12px;background:none;border:1px solid var(--border2);border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;color:var(--muted);cursor:pointer;transition:all .2s;}
+    .badge-custom-row button:hover{border-color:var(--gold);color:var(--gold);}
+
+    /* SHADES */
+    .shades-area{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;}
+    .shade-chip{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;position:relative;transition:transform .2s;}
+    .shade-chip:hover{transform:scale(1.1);}
+    .shade-chip .rm-shade{position:absolute;top:-4px;right:-4px;width:13px;height:13px;border-radius:50%;background:var(--red);color:#fff;font-size:7px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s;}
+    .shade-chip:hover .rm-shade{opacity:1;}
+    .shade-add-row{display:flex;gap:8px;align-items:center;}
+    .shade-color-input{width:40px;height:34px;border:1px solid var(--border2);border-radius:2px;padding:2px;cursor:pointer;background:#fff;}
+    .shade-add-btn{padding:7px 14px;background:none;border:1px solid var(--border2);border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:all .2s;}
+    .shade-add-btn:hover{border-color:var(--gold);color:var(--gold);}
+
+    /* VARIANT EDITOR */
+    .variant-row{display:flex;align-items:center;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:2px;padding:10px 12px;margin-bottom:8px;}
+    .variant-swatch{width:28px;height:28px;border-radius:50%;flex-shrink:0;border:1px solid var(--border2);}
+    .variant-name{flex:1;font-size:13px;color:var(--brown);}
+    .variant-stock-badge{font-size:11px;color:var(--muted);background:var(--bg3);padding:4px 10px;border-radius:2px;min-width:70px;text-align:center;}
+    .variant-stock-badge.low{color:#C96400;}
+    .variant-stock-badge.out{color:var(--red);}
+    .variant-rm{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:4px 6px;transition:color .2s;}
+    .variant-rm:hover{color:var(--red);}
+    .variant-add-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+    .variant-name-input{flex:1;min-width:140px;padding:8px 12px;border:1px solid var(--border2);border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--brown);outline:none;background:#fff;}
+    .variant-name-input:focus{border-color:var(--gold);}
+    .variant-stock-input{width:70px;padding:8px 10px;border:1px solid var(--border2);border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--brown);outline:none;background:#fff;text-align:center;}
+    .variant-stock-input:focus{border-color:var(--gold);}
+
+    .form-actions{display:flex;gap:10px;margin-top:20px;padding-top:18px;border-top:1px solid var(--border);}
+    .btn-save{flex:1;padding:13px;background:var(--brown);color:#FAF6EF;border:none;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:3px;text-transform:uppercase;font-weight:500;cursor:pointer;transition:background .2s;}
+    .btn-save:hover{background:var(--brown2);}
+
+    /* INVENTORY TAB */
+    .inv-table{width:100%;border-collapse:collapse;}
+    .inv-table th{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);font-weight:500;}
+    .inv-table td{padding:14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--brown2);vertical-align:middle;}
+    .inv-table tr:hover td{background:rgba(201,148,26,.03);}
+    .adjust-row{display:flex;align-items:center;gap:8px;}
+    .adj-input{width:64px;padding:7px 10px;border:1px solid var(--border2);border-radius:2px;font-family:'DM Sans',sans-serif;font-size:13px;color:var(--brown);outline:none;background:#fff;text-align:center;}
+    .adj-input:focus{border-color:var(--gold);}
+    .adj-btn{padding:7px 12px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border:none;font-weight:500;}
+    .adj-add{background:rgba(34,120,60,.1);color:var(--green);}
+    .adj-add:hover{background:rgba(34,120,60,.18);}
+    .adj-sub{background:rgba(192,48,48,.08);color:var(--red);}
+    .adj-sub:hover{background:rgba(192,48,48,.15);}
+
+    /* REVENUE TAB */
+    .revenue-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px;}
+    .rev-card{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:20px;}
+    .rev-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
+    .rev-value{font-family:'Cormorant Garamond',serif;font-size:32px;font-weight:300;color:var(--brown);}
+    .rev-value em{font-size:16px;font-style:normal;color:var(--gold);}
+    .rev-sub{font-size:11px;color:var(--muted);margin-top:4px;}
+    .rev-table{width:100%;border-collapse:collapse;margin-bottom:20px;}
+    .rev-table th{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);font-weight:500;}
+    .rev-table td{padding:12px 14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--brown2);}
+    .export-btn{background:none;border:1px solid var(--border2);color:var(--muted);padding:9px 18px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:8px;}
+    .export-btn:hover{border-color:var(--gold);color:var(--gold);}
+
+    /* ORDERS TAB */
+    .order-section{margin-bottom:32px;}
+    .order-section:last-child{margin-bottom:0;}
+    .order-section-title{font-size:13px;font-weight:600;color:var(--brown);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+    .order-section-count{font-size:10px;font-weight:500;color:var(--muted);background:var(--bg2);border:1px solid var(--border);border-radius:20px;padding:2px 9px;}
+    .orders-table{width:100%;border-collapse:collapse;}
+    .orders-table th{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);font-weight:500;}
+    .orders-table td{padding:14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--brown2);vertical-align:top;}
+    .orders-table tr:hover td{background:rgba(201,148,26,.03);}
+    .order-name{font-weight:500;color:var(--brown);margin-bottom:2px;}
+    .order-email{font-size:11px;color:var(--muted);}
+    .status-badge{display:inline-block;font-size:8px;letter-spacing:1.5px;text-transform:uppercase;padding:3px 8px;border-radius:2px;font-weight:500;}
+    .st-pending{background:rgba(201,148,26,.12);color:#8A6010;border:1px solid rgba(201,148,26,.25);}
+    .st-labeled{background:rgba(59,130,196,.1);color:#1A5C96;border:1px solid rgba(59,130,196,.2);}
+    .st-request{background:rgba(192,48,48,.1);color:#C03030;border:1px solid rgba(192,48,48,.25);}
+    .st-resolved{background:rgba(34,120,60,.08);color:#22783C;border:1px solid rgba(34,120,60,.2);}
+    .st-denied{background:rgba(120,120,120,.1);color:#5A5A5A;border:1px solid rgba(120,120,120,.25);}
+    .request-box{margin-top:8px;padding:8px 10px;background:rgba(192,48,48,.05);border:1px solid rgba(192,48,48,.15);border-radius:2px;}
+    .request-reason{font-size:10px;color:var(--brown2);margin-top:4px;line-height:1.5;}
+    .resolve-btn{background:none;border:1px solid rgba(34,120,60,.3);color:#22783C;font-size:8px;letter-spacing:1px;text-transform:uppercase;padding:4px 8px;border-radius:2px;cursor:pointer;margin-top:6px;transition:all .2s;}
+    .resolve-btn:hover{background:rgba(34,120,60,.08);}
+    .deny-btn{border-color:rgba(192,48,48,.3)!important;color:#C03030!important;}
+    .deny-btn:hover{background:rgba(192,48,48,.08)!important;}
+    .replace-btn{border-color:rgba(59,130,196,.35)!important;color:#1A5C96!important;}
+    .replace-btn:hover{background:rgba(59,130,196,.08)!important;}
+    .st-delivered{background:rgba(34,120,60,.1);color:var(--green);border:1px solid rgba(34,120,60,.2);}
+    .label-btn{background:var(--brown);color:#FAF6EF;border:none;padding:7px 12px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:background .2s;white-space:nowrap;}
+    .label-btn:hover{background:var(--brown2);}
+    .print-btn{background:none;border:1px solid var(--border2);color:var(--muted);padding:7px 12px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;}
+    .print-btn:hover{border-color:var(--gold);color:var(--gold);}
+    .track-link{font-size:10px;color:var(--gold);text-decoration:none;display:block;margin-top:4px;}
+
+    /* EMPTY / LOADING */
+    .empty-state{text-align:center;padding:48px 24px;color:var(--muted);}
+    .empty-state p{font-size:13px;margin-top:10px;}
+    .loading-state{text-align:center;padding:32px;color:var(--muted);font-size:12px;letter-spacing:1px;}
+
+    /* CUSTOMER TABLE */
+    .customer-table{width:100%;border-collapse:collapse;}
+    .customer-table th{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:10px 14px;text-align:left;border-bottom:1px solid var(--border);font-weight:500;}
+    .customer-table td{padding:14px;border-bottom:1px solid var(--border);font-size:13px;color:var(--brown2);vertical-align:top;}
+    .customer-table tr:hover td{background:rgba(201,148,26,.03);}
+    .c-name{font-weight:500;color:var(--brown);margin-bottom:2px;}
+    .c-email{font-size:11px;color:var(--muted);}
+    .profile-tags{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px;}
+    .profile-tag{font-size:8px;letter-spacing:1px;text-transform:uppercase;padding:2px 7px;border-radius:2px;background:rgba(184,148,60,.1);color:var(--gold);border:1px solid rgba(184,148,60,.2);}
+    .profile-tag.skin{background:rgba(92,26,36,.06);color:var(--brown);border-color:var(--border2);}
+    .profile-tag.hair{background:rgba(34,120,60,.08);color:#22783C;border-color:rgba(34,120,60,.2);}
+    .no-profile{font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);opacity:.6;}
+    .filter-chip{padding:6px 14px;border-radius:2px;border:1px solid var(--border);background:none;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:9px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;}
+    .filter-chip.active{background:var(--brown);color:#FAF6EF;border-color:var(--brown);}
+    .filter-chip:hover{border-color:var(--border2);color:var(--brown2);}
+
+    /* REVIEW CARDS */
+    .review-admin-card{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:20px;margin-bottom:12px;display:grid;grid-template-columns:1fr auto;gap:16px;align-items:start;}
+    .review-admin-card.pending{border-left:3px solid var(--gold);}
+    .review-admin-card.approved{border-left:3px solid var(--green);}
+    .review-admin-card.rejected{border-left:3px solid var(--red);opacity:.7;}
+    .ra-stars{display:flex;gap:2px;margin-bottom:8px;font-size:14px;}
+    .ra-product{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:6px;}
+    .ra-comment{font-size:13px;color:var(--brown2);line-height:1.7;margin-bottom:10px;}
+    .ra-meta{font-size:11px;color:var(--muted);}
+    .ra-photo{width:80px;height:80px;object-fit:cover;border-radius:2px;border:1px solid var(--border);margin-top:8px;}
+    .ra-actions{display:flex;flex-direction:column;gap:8px;flex-shrink:0;}
+    .btn-approve{background:rgba(34,120,60,.1);color:var(--green);border:1px solid rgba(34,120,60,.25);padding:8px 16px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;}
+    .btn-approve:hover{background:rgba(34,120,60,.2);}
+    .btn-reject{background:rgba(192,48,48,.08);color:var(--red);border:1px solid rgba(192,48,48,.2);padding:8px 16px;border-radius:2px;font-family:'DM Sans',sans-serif;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;cursor:pointer;transition:all .2s;white-space:nowrap;}
+    .btn-reject:hover{background:rgba(192,48,48,.15);}
+
+    /* TOAST */
+    .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(70px);background:var(--brown);color:#FAF6EF;padding:11px 26px;border-radius:2px;font-size:10px;letter-spacing:2.5px;text-transform:uppercase;font-weight:500;z-index:9999;opacity:0;transition:all .32s;white-space:nowrap;}
+    .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+
+    @keyframes modalIn{from{opacity:0;transform:scale(.96)}to{opacity:1;transform:scale(1)}}
+
+    @media(max-width:768px){
+      .top-bar{padding:12px 16px;flex-wrap:wrap;gap:8px;}
+      .top-bar-right{display:none;}
+      .stats-row{grid-template-columns:repeat(2,1fr);}
+      .revenue-grid{grid-template-columns:1fr 1fr;}
+      .tab-panel{padding:20px 16px;}
+      .field-row{grid-template-columns:1fr 1fr;}
+      .form-modal{max-width:100%;margin:0;border-radius:0;max-height:100vh;}
+    }
+  </style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- LOGIN -->
+<div id="loginScreen">
+  <div class="login-box">
+    <p class="login-logo">Jonara <em>Beauty</em></p>
+    <p class="login-sub">Admin Panel</p>
+    <input type="password" id="pwInput" placeholder="Password" onkeydown="if(event.key==='Enter')doLogin()"/>
+    <button onclick="doLogin()">Enter</button>
+    <p class="login-err" id="loginErr"></p>
+  </div>
+</div>
+
+<!-- CHANGE PASSWORD (obligatorio en el primer ingreso, o voluntario desde el menú) -->
+<div id="changePwScreen" style="display:none;">
+  <div class="login-box">
+    <p class="login-logo">Jonara <em>Beauty</em></p>
+    <p class="login-sub" id="changePwTitle">Cambia tu contraseña</p>
+    <p style="font-size:12px;color:var(--muted);margin:-12px 0 20px;line-height:1.6;" id="changePwHint">
+      Por seguridad, debes establecer una nueva contraseña antes de continuar.
+    </p>
+    <input type="password" id="currentPwInput" placeholder="Contraseña actual" style="display:none;"/>
+    <input type="password" id="newPwInput" placeholder="Nueva contraseña (mín. 8 caracteres)"/>
+    <input type="password" id="confirmPwInput" placeholder="Confirmar nueva contraseña" onkeydown="if(event.key==='Enter')submitChangePassword()"/>
+    <button onclick="submitChangePassword()">Guardar nueva contraseña</button>
+    <button id="cancelChangePwBtn" onclick="closeChangePassword()" style="display:none;background:none;border:1px solid var(--border2);color:var(--muted);margin-top:8px;">Cancelar</button>
+    <p class="login-err" id="changePwErr"></p>
+  </div>
+</div>
+
+<!-- ADMIN SHELL -->
+<div id="adminShell">
+  <div class="top-bar">
+    <span class="top-bar-logo">Jonara <em>Beauty</em></span>
+    <div class="top-bar-nav">
+      <button class="tab-btn active" onclick="switchTab('products')">Products</button>
+      <button class="tab-btn" onclick="switchTab('inventory')">Inventory</button>
+      <button class="tab-btn" onclick="switchTab('revenue')">Revenue</button>
+      <button class="tab-btn" onclick="switchTab('orders')">Orders</button>
+      <button class="tab-btn" onclick="switchTab('customers')">Customers</button>
+      <button class="tab-btn" onclick="switchTab('reviews')">Reviews</button>
+    </div>
+    <div class="top-bar-right">
+      <a href="/" target="_blank">← Store</a>
+      <button class="logout-btn" onclick="openChangePassword(false)">Change Password</button>
+      <button class="logout-btn" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- PRODUCTS TAB -->
+  <div class="tab-panel active" id="tab-products">
+    <div class="panel-header">
+      <h1 class="panel-title">Products <em>Management</em></h1>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-secondary" onclick="exportProductsCSV()">↓ Export CSV</button>
+        <button class="btn-primary" onclick="openForm(null)">+ Add Product</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-row" id="prodStats"></div>
+
+    <!-- Low stock banner -->
+    <div class="low-stock-banner" id="lowStockBanner">
+      <span class="lsb-icon">⚠</span>
+      <div class="lsb-body">
+        <div class="lsb-title">Low Stock Alert</div>
+        <div class="lsb-items" id="lowStockItems"></div>
+      </div>
+    </div>
+
+    <div class="product-list" id="productList"></div>
+  </div>
+
+  <!-- INVENTORY TAB -->
+  <div class="tab-panel" id="tab-inventory">
+    <div class="panel-header">
+      <h1 class="panel-title">Inventory <em>Control</em></h1>
+      <div style="display:flex;gap:10px;">
+        <button class="btn-secondary" onclick="exportInventoryCSV()">↓ Export CSV</button>
+        <button class="btn-secondary" onclick="switchTab('products')">← Products</button>
+      </div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:24px;">Adjust stock levels manually. Use + to add units received, − to remove damaged or lost units.</p>
+    <div style="overflow-x:auto;">
+      <table class="inv-table">
+        <thead><tr>
+          <th>Product</th><th>Current Stock</th><th>Status</th><th>Adjust Stock</th><th>Sold Out Override</th>
+        </tr></thead>
+        <tbody id="invTableBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- REVENUE TAB -->
+  <div class="tab-panel" id="tab-revenue">
+    <div class="panel-header">
+      <h1 class="panel-title">Revenue <em>Summary</em></h1>
+      <button class="export-btn" onclick="exportCSV()">↓ Export CSV</button>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:24px;">Data pulled from Stripe. Use the CSV export to import into your financial system.</p>
+    <div class="revenue-grid" id="revenueStats"></div>
+    <div id="customerServiceStats"></div>
+    <div style="overflow-x:auto;">
+      <table class="rev-table">
+        <thead><tr>
+          <th>Date</th><th>Customer</th><th>Items</th><th>Shipping</th><th>Total</th>
+        </tr></thead>
+        <tbody id="revenueTable"></tbody>
+      </table>
+    </div>
+    <button class="export-btn" onclick="exportCSV()">↓ Export CSV for Financial System</button>
+  </div>
+
+  <!-- ORDERS TAB -->
+  <div class="tab-panel" id="tab-orders">
+    <div class="panel-header">
+      <h1 class="panel-title">Orders</h1>
+      <button class="btn-secondary" onclick="loadOrders()">↻ Refresh</button>
+    </div>
+    <div class="stats-row" id="orderStats"></div>
+    <div id="ordersBody"><div class="loading-state">Click Refresh to load orders from Stripe.</div></div>
+  </div>
+
+  <!-- CUSTOMERS TAB -->
+  <div class="tab-panel" id="tab-customers">
+    <div class="panel-header">
+      <h1 class="panel-title">Customers <em>& Profiles</em></h1>
+      <button class="btn-secondary" onclick="loadCustomers()">↻ Refresh</button>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Beauty profiles from registered customers. Filter to find the right audience for new product launches.</p>
+    <div class="stats-row" id="customerStats"></div>
+    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px;" id="customerFilters"></div>
+    <div id="customersBody"><div class="loading-state">Click Refresh to load customers.</div></div>
+  </div>
+
+  <!-- REVIEWS TAB -->
+  <div class="tab-panel" id="tab-reviews">
+    <div class="panel-header">
+      <h1 class="panel-title">Reviews <em>Moderation</em></h1>
+      <button class="btn-secondary" onclick="loadAdminReviews()">↻ Refresh</button>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:20px;">Approve reviews before they appear on the store. Rejected reviews are never published.</p>
+    <div class="stats-row" id="reviewStats"></div>
+    <div style="display:flex;gap:8px;margin-bottom:20px;">
+      <button class="filter-chip active" id="rf-pending"  onclick="filterAdminReviews('pending')">⏳ Pending</button>
+      <button class="filter-chip"        id="rf-approved" onclick="filterAdminReviews('approved')">✅ Approved</button>
+      <button class="filter-chip"        id="rf-rejected" onclick="filterAdminReviews('rejected')">❌ Rejected</button>
+    </div>
+    <div id="reviewsAdminBody"><div class="loading-state">Click Refresh to load reviews.</div></div>
+  </div>
+
+</div>
+
+<!-- PRODUCT FORM MODAL -->
+<div class="modal-overlay" id="formOverlay" onclick="handleOverlayClick(event)">
+  <div class="form-modal" id="formModal">
+    <div class="form-modal-header">
+      <h2 class="form-modal-title" id="formTitle">Add <em>Product</em></h2>
+      <button class="modal-close-btn" onclick="closeForm()">✕</button>
+    </div>
+    <div class="form-body">
+      <!-- Image -->
+      <div class="field">
+        <label>Product Image</label>
+        <div class="img-upload" id="imgUploadArea">
+          <img class="img-preview" id="imgPreview"/>
+          <input type="file" accept="image/*" id="imgInput" onchange="handleImg(event)"/>
+          <p>Tap to upload photo</p>
+          <span>PNG · JPG · WEBP</span>
+        </div>
+      </div>
+      <!-- Name + Collection -->
+      <div class="field">
+        <label>Product Name *</label>
+        <input type="text" id="fName" placeholder="e.g. Sweet Cinnamon"/>
+      </div>
+      <div class="field">
+        <label>Collection</label>
+        <input type="text" id="fCollection" placeholder="e.g. Signature, Glow, Nude Edit, Holiday..."/>
+        <p class="field-hint">Groups products in the store filter. Leave blank for no collection.</p>
+      </div>
+      <!-- Price / Old Price / Stock / Weight -->
+      <div class="field-row">
+        <div class="field">
+          <label>Price (USD) *</label>
+          <input type="number" id="fPrice" placeholder="10.50" step="0.01" min="0"/>
+        </div>
+        <div class="field">
+          <label>Old Price</label>
+          <input type="number" id="fOldPrice" placeholder="12.00" step="0.01" min="0"/>
+        </div>
+        <div class="field">
+          <label>Stock Units *</label>
+          <input type="number" id="fStock" placeholder="20" min="0" step="1"/>
+          <p class="field-hint">0 = auto sold out</p>
+        </div>
+      </div>
+      <div class="field-row-2">
+        <div class="field">
+          <label>Weight (oz)</label>
+          <input type="number" id="fWeight" placeholder="0.3" step="0.1" min="0"/>
+          <p class="field-hint">Lip gloss ≈ 0.3 oz</p>
+        </div>
+        <div class="field">
+          <label>Packaging</label>
+          <select id="fPackaging">
+            <option value="envelope">✉ Bubble Mailer (small)</option>
+            <option value="box">📦 Box (large/fragile)</option>
+          </select>
+          <p class="field-hint">Affects shipping cost</p>
+        </div>
+      </div>
+      <!-- Description -->
+      <div class="field">
+        <label>Description</label>
+        <textarea id="fDesc" placeholder="Describe this product..."></textarea>
+      </div>
+      <!-- Badges -->
+      <div class="field">
+        <label>Badges</label>
+        <div class="badge-chips" id="badgeChips">
+          <div class="badge-chip" onclick="toggleBadge(this)">Vegan</div>
+          <div class="badge-chip" onclick="toggleBadge(this)">Hydrating</div>
+          <div class="badge-chip" onclick="toggleBadge(this)">Long-lasting</div>
+          <div class="badge-chip" onclick="toggleBadge(this)">Rose Hip Oil</div>
+          <div class="badge-chip" onclick="toggleBadge(this)">Vitamin E</div>
+          <div class="badge-chip" onclick="toggleBadge(this)">Honey Extract</div>
+          <div class="badge-chip" onclick="toggleBadge(this)">Argan Oil</div>
+          <div class="badge-chip" onclick="toggleBadge(this)">Shea Butter</div>
+          <div class="badge-chip" onclick="toggleBadge(this)">Jojoba Oil</div>
+        </div>
+        <div class="badge-custom-row">
+          <input type="text" id="customBadge" placeholder="Custom badge..."/>
+          <button onclick="addCustomBadge()">+ Add</button>
+        </div>
+      </div>
+      <!-- Variants / Shades -->
+      <div class="field">
+        <div class="toggle-row">
+          <span>This product has color variants (e.g. foundation shades, eyeshadow colors)</span>
+          <label class="toggle"><input type="checkbox" id="fHasVariants" onchange="toggleVariantMode()"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+
+      <!-- Simple shades (decorative only, no separate stock) -->
+      <div class="field" id="simpleShadesField">
+        <label>Color Swatches (decorative)</label>
+        <div class="shades-area" id="shadesArea"></div>
+        <div class="shade-add-row">
+          <input type="color" class="shade-color-input" id="shadeColorPicker" value="#C07850"/>
+          <button class="shade-add-btn" onclick="addShade()">+ Add Shade</button>
+        </div>
+      </div>
+
+      <!-- Variant editor (each shade = own stock) -->
+      <div class="field" id="variantsField" style="display:none">
+        <label>Shade Variants — each has its own stock</label>
+        <div id="variantsList"></div>
+        <div class="variant-add-row">
+          <input type="color" class="shade-color-input" id="variantColorPicker" value="#D4A574"/>
+          <input type="text" id="variantNameInput" placeholder="Shade name (e.g. Medium 220)" class="variant-name-input"/>
+          <input type="number" id="variantStockInput" placeholder="Stock" min="0" class="variant-stock-input"/>
+          <button class="shade-add-btn" onclick="addVariant()">+ Add</button>
+        </div>
+        <p class="field-hint">Total stock = sum of all variant stock. Customers must select a shade before adding to cart.</p>
+      </div>
+      <!-- Bundle / Combo -->
+      <div class="field">
+        <div class="toggle-row">
+          <span>This is a bundle/combo of other products</span>
+          <label class="toggle"><input type="checkbox" id="fIsBundle" onchange="toggleBundleMode()"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+      <div class="field" id="bundleField" style="display:none">
+        <label>Bundle Contents</label>
+        <div id="bundleItemsList"></div>
+        <div class="variant-add-row">
+          <select id="bundleProductPicker" class="variant-name-input" style="flex:1"></select>
+          <input type="number" id="bundleQtyInput" placeholder="Qty" min="1" value="1" class="variant-stock-input"/>
+          <button class="shade-add-btn" onclick="addBundleItem()">+ Add</button>
+        </div>
+        <p class="field-hint">The number you set in "Stock Units" above is how many bundles will be available. That quantity is deducted once from each component's own inventory below, so you can never accidentally oversell the individual products.</p>
+      </div>
+      <!-- Toggles -->
+      <div class="field">
+        <label>Flags</label>
+        <div class="toggle-row">
+          <span>Mark as New</span>
+          <label class="toggle"><input type="checkbox" id="fIsNew"><span class="toggle-slider"></span></label>
+        </div>
+        <div class="toggle-row" style="margin-top:8px">
+          <span>Force Sold Out (overrides stock)</span>
+          <label class="toggle"><input type="checkbox" id="fSoldOut"><span class="toggle-slider"></span></label>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-secondary" onclick="closeForm()">Cancel</button>
+        <button class="btn-save" onclick="saveProduct()">Save Product</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────
+const SESSION_KEY= 'canela_admin_auth';
+const TOKEN_KEY  = 'canela_admin_token';
+const LABELS_KEY = 'canela_order_labels';
+
+function adminToken(){ return sessionStorage.getItem(TOKEN_KEY) || ''; }
+
+// ── LOGIN ───────────────────────────────────────────────────
+async function doLogin(){
+  const val = document.getElementById('pwInput').value;
+  const errEl = document.getElementById('loginErr');
+  errEl.textContent = '';
+  if(!val){ errEl.textContent='Ingresa tu contraseña.'; return; }
+
+  try{
+    const res = await fetch('/api/admin-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'login', password: val })
+    });
+    const data = await res.json();
+
+    if(!res.ok){
+      errEl.textContent = data.error || 'Contraseña incorrecta.';
+      document.getElementById('pwInput').value='';
+      return;
+    }
+
+    sessionStorage.setItem(SESSION_KEY,'1');
+    sessionStorage.setItem(TOKEN_KEY, data.token);
+    document.getElementById('loginScreen').style.display='none';
+    document.getElementById('adminShell').style.display='block';
+    initAdmin();
+
+    if(data.mustChangePassword){
+      openChangePassword(true);
+    }
+  } catch(err){
+    errEl.textContent = 'No se pudo conectar. Intenta de nuevo.';
+  }
+}
+
+function doLogout(){
+  sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+  location.reload();
+}
+
+// Si el servidor responde 401 (sesión expirada), volver al login.
+function handleSessionExpired(){
+  sessionStorage.removeItem(SESSION_KEY);
+  sessionStorage.removeItem(TOKEN_KEY);
+  showToast('⚠ Tu sesión expiró, vuelve a iniciar sesión');
+  setTimeout(()=>location.reload(), 1500);
+}
+
+// ── CAMBIO DE CONTRASEÑA ──────────────────────────────────────
+// mandatory=true: primer ingreso, no se puede cancelar ni usar el resto
+// del admin hasta guardar una nueva contraseña.
+// mandatory=false: cambio voluntario desde el botón "Change Password".
+let pwChangeMandatory = false;
+
+function openChangePassword(mandatory){
+  pwChangeMandatory = mandatory;
+  document.getElementById('currentPwInput').style.display = mandatory ? 'none' : 'block';
+  document.getElementById('cancelChangePwBtn').style.display = mandatory ? 'none' : 'block';
+  document.getElementById('changePwHint').textContent = mandatory
+    ? 'Por seguridad, debes establecer una nueva contraseña antes de continuar.'
+    : 'Ingresa tu contraseña actual y la nueva contraseña.';
+  document.getElementById('currentPwInput').value='';
+  document.getElementById('newPwInput').value='';
+  document.getElementById('confirmPwInput').value='';
+  document.getElementById('changePwErr').textContent='';
+  document.getElementById('changePwScreen').style.display='flex';
+}
+
+function closeChangePassword(){
+  if(pwChangeMandatory) return; // no se puede cerrar si es obligatorio
+  document.getElementById('changePwScreen').style.display='none';
+}
+
+async function submitChangePassword(){
+  const current = document.getElementById('currentPwInput').value;
+  const next    = document.getElementById('newPwInput').value;
+  const confirm = document.getElementById('confirmPwInput').value;
+  const errEl   = document.getElementById('changePwErr');
+  errEl.textContent='';
+
+  if(next.length < 8){ errEl.textContent='La nueva contraseña debe tener al menos 8 caracteres.'; return; }
+  if(next !== confirm){ errEl.textContent='Las contraseñas no coinciden.'; return; }
+  if(!pwChangeMandatory && !current){ errEl.textContent='Ingresa tu contraseña actual.'; return; }
+
+  try{
+    const res = await fetch('/api/admin-auth', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'change-password',
+        token: adminToken(),
+        currentPassword: current || undefined,
+        newPassword: next
+      })
+    });
+    const data = await res.json();
+
+    if(!res.ok){
+      if(res.status===401){ handleSessionExpired(); return; }
+      errEl.textContent = data.error || 'No se pudo cambiar la contraseña.';
+      return;
+    }
+
+    sessionStorage.setItem(TOKEN_KEY, data.token);
+    document.getElementById('changePwScreen').style.display='none';
+    showToast('✓ Contraseña actualizada');
+  } catch(err){
+    errEl.textContent = 'No se pudo conectar. Intenta de nuevo.';
+  }
+}
+if(sessionStorage.getItem(SESSION_KEY)==='1' && adminToken()){
+  document.getElementById('loginScreen').style.display='none';
+  document.getElementById('adminShell').style.display='block';
+}
+
+// ── PRODUCTOS (Firestore vía /api/products) ────────────────
+// PRODUCTS_CACHE se carga una vez al iniciar sesión y se mantiene
+// sincronizada con Firestore. getProducts() sigue siendo síncrono para no
+// tener que tocar el resto del código del admin; saveProducts() actualiza
+// el caché local al instante y envía el catálogo completo al servidor.
+let PRODUCTS_CACHE = [];
+let productsReady = false;
+
+function getProducts(){
+  return PRODUCTS_CACHE;
+}
+
+async function loadProductsFromServer(){
+  try{
+    const res = await fetch('/api/products');
+    const data = await res.json();
+    PRODUCTS_CACHE = data.products || [];
+  } catch(err){
+    console.error('No se pudo cargar el catálogo:', err);
+    showToast('⚠ No se pudo conectar con el catálogo. Revisa tu conexión.');
+    PRODUCTS_CACHE = [];
+  }
+  productsReady = true;
+}
+
+function saveProducts(list){
+  PRODUCTS_CACHE = list;
+  syncProductsToServer(list);
+}
+
+async function syncProductsToServer(list){
+  try{
+    const res = await fetch('/api/products', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken() },
+      body: JSON.stringify({ products: list })
+    });
+    if(res.status===401){ handleSessionExpired(); return; }
+    if(!res.ok) throw new Error('HTTP '+res.status);
+  } catch(err){
+    console.error('No se pudo guardar en el catálogo:', err);
+    showToast('⚠ No se guardó en el servidor — revisa tu conexión e inténtalo de nuevo');
+  }
+}
+
+// ── INIT ────────────────────────────────────────────────────
+async function initAdmin(){
+  if(!productsReady) await loadProductsFromServer();
+  renderProducts();
+  renderInventory();
+  checkNewOrders();
+}
+
+// ── NEW ORDER NOTIFICATION ───────────────────────────────────
+async function checkNewOrders(){
+  try {
+    const res = await fetch('/api/orders');
+    const data = await res.json();
+    const orders = data.orders || [];
+    const stored = JSON.parse(localStorage.getItem('canela_order_labels')||'{}');
+    const newOrders = orders.filter(o=>!stored[o.id]);
+    if(newOrders.length > 0){
+      // Show badge on Orders tab
+      const ordersTab = document.querySelectorAll('.tab-btn')[3];
+      if(ordersTab && !ordersTab.querySelector('.notif-dot')){
+        ordersTab.innerHTML += `<span class="notif-dot" style="display:inline-block;width:7px;height:7px;border-radius:50%;background:#C96400;margin-left:6px;vertical-align:middle;"></span>`;
+      }
+      // Browser notification
+      if('Notification' in window && Notification.permission === 'granted'){
+        new Notification(`🛍 ${newOrders.length} new order${newOrders.length>1?'s':''} — Jonara Beauty`, {
+          body: newOrders.map(o=>`${o.customerName} · $${o.total}`).join('\n')
+        });
+      } else if('Notification' in window && Notification.permission === 'default'){
+        Notification.requestPermission();
+      }
+    }
+  } catch(e){ /* silent fail */ }
+}
+
+// ── TAB SWITCHING ────────────────────────────────────────────
+function switchTab(tab){
+  document.querySelectorAll('.tab-btn').forEach((b,i)=>{
+    b.classList.toggle('active',['products','inventory','revenue','orders','customers','reviews'][i]===tab);
+  });
+  document.querySelectorAll('.tab-panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(`tab-${tab}`).classList.add('active');
+  if(tab==='orders') loadOrders();
+  if(tab==='revenue') loadRevenue();
+  if(tab==='inventory') renderInventory();
+  if(tab==='customers') loadCustomers();
+  if(tab==='reviews') loadAdminReviews();
+}
+
+// ── STOCK HELPERS ────────────────────────────────────────────
+function stockPill(p){
+  const stock = p.stock;
+  const sold  = p.soldOut || stock === 0;
+  if(sold) return `<span class="stock-pill s-out"><span class="s-dot sd-out"></span>Sold Out</span>`;
+  if(stock <= 5) return `<span class="stock-pill s-low"><span class="s-dot sd-low"></span>${stock} left</span>`;
+  return `<span class="stock-pill s-ok"><span class="s-dot sd-ok"></span>${stock} in stock</span>`;
+}
+
+function checkLowStock(){
+  const low = getProducts().filter(p=>!p.soldOut && p.stock!==undefined && p.stock<=5 && p.stock>0);
+  const out = getProducts().filter(p=>p.soldOut || p.stock===0);
+  const banner = document.getElementById('lowStockBanner');
+  const items  = document.getElementById('lowStockItems');
+  const all    = [...low,...out];
+  if(!all.length){ banner.classList.remove('visible'); return; }
+  banner.classList.add('visible');
+  items.innerHTML = all.map(p=>`<span class="lsb-chip">${p.name}: ${p.stock===0||p.soldOut?'OUT':''+p.stock+' left'}</span>`).join('');
+}
+
+// ── RENDER PRODUCTS ──────────────────────────────────────────
+function renderProducts(){
+  const products = getProducts();
+
+  if(!productsReady){
+    document.getElementById('prodStats').innerHTML = `<p style="font-size:13px;color:var(--muted);padding:8px 0;">Cargando catálogo…</p>`;
+    document.getElementById('productList').innerHTML = '';
+    return;
+  }
+
+  const total    = products.length;
+  const active   = products.filter(p=>!p.soldOut&&p.stock>0).length;
+  const sold     = products.filter(p=>p.soldOut||p.stock===0).length;
+  const lowStock = products.filter(p=>p.stock>0&&p.stock<=5&&!p.soldOut).length;
+
+  document.getElementById('prodStats').innerHTML=`
+    <div class="stat-card"><p class="stat-label">Total Products</p><p class="stat-value">${total}</p></div>
+    <div class="stat-card"><p class="stat-label">Active</p><p class="stat-value" style="color:var(--green)">${active}</p></div>
+    <div class="stat-card"><p class="stat-label">Sold Out</p><p class="stat-value" style="color:var(--red)">${sold}</p></div>
+    <div class="stat-card"><p class="stat-label">Low Stock</p><p class="stat-value" style="color:#C96400">${lowStock}</p></div>`;
+
+  checkLowStock();
+
+  const el = document.getElementById('productList');
+  if(!products.length){
+    el.innerHTML=`<div class="empty-state"><p>No products yet. Click + Add Product to start.</p></div>`;
+    return;
+  }
+  el.innerHTML = products.map(p=>`
+    <div class="product-row" id="prow-${p.id}">
+      <div class="prod-thumb">
+        ${p.image?`<img src="${p.image}">`:`<span class="prod-thumb-icon">✦</span>`}
+      </div>
+      <div class="prod-main">
+        <p class="prod-name">${p.name}</p>
+        <p class="prod-meta">$${p.price.toFixed(2)} USD${p.oldPrice?` · was $${p.oldPrice.toFixed(2)}`:''}</p>
+        ${p.isBundle && p.bundleItems?.length ? `<p style="font-size:10px;color:var(--muted);margin-top:2px">🎁 ${p.bundleItems.map(bi=>`${bi.name} ×${bi.qty}`).join(' + ')}</p>` : ''}
+        <div class="prod-flags">
+          ${stockPill(p)}
+          ${p.isNew?'<span class="flag-new">New</span>':''}
+          ${p.isBundle?'<span class="flag-bundle">🎁 Bundle</span>':''}
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <div class="stock-ctrl">
+          <button class="sc-btn" onclick="quickStock(${p.id},-1)">−</button>
+          <span class="sc-val">${p.stock||0}</span>
+          <button class="sc-btn" onclick="quickStock(${p.id},1)">+</button>
+        </div>
+        <span class="sc-label">Stock</span>
+      </div>
+      <div class="prod-actions">
+        <button class="btn-edit" onclick="openForm(${p.id})">Edit</button>
+        <button class="btn-danger" onclick="deleteProduct(${p.id})">Delete</button>
+      </div>
+    </div>`).join('');
+}
+
+// Quick +/- stock from product list
+function quickStock(id, delta){
+  const products = getProducts();
+  const p = products.find(x=>x.id===id);
+  if(!p) return;
+
+  // Los bundles no se ajustan con el +/- rápido — ese cambio no
+  // reservaría/devolvería el inventario de sus componentes, lo que
+  // dejaría el conteo inconsistente. Hay que editarlos desde el
+  // formulario completo, donde sí se recalcula todo correctamente.
+  if(p.isBundle){
+    showToast('Bundles can\'t be adjusted here — edit the bundle to change its quantity');
+    return;
+  }
+
+  p.stock = Math.max(0, (p.stock||0) + delta);
+  if(p.stock===0) p.soldOut=true;
+  else if(p.soldOut && delta>0) p.soldOut=false;
+  saveProducts(products);
+  renderProducts();
+  renderInventory();
+  showToast(delta>0?`+1 added to ${p.name}`:`-1 removed from ${p.name}`);
+}
+
+// ── DELETE ───────────────────────────────────────────────────
+function deleteProduct(id){
+  const p = getProducts().find(x=>x.id===id);
+  if(!p) return;
+  const confirmMsg = p.isBundle
+    ? `Delete "${p.name}"? This will return its reserved stock to the individual products.`
+    : `Delete "${p.name}"? This cannot be undone.`;
+  if(!confirm(confirmMsg)) return;
+
+  const products = getProducts();
+  if(p.isBundle) returnBundleStock(products, p);
+
+  saveProducts(products.filter(x=>x.id!==id));
+  renderProducts();
+  renderInventory();
+  showToast(`${p.name} deleted`);
+}
+
+// ── FORM ─────────────────────────────────────────────────────
+let editingId=null, currentShades=[], currentImage=null;
+
+function openForm(id){
+  editingId=id;
+  currentShades=[];
+  currentVariants=[];
+  currentBundleItems=[];
+  currentImage=null;
+  document.getElementById('formOverlay').classList.add('open');
+  document.body.style.overflow='hidden';
+
+  if(id===null){
+    document.getElementById('formTitle').innerHTML='Add <em>Product</em>';
+    document.getElementById('fName').value='';
+    document.getElementById('fPrice').value='';
+    document.getElementById('fOldPrice').value='';
+    document.getElementById('fStock').value='';
+    document.getElementById('fStock').disabled=false;
+    document.getElementById('fStock').placeholder='20';
+    document.getElementById('fDesc').value='';
+    document.getElementById('fCollection').value='';
+    document.getElementById('fWeight').value='0.3';
+    document.getElementById('fPackaging').value='envelope';
+    document.getElementById('fIsNew').checked=false;
+    document.getElementById('fSoldOut').checked=false;
+    document.getElementById('fHasVariants').checked=false;
+    document.getElementById('fIsBundle').checked=false;
+    resetBadges([]);
+  } else {
+    const p=getProducts().find(x=>x.id===id);
+    if(!p) return;
+    document.getElementById('formTitle').innerHTML=`Edit <em>${p.name}</em>`;
+    document.getElementById('fName').value=p.name;
+    document.getElementById('fPrice').value=p.price;
+    document.getElementById('fOldPrice').value=p.oldPrice||'';
+    document.getElementById('fStock').value=p.stock!==undefined?p.stock:'';
+    document.getElementById('fDesc').value=p.desc||'';
+    document.getElementById('fIsNew').checked=!!p.isNew;
+    document.getElementById('fCollection').value=p.collection||'';
+    document.getElementById('fWeight').value=p.weight||0.3;
+    document.getElementById('fPackaging').value=p.packaging||'envelope';
+    document.getElementById('fSoldOut').checked=!!p.soldOut;
+    document.getElementById('fHasVariants').checked=!!p.hasVariants;
+    document.getElementById('fIsBundle').checked=!!p.isBundle;
+    currentShades=[...(p.shades||[])];
+    currentVariants=p.variants?JSON.parse(JSON.stringify(p.variants)):[];
+    currentBundleItems=p.bundleItems?JSON.parse(JSON.stringify(p.bundleItems)):[];
+    currentImage=p.image||null;
+    resetBadges(p.badges||[]);
+  }
+  renderShades();
+  renderVariants();
+  renderBundleItems();
+  toggleVariantMode();
+  toggleBundleMode();
+  updateImgPreview();
+}
+
+function closeForm(){
+  document.getElementById('formOverlay').classList.remove('open');
+  document.body.style.overflow='';
+}
+function handleOverlayClick(e){
+  if(e.target===document.getElementById('formOverlay')) closeForm();
+}
+
+async function saveProduct(){
+  const name  = document.getElementById('fName').value.trim();
+  const price = parseFloat(document.getElementById('fPrice').value);
+  const oldP  = parseFloat(document.getElementById('fOldPrice').value)||null;
+  const hasVariants = document.getElementById('fHasVariants').checked;
+  let stock;
+  if(hasVariants){
+    stock = currentVariants.reduce((s,v)=>s+(v.stock||0),0);
+  } else {
+    const stockV = document.getElementById('fStock').value;
+    stock = stockV!==''?parseInt(stockV):null;
+  }
+  const desc  = document.getElementById('fDesc').value.trim();
+  const isNew = document.getElementById('fIsNew').checked;
+  const collection = document.getElementById('fCollection').value.trim();
+  const weight = parseFloat(document.getElementById('fWeight').value)||0.3;
+  const packaging = document.getElementById('fPackaging').value||'envelope';
+  const forcedSoldOut = document.getElementById('fSoldOut').checked;
+  const isBundle = document.getElementById('fIsBundle').checked;
+  const badges=[...document.querySelectorAll('#badgeChips .badge-chip.selected')].map(b=>b.textContent);
+
+  if(!name){showToast('Name is required');return;}
+  if(!price||price<=0){showToast('Valid price required');return;}
+  if(hasVariants && !currentVariants.length){showToast('Add at least one shade variant');return;}
+  if(!hasVariants && stock!==null&&stock<0){showToast('Stock cannot be negative');return;}
+  if(isBundle && !currentBundleItems.length){showToast('Add at least one product to the bundle');return;}
+  if(isBundle && (stock===null||stock<0)){showToast('Set how many bundles are available (Stock Units)');return;}
+
+  // Si se seleccionó una foto nueva (base64), subirla a Firebase Storage
+  // antes de guardar el producto, para no inflar el documento de Firestore.
+  if(currentImage && currentImage.startsWith('data:')){
+    const saveBtn = document.querySelector('#formOverlay .btn-save');
+    if(saveBtn){ saveBtn.disabled=true; saveBtn.textContent='Subiendo foto…'; }
+    try{
+      const res = await fetch('/api/upload', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken() },
+        body: JSON.stringify({ context: 'product', filename: `${name||'producto'}.jpg`, dataUrl: currentImage })
+      });
+      if(res.status===401){ handleSessionExpired(); return; }
+      const data = await res.json();
+      if(data.url) currentImage = data.url;
+      else throw new Error(data.error||'upload failed');
+    } catch(err){
+      console.error('No se pudo subir la imagen:', err);
+      showToast('⚠ No se pudo subir la foto, se guardará sin foto nueva');
+      currentImage = editingId!==null ? (getProducts().find(x=>x.id===editingId)?.image||null) : null;
+    } finally {
+      if(saveBtn){ saveBtn.disabled=false; saveBtn.textContent='Save Product'; }
+    }
+  }
+
+  const soldOut = forcedSoldOut || (stock!==null&&stock===0);
+  const shadesForDisplay = hasVariants ? currentVariants.map(v=>v.color) : currentShades;
+  const products = getProducts();
+
+  // ── Bundle: devolver la reserva anterior (si se está editando un
+  //    bundle que ya existía) y aplicar la nueva, validando que alcance
+  //    el stock de cada componente antes de tocar nada. ────────────────
+  if(isBundle){
+    if(editingId!==null){
+      const oldProduct = products.find(x=>x.id===editingId);
+      returnBundleStock(products, oldProduct);
+    }
+
+    const shortages = [];
+    currentBundleItems.forEach(bi=>{
+      const comp = products.find(x=>x.id===bi.productId);
+      const needed = bi.qty * stock;
+      const available = comp?.stock ?? 0;
+      if(!comp || available < needed){
+        shortages.push(`${bi.name} (needs ${needed}, has ${available})`);
+      }
+    });
+    if(shortages.length){
+      showToast('⚠ Not enough stock for: ' + shortages.join(', '));
+      return; // nada se guardó todavía — getProducts() siempre relee de
+              // la fuente original, así que no queda ningún cambio a medias
+    }
+
+    currentBundleItems.forEach(bi=>{
+      const comp = products.find(x=>x.id===bi.productId);
+      comp.stock -= bi.qty * stock;
+      if(comp.stock<=0){ comp.stock=0; comp.soldOut=true; }
+    });
+  } else if(editingId!==null){
+    // Si el producto DEJÓ de ser un bundle (se destildó el toggle),
+    // devolver lo que tenía reservado antes de guardarlo como normal.
+    const oldProduct = products.find(x=>x.id===editingId);
+    if(oldProduct?.isBundle) returnBundleStock(products, oldProduct);
+  }
+
+  if(editingId===null){
+    products.push({
+      id:Date.now(),name,price,oldPrice:oldP,stock,desc,isNew,soldOut,collection,weight,packaging,
+      hasVariants,variants:hasVariants?currentVariants:[],
+      isBundle,bundleItems:isBundle?currentBundleItems:[],
+      badges,shades:shadesForDisplay,image:currentImage,
+      bg:shadeGradient(shadesForDisplay),capClass:'mgc1',tubeClass:'mg1'
+    });
+    showToast(`${name} added!`);
+  } else {
+    const idx=products.findIndex(x=>x.id===editingId);
+    if(idx>-1) products[idx]={...products[idx],name,price,oldPrice:oldP,stock,desc,isNew,soldOut,collection,weight,packaging,hasVariants,variants:hasVariants?currentVariants:[],isBundle,bundleItems:isBundle?currentBundleItems:[],badges,shades:shadesForDisplay,image:currentImage,bg:shadeGradient(shadesForDisplay)};
+    showToast(`${name} saved!`);
+  }
+
+  saveProducts(products);
+  closeForm();
+  renderProducts();
+  renderInventory();
+
+  if(stock!==null&&stock<=5&&!soldOut) setTimeout(()=>showToast(`⚠ ${name}: only ${stock} units left`),700);
+}
+
+function shadeGradient(shades){
+  if(!shades||!shades.length) return 'linear-gradient(160deg,#F5E0D0,#EDD0BE)';
+  return `linear-gradient(160deg,${shades[0]}22,${shades[0]}55)`;
+}
+
+// ── IMAGE ────────────────────────────────────────────────────
+function handleImg(e){
+  const file=e.target.files[0]; if(!file) return;
+  const r=new FileReader();
+  r.onload=ev=>{currentImage=ev.target.result;updateImgPreview();};
+  r.readAsDataURL(file);
+}
+function updateImgPreview(){
+  const prev=document.getElementById('imgPreview');
+  const area=document.getElementById('imgUploadArea');
+  if(currentImage){
+    prev.src=currentImage; prev.style.display='block';
+    area.querySelector('p').style.display='none';
+    area.querySelector('span').style.display='none';
+  } else {
+    prev.style.display='none';
+    area.querySelector('p').style.display='block';
+    area.querySelector('span').style.display='block';
+  }
+}
+
+// ── SHADES ───────────────────────────────────────────────────
+function renderShades(){
+  document.getElementById('shadesArea').innerHTML=currentShades.map((c,i)=>`
+    <div class="shade-chip" style="background:${c};border-color:${c}">
+      <div class="rm-shade" onclick="removeShade(${i})">✕</div>
+    </div>`).join('');
+}
+function addShade(){ const c=document.getElementById('shadeColorPicker').value; if(!currentShades.includes(c)) currentShades.push(c); renderShades(); }
+function removeShade(i){ currentShades.splice(i,1); renderShades(); }
+
+// ── BUNDLE / COMBO ───────────────────────────────────────────
+// Un bundle es un producto normal con isBundle:true + bundleItems (qué
+// productos lo componen y cuántas unidades de cada uno). El inventario
+// de los componentes se resta UNA VEZ al guardar (o se devuelve al
+// editar/borrar) — desde ahí el bundle tiene su propio stock
+// independiente y se vende/descuenta exactamente igual que cualquier
+// otro producto (stripe-webhook.js, order-request.js, create-label.js
+// no necesitan saber nada de esto).
+let currentBundleItems = [];
+
+function toggleBundleMode(){
+  const isBundle = document.getElementById('fIsBundle').checked;
+  document.getElementById('bundleField').style.display = isBundle ? 'block' : 'none';
+  if(isBundle) renderBundlePicker();
+}
+
+function renderBundlePicker(){
+  const picker = document.getElementById('bundleProductPicker');
+  const options = getProducts()
+    .filter(p => !p.isBundle && p.id !== editingId) // no anidar bundles ni auto-referenciarse
+    .map(p => `<option value="${p.id}">${p.name} (${p.stock ?? '∞'} in stock)</option>`)
+    .join('');
+  picker.innerHTML = options || '<option value="">No products available</option>';
+}
+
+function renderBundleItems(){
+  const list = document.getElementById('bundleItemsList');
+  if(!currentBundleItems.length){
+    list.innerHTML = '<p class="field-hint" style="margin:0 0 8px">No products added yet.</p>';
+    return;
+  }
+  list.innerHTML = currentBundleItems.map((bi,i)=>`
+    <div class="variant-row">
+      <span class="variant-name">${bi.name}</span>
+      <span class="variant-stock-badge">× ${bi.qty}</span>
+      <button class="variant-rm" onclick="removeBundleItem(${i})">✕</button>
+    </div>`).join('');
+}
+
+function addBundleItem(){
+  const picker = document.getElementById('bundleProductPicker');
+  const qtyInput = document.getElementById('bundleQtyInput');
+  const productId = parseInt(picker.value);
+  const qty = parseInt(qtyInput.value) || 1;
+  if(!productId){ showToast('Select a product first'); return; }
+
+  const product = getProducts().find(p=>p.id===productId);
+  if(!product) return;
+
+  const existing = currentBundleItems.find(bi=>bi.productId===productId);
+  if(existing){ existing.qty += qty; }
+  else { currentBundleItems.push({ productId, name: product.name, qty }); }
+
+  qtyInput.value = 1;
+  renderBundleItems();
+}
+
+function removeBundleItem(i){
+  currentBundleItems.splice(i,1);
+  renderBundleItems();
+}
+
+// Devuelve al inventario de cada componente lo que un bundle tenía
+// reservado con su composición/cantidad ANTERIOR — se usa antes de
+// aplicar una nueva reserva al editar, y al borrar un bundle.
+function returnBundleStock(products, bundleProduct){
+  if(!bundleProduct?.isBundle || !bundleProduct.bundleItems?.length) return;
+  bundleProduct.bundleItems.forEach(bi=>{
+    const comp = products.find(x=>x.id===bi.productId);
+    if(comp && comp.stock !== null && comp.stock !== undefined){
+      comp.stock += bi.qty * (bundleProduct.stock||0);
+      if(comp.stock > 0) comp.soldOut = false;
+    }
+  });
+}
+
+// ── VARIANTS ─────────────────────────────────────────────────
+let currentVariants = [];
+
+function toggleVariantMode(){
+  const has = document.getElementById('fHasVariants').checked;
+  document.getElementById('simpleShadesField').style.display = has ? 'none' : 'block';
+  document.getElementById('variantsField').style.display = has ? 'block' : 'none';
+  // Disable manual stock field — derived from variants
+  const stockField = document.getElementById('fStock');
+  if(has){
+    stockField.disabled = true;
+    stockField.value = currentVariants.reduce((s,v)=>s+(v.stock||0),0);
+    stockField.placeholder = 'Auto-calculated from variants';
+  } else {
+    stockField.disabled = false;
+    stockField.placeholder = '20';
+  }
+}
+
+function renderVariants(){
+  const list = document.getElementById('variantsList');
+  if(!currentVariants.length){
+    list.innerHTML = '<p style="font-size:11px;color:var(--muted);padding:8px 0;">No variants yet — add shades below.</p>';
+  } else {
+    list.innerHTML = currentVariants.map((v,i)=>{
+      const cls = v.stock===0?'out':v.stock<=5?'low':'';
+      const label = v.stock===0?'Sold out':`${v.stock} units`;
+      return `
+      <div class="variant-row">
+        <div class="variant-swatch" style="background:${v.color}"></div>
+        <span class="variant-name">${v.name}</span>
+        <span class="variant-stock-badge ${cls}">${label}</span>
+        <button class="variant-rm" onclick="removeVariant(${i})">✕</button>
+      </div>`;
+    }).join('');
+  }
+  // Update total stock if in variant mode
+  if(document.getElementById('fHasVariants').checked){
+    document.getElementById('fStock').value = currentVariants.reduce((s,v)=>s+(v.stock||0),0);
+  }
+}
+
+function addVariant(){
+  const color = document.getElementById('variantColorPicker').value;
+  const name  = document.getElementById('variantNameInput').value.trim();
+  const stock = parseInt(document.getElementById('variantStockInput').value)||0;
+  if(!name){ showToast('Enter a shade name'); return; }
+  currentVariants.push({ color, name, stock });
+  document.getElementById('variantNameInput').value='';
+  document.getElementById('variantStockInput').value='';
+  renderVariants();
+}
+
+function removeVariant(i){
+  currentVariants.splice(i,1);
+  renderVariants();
+}
+
+// ── BADGES ───────────────────────────────────────────────────
+function resetBadges(selected){
+  document.querySelectorAll('#badgeChips .badge-chip[data-custom]').forEach(c=>c.remove());
+  document.querySelectorAll('#badgeChips .badge-chip').forEach(chip=>{
+    chip.classList.toggle('selected',selected.includes(chip.textContent));
+  });
+  selected.forEach(b=>{
+    const ex=[...document.querySelectorAll('#badgeChips .badge-chip')].find(c=>c.textContent===b);
+    if(!ex){
+      const chip=document.createElement('div');
+      chip.className='badge-chip selected'; chip.setAttribute('data-custom','1');
+      chip.textContent=b; chip.onclick=()=>toggleBadge(chip);
+      document.getElementById('badgeChips').appendChild(chip);
+    }
+  });
+}
+function toggleBadge(el){ el.classList.toggle('selected'); }
+function addCustomBadge(){
+  const input=document.getElementById('customBadge'); const val=input.value.trim(); if(!val) return;
+  const ex=[...document.querySelectorAll('#badgeChips .badge-chip')].find(c=>c.textContent===val);
+  if(!ex){
+    const chip=document.createElement('div');
+    chip.className='badge-chip selected'; chip.setAttribute('data-custom','1');
+    chip.textContent=val; chip.onclick=()=>toggleBadge(chip);
+    document.getElementById('badgeChips').appendChild(chip);
+  }
+  input.value='';
+}
+
+// ── INVENTORY ────────────────────────────────────────────────
+function renderInventory(){
+  const products=getProducts();
+  const tbody=document.getElementById('invTableBody');
+  tbody.innerHTML=products.map(p=>{
+    if(p.hasVariants && p.variants?.length){
+      // Variant product — show breakdown, no manual adjust row
+      return `
+      <tr>
+        <td><strong style="color:var(--brown)">${p.name}</strong><br><span style="font-size:11px;color:var(--muted)">$${p.price.toFixed(2)} · ${p.variants.length} shades</span></td>
+        <td><strong style="font-size:18px;font-family:'Cormorant Garamond',serif;color:var(--brown)">${p.stock||0}</strong> units total</td>
+        <td>${stockPill(p)}</td>
+        <td colspan="2">
+          <div style="display:flex;flex-wrap:wrap;gap:6px;">
+            ${p.variants.map((v,vi)=>{
+              const cls=v.stock===0?'out':v.stock<=5?'low':'';
+              return `<div class="variant-row" style="margin:0;padding:4px 8px;">
+                <div class="variant-swatch" style="width:18px;height:18px;background:${v.color}"></div>
+                <span class="variant-name" style="font-size:11px;">${v.name}</span>
+                <button class="sc-btn" style="width:20px;height:20px;font-size:12px;" onclick="adjustVariantStock(${p.id},${vi},-1)">−</button>
+                <span class="variant-stock-badge ${cls}" style="min-width:50px;font-size:10px;">${v.stock}</span>
+                <button class="sc-btn" style="width:20px;height:20px;font-size:12px;" onclick="adjustVariantStock(${p.id},${vi},1)">+</button>
+              </div>`;
+            }).join('')}
+          </div>
+        </td>
+      </tr>`;
+    }
+    return `
+    <tr>
+      <td><strong style="color:var(--brown)">${p.name}</strong>${p.isBundle?' <span class="flag-bundle">🎁</span>':''}<br><span style="font-size:11px;color:var(--muted)">$${p.price.toFixed(2)}${p.isBundle&&p.bundleItems?.length?` · ${p.bundleItems.map(bi=>`${bi.name} ×${bi.qty}`).join(' + ')}`:''}</span></td>
+      <td><strong style="font-size:18px;font-family:'Cormorant Garamond',serif;color:var(--brown)">${p.stock||0}</strong> units</td>
+      <td>${stockPill(p)}</td>
+      <td>
+        ${p.isBundle
+          ? `<span style="font-size:11px;color:var(--muted)">Edit bundle to change quantity →</span>`
+          : `<div class="adjust-row">
+              <input type="number" class="adj-input" id="adj-${p.id}" placeholder="0" min="1" value="1"/>
+              <button class="adj-btn adj-add" onclick="adjustStock(${p.id},1)">+ Add</button>
+              <button class="adj-btn adj-sub" onclick="adjustStock(${p.id},-1)">− Remove</button>
+            </div>`
+        }
+      </td>
+      <td>
+        <label class="toggle">
+          <input type="checkbox" ${p.soldOut?'checked':''} onchange="toggleSoldOut(${p.id},this.checked)">
+          <span class="toggle-slider"></span>
+        </label>
+        <span style="font-size:10px;color:var(--muted);margin-left:8px">${p.soldOut?'Forced out':'Auto'}</span>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function adjustVariantStock(productId, variantIdx, delta){
+  const products=getProducts();
+  const p=products.find(x=>x.id===productId); if(!p||!p.variants) return;
+  const v=p.variants[variantIdx]; if(!v) return;
+  v.stock=Math.max(0,(v.stock||0)+delta);
+  p.stock=p.variants.reduce((s,vv)=>s+(vv.stock||0),0);
+  if(p.stock===0) p.soldOut=true;
+  else if(delta>0) p.soldOut=false;
+  saveProducts(products);
+  renderInventory();
+  renderProducts();
+}
+
+function adjustStock(id, direction){
+  const products=getProducts();
+  const p=products.find(x=>x.id===id); if(!p) return;
+
+  // Mismo motivo que en quickStock() — ajustar un bundle acá no
+  // reservaría/devolvería el inventario de sus componentes.
+  if(p.isBundle){
+    showToast('Bundles can\'t be adjusted here — edit the bundle to change its quantity');
+    return;
+  }
+
+  const amt = parseInt(document.getElementById(`adj-${id}`)?.value)||1;
+  const delta = direction * amt;
+  p.stock=Math.max(0,(p.stock||0)+delta);
+  if(p.stock===0) p.soldOut=true;
+  else if(direction>0&&p.stock>0) p.soldOut=false;
+  saveProducts(products);
+  renderInventory();
+  renderProducts();
+  showToast(direction>0?`+${amt} added to ${p.name}`:`-${amt} removed from ${p.name}`);
+}
+
+function toggleSoldOut(id, val){
+  const products=getProducts();
+  const p=products.find(x=>x.id===id); if(!p) return;
+  p.soldOut=val;
+  saveProducts(products);
+  renderInventory();
+  renderProducts();
+  showToast(`${p.name}: ${val?'marked as sold out':'marked as available'}`);
+}
+
+// ── REVENUE ──────────────────────────────────────────────────
+let ordersCache=[];
+
+async function loadRevenue(){
+  document.getElementById('revenueTable').innerHTML=`<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">Loading from Stripe...</td></tr>`;
+  document.getElementById('revenueStats').innerHTML='';
+  try{
+    const res=await fetch('/api/orders');
+    const data=await res.json();
+    ordersCache=data.orders||[];
+    renderRevenue();
+  } catch(e){
+    document.getElementById('revenueTable').innerHTML=`<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--muted)">Could not load. Check Stripe key.</td></tr>`;
+  }
+}
+
+function renderRevenue(){
+  const orders=ordersCache;
+
+  const now = new Date();
+  const isThisMonth = (dateStr) => {
+    if(!dateStr) return false;
+    const d = new Date(dateStr);
+    return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
+  };
+
+  // Reembolsos — se restan del bruto para llegar al ingreso REAL. Cuenta
+  // tanto cancelaciones como productos dañados que se resolvieron con
+  // reembolso (ambos tipos pueden terminar en "refunded"). Se cuentan
+  // por cuándo se RESOLVIÓ el reembolso, no por cuándo se hizo la compra
+  // original (una compra de junio reembolsada en julio cuenta como
+  // reembolso de julio).
+  const refundedOrders    = orders.filter(o => o.request?.resolution==='refunded');
+  const refundedThisMonth = refundedOrders.filter(o => isThisMonth(o.request.resolvedAt));
+
+  const grossAll    = orders.reduce((s,o)=>s+parseFloat(o.total),0);
+  const refundsAll   = refundedOrders.reduce((s,o)=>s+parseFloat(o.total||0),0);
+  const netAll       = grossAll - refundsAll;
+
+  const thisMonthOrders = orders.filter(o=>isThisMonth(o.createdAt));
+  const grossMonth   = thisMonthOrders.reduce((s,o)=>s+parseFloat(o.total),0);
+  const refundsMonth = refundedThisMonth.reduce((s,o)=>s+parseFloat(o.total||0),0);
+  const netMonth     = grossMonth - refundsMonth;
+
+  // Promedio calculado solo sobre órdenes que sí se quedaron con la
+  // venta (excluye canceladas/reembolsadas, para no bajar el promedio
+  // artificialmente con ventas que ya no cuentan).
+  const keptOrders = orders.filter(o=>o.status!=='cancelled');
+  const avgTicket  = keptOrders.length ? keptOrders.reduce((s,o)=>s+parseFloat(o.total),0)/keptOrders.length : 0;
+
+  document.getElementById('revenueStats').innerHTML=`
+    <div class="rev-card"><p class="rev-label">Gross Revenue</p><p class="rev-value"><em>$</em>${grossAll.toFixed(2)}</p><p class="rev-sub">${orders.length} orders</p></div>
+    <div class="rev-card" style="${refundsAll?'border-color:rgba(192,48,48,.25)':''}"><p class="rev-label">Refunds</p><p class="rev-value" style="${refundsAll?'color:#C03030':''}">${refundsAll?'−':''}<em>$</em>${refundsAll.toFixed(2)}</p><p class="rev-sub">${refundedOrders.length} order${refundedOrders.length===1?'':'s'}</p></div>
+    <div class="rev-card" style="border-color:rgba(34,120,60,.3)"><p class="rev-label">Net Revenue</p><p class="rev-value" style="color:#22783C"><em>$</em>${netAll.toFixed(2)}</p><p class="rev-sub">after refunds</p></div>
+    <div class="rev-card"><p class="rev-label">This Month (Net)</p><p class="rev-value"><em>$</em>${netMonth.toFixed(2)}</p><p class="rev-sub">${thisMonthOrders.length} orders${refundedThisMonth.length?`, ${refundedThisMonth.length} refunded`:''}</p></div>
+    <div class="rev-card"><p class="rev-label">Avg Order Value</p><p class="rev-value"><em>$</em>${avgTicket.toFixed(2)}</p><p class="rev-sub">per kept transaction</p></div>`;
+
+  // ── Customer Service This Month ──────────────────────────────
+  // Detalle de refunds/reposiciones/negadas resueltas este mes — el
+  // desglose detrás del número neto de arriba, para ver de un vistazo
+  // cuánto costó el servicio al cliente sin tener que contar orden por
+  // orden.
+  const resolvedThisMonth = orders.filter(o => o.request?.status==='resolved' && isThisMonth(o.request.resolvedAt));
+  const refundedList   = resolvedThisMonth.filter(o => o.request.resolution==='refunded');
+  const replacedList   = resolvedThisMonth.filter(o => o.request.resolution==='replaced');
+  const deniedList     = resolvedThisMonth.filter(o => o.request.resolution==='denied');
+  const refundedTotal  = refundedList.reduce((s,o)=>s+parseFloat(o.total||0), 0);
+  const replacementCost= replacedList.reduce((s,o)=>s+parseFloat(o.replacement?.rate||0), 0);
+  const csTotal = refundedList.length + replacedList.length + deniedList.length;
+
+  document.getElementById('customerServiceStats').innerHTML = `
+    <h3 style="font-size:13px;font-weight:600;color:var(--brown);margin:28px 0 12px;">Customer Service This Month</h3>
+    ${csTotal===0
+      ? `<p style="font-size:12px;color:var(--muted);padding:4px 0 8px;">No cancellations, refunds, or replacements resolved this month.</p>`
+      : `<div class="revenue-grid">
+          <div class="rev-card" style="${refundedList.length?'border-color:rgba(192,48,48,.25)':''}">
+            <p class="rev-label">Refunded</p>
+            <p class="rev-value" style="${refundedList.length?'color:#C03030':''}"><em>$</em>${refundedTotal.toFixed(2)}</p>
+            <p class="rev-sub">${refundedList.length} order${refundedList.length===1?'':'s'}</p>
+          </div>
+          <div class="rev-card" style="${replacedList.length?'border-color:rgba(59,130,196,.25)':''}">
+            <p class="rev-label">Replacements Sent</p>
+            <p class="rev-value" style="${replacedList.length?'color:#1A5C96':''}">${replacedList.length}</p>
+            <p class="rev-sub">${replacementCost>0?`~$${replacementCost.toFixed(2)} in shipping`:'no shipping cost yet'}</p>
+          </div>
+          <div class="rev-card">
+            <p class="rev-label">Denied</p>
+            <p class="rev-value">${deniedList.length}</p>
+            <p class="rev-sub">no refund issued</p>
+          </div>
+        </div>`
+    }`;
+
+  if(!orders.length){
+    document.getElementById('revenueTable').innerHTML=`<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)">No orders yet.</td></tr>`;
+    return;
+  }
+
+  document.getElementById('revenueTable').innerHTML=orders.map(o=>`
+    <tr>
+      <td>${new Date(o.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</td>
+      <td><div style="color:var(--brown);font-weight:500">${o.customerName}</div><div style="font-size:11px;color:var(--muted)">${o.email}</div></td>
+      <td style="font-size:12px">${(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join('<br>')}</td>
+      <td>—</td>
+      <td style="color:var(--brown);font-weight:500">$${o.total}</td>
+    </tr>`).join('');
+}
+
+function exportCSV(){
+  if(!ordersCache.length){ showToast('Load orders first'); return; }
+  const rows=[['Date','Customer','Email','Items','Total USD']];
+  ordersCache.forEach(o=>{
+    rows.push([
+      new Date(o.createdAt).toLocaleDateString('en-US'),
+      o.customerName, o.email,
+      (o.items||[]).map(i=>`${i.name} x${i.qty}`).join(' | '),
+      o.total
+    ]);
+  });
+  const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+  const a=document.createElement('a');
+  a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
+  a.download=`jonara-beauty-orders-${new Date().toISOString().slice(0,10)}.csv`;
+  a.click();
+  showToast('CSV exported!');
+}
+
+// ── ORDERS ───────────────────────────────────────────────────
+async function loadOrders(){
+  document.getElementById('ordersBody').innerHTML='<div class="loading-state">Loading orders...</div>';
+  document.getElementById('orderStats').innerHTML='';
+  try{
+    // /api/orders ya trae fusionados los datos de Firestore (tracking,
+    // status, solicitudes de cancelación/reembolso) — no hace falta una
+    // segunda llamada aparte.
+    const res = await fetch('/api/orders');
+    const data = await res.json();
+    ordersCache = data.orders || [];
+    renderOrders();
+  } catch(e){
+    document.getElementById('ordersBody').innerHTML=`<div class="empty-state"><p>Could not load orders.<br><small>${e.message}</small></p></div>`;
+  }
+}
+
+function renderOrders(){
+  const orders=ordersCache;
+  const total=orders.reduce((s,o)=>s+parseFloat(o.total),0);
+
+  // "To Pack" excluye las canceladas — una orden cancelada no necesita
+  // empacarse, y mezclarla en ese conteo hace que el número mienta.
+  const toPackList   = orders.filter(o=>!o.trackingNumber && o.status!=='cancelled');
+  const shippedList  = orders.filter(o=>o.trackingNumber);
+  const cancelledList= orders.filter(o=>o.status==='cancelled');
+  const openRequests = orders.filter(o=>o.request?.status==='pending').length;
+
+  document.getElementById('orderStats').innerHTML=`
+    <div class="stat-card"><p class="stat-label">Total Orders</p><p class="stat-value">${orders.length}</p></div>
+    <div class="stat-card"><p class="stat-label">Revenue</p><p class="stat-value"><em>$</em>${total.toFixed(2)}</p></div>
+    <div class="stat-card"><p class="stat-label">To Pack</p><p class="stat-value">${toPackList.length}</p></div>
+    <div class="stat-card"><p class="stat-label">Shipped</p><p class="stat-value">${shippedList.length}</p></div>
+    <div class="stat-card" style="${cancelledList.length?'border-color:rgba(120,120,120,.3)':''}"><p class="stat-label">Cancelled</p><p class="stat-value" style="${cancelledList.length?'color:#5A5A5A':''}">${cancelledList.length}</p></div>
+    <div class="stat-card" style="${openRequests?'border-color:rgba(192,48,48,.3)':''}"><p class="stat-label">Open Requests</p><p class="stat-value" style="${openRequests?'color:#C03030':''}">${openRequests}</p></div>`;
+
+  if(!orders.length){
+    document.getElementById('ordersBody').innerHTML='<div class="empty-state"><p>No paid orders yet.</p></div>';
+    return;
+  }
+
+  // Secciones agrupadas por estado, en vez de una sola lista mezclada —
+  // así de un vistazo se sabe cuántas realmente faltan por empacar sin
+  // tener que descartar mentalmente las canceladas una por una.
+  const sections = [
+    { title: '📦 To Pack',   list: toPackList,    emptyOk: false },
+    { title: '✅ Shipped',   list: shippedList,   emptyOk: true  },
+    { title: '✕ Cancelled', list: cancelledList, emptyOk: true  },
+  ].filter(s => s.list.length > 0 || !s.emptyOk);
+
+  document.getElementById('ordersBody').innerHTML = sections.map(section => `
+    <div class="order-section">
+      <h3 class="order-section-title">${section.title} <span class="order-section-count">${section.list.length}</span></h3>
+      ${section.list.length === 0
+        ? `<div class="empty-state" style="padding:20px"><p>Nothing here right now.</p></div>`
+        : `<div style="overflow-x:auto">
+            <table class="orders-table">
+              <thead><tr>
+                <th>Customer & Address</th>
+                <th>Items</th>
+                <th>Total</th>
+                <th>Shipping Label</th>
+                <th>Actions</th>
+              </tr></thead>
+              <tbody>${section.list.map(renderOrderRow).join('')}</tbody>
+            </table>
+          </div>`
+      }
+    </div>`
+  ).join('');
+}
+
+// Fila de una sola orden en la tabla — usada por las 3 secciones
+// (To Pack / Shipped / Cancelled) para no repetir el markup tres veces.
+function renderOrderRow(o){
+  const hasLabel = Boolean(o.trackingNumber);
+  const date = new Date(o.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  return `
+    <tr>
+      <td>
+        <div class="order-name">${o.customerName}</div>
+        <div class="order-email">${o.email}</div>
+        <div class="order-email" style="margin-top:3px">
+          ${o.street1}${o.street2?', '+o.street2:''}<br>
+          ${o.city}, ${o.state} ${o.zip}
+        </div>
+        <div class="order-email" style="color:var(--muted);margin-top:3px">${date}</div>
+      </td>
+      <td style="font-size:12px">${(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join('<br>')}</td>
+      <td style="color:var(--brown);font-weight:500">
+        $${o.total}
+        <div style="font-size:9px;color:var(--muted);font-weight:400;margin-top:3px;line-height:1.6">
+          ${o.subtotal?`Subtotal $${o.subtotal}<br>`:''}
+          ${o.shipping&&parseFloat(o.shipping)>0?`Shipping $${o.shipping}<br>`:o.shipping?'Shipping Free<br>':''}
+          ${o.tax&&parseFloat(o.tax)>0?`Tax $${o.tax}`:''}
+        </div>
+      </td>
+      <td>
+        ${hasLabel ? `
+          <span class="status-badge st-labeled">Shipped</span>
+          <div style="margin-top:4px">
+            <span style="font-size:10px;color:var(--muted)">${o.carrier||''} ${o.service||''}</span>
+            ${o.rate?`<span style="font-size:10px;color:var(--gold);margin-left:4px">$${parseFloat(o.rate).toFixed(2)}</span>`:''}
+          </div>
+          <div style="margin-top:4px;display:flex;align-items:center;gap:4px;flex-wrap:wrap">
+            <a class="track-link" href="${o.trackingUrl}" target="_blank" style="font-size:10px">${o.trackingNumber}</a>
+            <button onclick="copyTracking('${o.trackingNumber}')" style="background:none;border:none;cursor:pointer;font-size:10px;color:var(--muted);padding:0" title="Copy tracking number">⎘</button>
+          </div>
+        ` : (o.request?.type === 'cancel' && o.request?.resolution === 'refunded'
+              ? `<span class="status-badge st-resolved">Cancelled & Refunded</span>`
+              : `<span class="status-badge st-pending">Pending</span>`)}
+        ${renderRequestBox(o)}
+      </td>
+      <td>
+        ${(() => {
+          // Bloquea "Create Label" mientras la cancelación está
+          // pendiente de revisar, Y para siempre una vez que se
+          // resolvió como reembolsada (esa orden ya no se envía).
+          // Si se resuelve como "denied", el botón vuelve a la
+          // normalidad — la orden sigue su curso normal.
+          const cancelPending  = o.request?.type === 'cancel' && o.request?.status === 'pending';
+          const cancelRefunded = o.request?.type === 'cancel' && o.request?.resolution === 'refunded';
+
+          if(!hasLabel && cancelPending){
+            return `<span class="status-badge st-request" style="display:block;text-align:center;padding:6px 8px;line-height:1.5">⚠ Cancellation pending — resolve request first</span>`;
+          }
+          if(!hasLabel && cancelRefunded){
+            return `<span class="status-badge st-resolved" style="display:block;text-align:center;padding:6px 8px;line-height:1.5">✓ Cancelled & Refunded — no label needed</span>`;
+          }
+          if(!hasLabel){
+            return `<button class="label-btn" onclick="createLabel('${o.id}')">📦 Create Label</button>`;
+          }
+          return `<div style="display:flex;flex-direction:column;gap:6px">
+              <button class="print-btn" onclick="printLabel('${o.id}')">🖨 Print Label</button>
+              <button class="label-btn" onclick="createLabel('${o.id}')" style="font-size:8px;opacity:.6">↻ Reprint</button>
+            </div>`;
+        })()}
+      </td>
+    </tr>`;
+}
+
+// Muestra la solicitud de cancelación/reembolso de una orden (si existe)
+// con un botón para marcarla como resuelta. El reembolso en sí se procesa
+// manualmente en el Dashboard de Stripe — este botón solo actualiza el
+// estado interno para dejar de mostrarla como pendiente.
+function renderRequestBox(o){
+  const req = o.request;
+  if(!req) return '';
+
+  const typeLabel = { cancel:'Cancellation', damaged:'Damaged Product', other:'Support' }[req.type] || 'Request';
+  const isMoneyRequest = req.type === 'cancel' || req.type === 'damaged';
+
+  if(req.status === 'pending'){
+    // Para solicitudes de dinero (cancelar/dañado), el admin debe elegir
+    // explícitamente el resultado — nunca queda un "resuelto" ambiguo que
+    // no le diga al cliente si recibió su reembolso o no.
+    // "damaged" tiene una tercera opción: enviar reposición sin costo,
+    // en vez de reembolsar.
+    let actionButtons;
+    if(req.type === 'damaged'){
+      actionButtons = `<button class="resolve-btn" onclick="resolveRequest('${o.id}','refunded')">✓ Refunded</button>
+         <button class="resolve-btn replace-btn" onclick="resolveRequest('${o.id}','replaced')">🔄 Replace</button>
+         <button class="resolve-btn deny-btn" onclick="resolveRequest('${o.id}','denied')">✗ Denied</button>`;
+    } else if(isMoneyRequest){
+      actionButtons = `<button class="resolve-btn" onclick="resolveRequest('${o.id}','refunded')">✓ Refunded</button>
+         <button class="resolve-btn deny-btn" onclick="resolveRequest('${o.id}','denied')">✗ Denied</button>`;
+    } else {
+      actionButtons = `<button class="resolve-btn" onclick="resolveRequest('${o.id}','resolved')">✓ Mark Resolved</button>`;
+    }
+
+    return `
+      <div class="request-box">
+        <span class="status-badge st-request">⚠ ${typeLabel} Requested</span>
+        ${req.reason ? `<p class="request-reason">"${req.reason}"</p>` : ''}
+        ${req.evidenceUrl
+          ? `<a href="${req.evidenceUrl}" target="_blank" style="display:inline-block;margin-top:6px;font-size:10px;color:var(--gold)">📷 View damage photo →</a>`
+          : (req.type === 'damaged' ? `<p style="font-size:10px;color:var(--muted);margin-top:6px">📷 Check WhatsApp for the damage photo</p>` : '')}
+        <div style="display:flex;gap:6px;margin-top:6px;flex-wrap:wrap">
+          ${actionButtons}
+        </div>
+      </div>`;
+  }
+
+  // Resuelta — mostrar el resultado exacto, no solo "resolved" genérico.
+  const outcomeLabel = { refunded:'Refunded', replaced:'Replacement Sent', denied:'Denied', resolved:'Resolved' }[req.resolution] || 'Resolved';
+  const outcomeClass = req.resolution === 'denied' ? 'st-denied' : 'st-resolved';
+
+  return `
+    <div class="request-box" style="opacity:.75">
+      <span class="status-badge ${outcomeClass}">${typeLabel} — ${outcomeLabel}</span>
+      ${req.adminNote ? `<p class="request-reason">Note: "${req.adminNote}"</p>` : ''}
+      ${req.evidenceUrl ? `<a href="${req.evidenceUrl}" target="_blank" style="display:inline-block;margin-top:4px;font-size:10px;color:var(--muted)">📷 Photo</a>` : ''}
+      ${req.resolution === 'replaced' ? `
+        <div style="margin-top:6px;padding-top:6px;border-top:1px dashed rgba(92,26,36,.15)">
+          <p style="font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Replacement shipment — same items as original order</p>
+          <p style="font-size:11px;color:var(--brown2)">${(o.items||[]).map(i=>`${i.name} ×${i.qty}`).join(', ')}</p>
+        </div>` : ''}
+      ${o.replacement?.trackingNumber ? `
+        <div style="margin-top:4px">
+          <a class="track-link" href="${o.replacement.trackingUrl}" target="_blank" style="font-size:10px">${o.replacement.trackingNumber}</a>
+          <span style="font-size:10px;color:var(--muted);margin-left:4px">${o.replacement.carrier||''} ${o.replacement.service||''}</span>
+        </div>
+      ` : (req.resolution === 'replaced' ? `
+        <div style="margin-top:6px">
+          <p style="font-size:10px;color:#C03030;margin-bottom:4px">⚠ Replacement label not created yet</p>
+          <button class="resolve-btn" onclick="createReplacementLabel('${o.id}')">🔄 Retry Create Replacement Label</button>
+        </div>` : '')}
+    </div>`;
+}
+
+async function resolveRequest(orderId, resolution){
+  const btn = event?.target;
+  const originalText = btn ? btn.textContent : '';
+
+  // Nota opcional visible para el cliente — útil sobre todo al negar una
+  // solicitud, para explicar por qué (ej. política de venta final).
+  const adminNote = window.prompt(
+    resolution === 'denied'
+      ? 'Optional note to the customer (e.g. why this was denied):'
+      : resolution === 'replaced'
+      ? 'Optional note to the customer (a replacement label will be created automatically):'
+      : 'Optional note to the customer:',
+    ''
+  );
+  if(adminNote === null) return; // canceló el prompt
+
+  if(btn){ btn.disabled = true; btn.textContent = 'Saving...'; }
+  try {
+    const res = await fetch('/api/order-request', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken() },
+      body: JSON.stringify({ action: 'resolve', orderId, resolution, adminNote: adminNote.trim() || null })
+    });
+    if(res.status===401){ handleSessionExpired(); return; }
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+
+    const idx = ordersCache.findIndex(o=>o.id===orderId);
+    if(idx>=0 && ordersCache[idx].request){
+      ordersCache[idx].request.status = 'resolved';
+      ordersCache[idx].request.resolution = resolution;
+      ordersCache[idx].request.adminNote = adminNote.trim() || null;
+    }
+    const outcomeLabel = { refunded:'Refunded', replaced:'Replacement Approved', denied:'Denied', resolved:'Resolved' }[resolution] || 'Resolved';
+    const stockNote = (resolution === 'refunded' && ordersCache[idx]?.request?.type === 'cancel')
+      ? ' · stock restored' : '';
+    showToast(`✓ Marked as ${outcomeLabel} — customer notified by email${stockNote}`);
+    renderOrders();
+
+    // "Replace" crea el envío de reposición automáticamente — mismo flujo
+    // de EasyPost que un envío normal, sin costo para el cliente.
+    if(resolution === 'replaced' && idx>=0){
+      await createReplacementLabel(orderId);
+    }
+  } catch(e){
+    showToast('Error: '+e.message);
+    if(btn){ btn.disabled = false; btn.textContent = originalText; }
+  }
+}
+
+async function createReplacementLabel(orderId){
+  const order = ordersCache.find(o=>o.id===orderId); if(!order) return;
+  showToast('📦 Creating replacement label...');
+  try{
+    const res = await fetch('/api/create-label', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken() },
+      body: JSON.stringify({ order, replacement: true })
+    });
+    if(res.status===401){ handleSessionExpired(); return; }
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+
+    if(order.request) order.replacement = data;
+    window.open(data.labelUrl, '_blank');
+    showToast(`✓ Replacement label created — ${data.trackingNumber}`);
+    renderOrders();
+  } catch(e){
+    showToast('⚠ Replacement approved, but label creation failed: '+e.message+' — try again from the request box');
+  }
+}
+
+async function createLabel(orderId){
+  const order=ordersCache.find(o=>o.id===orderId); if(!order) return;
+
+  // Segunda capa de seguridad — el botón ya no debería mostrarse en este
+  // caso (ver renderOrders), pero si de todos modos se llega a llamar:
+  // ni con cancelación pendiente, ni con una ya reembolsada.
+  if(order.request?.type === 'cancel' && order.request?.status === 'pending'){
+    showToast('⚠ This order has a pending cancellation request — resolve it first');
+    return;
+  }
+  if(order.request?.type === 'cancel' && order.request?.resolution === 'refunded'){
+    showToast('⚠ This order was cancelled and refunded — no label needed');
+    return;
+  }
+
+  const btn=event.currentTarget||event.target;
+  btn.disabled=true; btn.textContent='Creating...';
+  try{
+    const res=await fetch('/api/create-label',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','x-admin-token':adminToken()},
+      body:JSON.stringify({order})
+    });
+    if(res.status===401){ handleSessionExpired(); return; }
+    const data=await res.json();
+    if(data.error) throw new Error(data.error);
+
+    // Guardar en Firestore (vía /api) ya lo hizo el backend.
+    // Reflejar en el caché local para actualizar la UI al instante.
+    const idx=ordersCache.findIndex(o=>o.id===orderId);
+    if(idx>=0) ordersCache[idx]={...ordersCache[idx],...data};
+
+    window.open(data.labelUrl,'_blank');
+    showToast(`✓ Label created — ${data.trackingNumber} · ${data.carrier} ${data.service} · $${parseFloat(data.rate).toFixed(2)}`);
+    renderOrders();
+  } catch(e){
+    showToast('Error: '+e.message);
+    btn.disabled=false; btn.textContent='📦 Create Label';
+  }
+}
+
+function printLabel(orderId){
+  const order=ordersCache.find(o=>o.id===orderId);
+  if(order?.labelUrl) window.open(order.labelUrl,'_blank');
+  else showToast('Label URL not found');
+}
+
+function copyTracking(trackingNumber){
+  navigator.clipboard.writeText(trackingNumber)
+    .then(()=>showToast('Tracking number copied!'))
+    .catch(()=>showToast(trackingNumber));
+}
+
+// ── TOAST ────────────────────────────────────────────────────
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove('show'),2600);
+}
+
+// ── CUSTOMERS ────────────────────────────────────────────────
+let customersCache = [];
+let activeFilter   = 'All';
+
+async function loadCustomers(){
+  document.getElementById('customersBody').innerHTML = '<div class="loading-state">Loading customers...</div>';
+  try {
+    // Fetch from Firebase via REST API
+    const projectId = 'canela-beauty-dc884';
+    const res = await fetch(
+      `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/customers?pageSize=100`
+    );
+    const data = await res.json();
+    if(!data.documents){ customersCache=[]; renderCustomers(); return; }
+
+    customersCache = data.documents.map(doc => {
+      const f = doc.fields || {};
+      const bp = f.beautyProfile?.mapValue?.fields || null;
+      return {
+        name:     f.name?.stringValue    || '—',
+        email:    f.email?.stringValue   || '—',
+        phone:    f.phone?.stringValue   || '',
+        joinedAt: f.createdAt?.stringValue || '',
+        profile:  bp ? parseBeautyProfile(bp) : null,
+      };
+    });
+    renderCustomers();
+  } catch(e){
+    document.getElementById('customersBody').innerHTML =
+      `<div class="empty-state"><p>Could not load customers.<br><small>Make sure Firestore rules allow admin reads, or use Firebase Console directly.</small></p></div>`;
+  }
+}
+
+function parseBeautyProfile(bp){
+  function getArr(field){
+    try{ return bp[field]?.arrayValue?.values?.map(v=>v.stringValue)||[]; } catch{ return []; }
+  }
+  return {
+    shopping_for:    getArr('shopping_for'),
+    skin_tone:       getArr('skin_tone'),
+    skin_type:       getArr('skin_type'),
+    skin_concerns:   getArr('skin_concerns'),
+    hair_type:       getArr('hair_type'),
+    hair_concerns:   getArr('hair_concerns'),
+    makeup_style:    getArr('makeup_style'),
+    lip_preference:  getArr('lip_preference'),
+    fragrance:       getArr('fragrance'),
+    special:         getArr('special'),
+    completedAt:     bp.completedAt?.stringValue || '',
+  };
+}
+
+function renderCustomers(){
+  const customers = activeFilter === 'All'
+    ? customersCache
+    : customersCache.filter(c => c.profile && matchesFilter(c.profile, activeFilter));
+
+  const total     = customersCache.length;
+  const withProfile = customersCache.filter(c=>c.profile).length;
+  const pregnant  = customersCache.filter(c=>c.profile?.special?.includes('pregnant')).length;
+  const hasBaby   = customersCache.filter(c=>c.profile?.special?.includes('has_baby')).length;
+
+  document.getElementById('customerStats').innerHTML = `
+    <div class="stat-card"><p class="stat-label">Total Customers</p><p class="stat-value">${total}</p></div>
+    <div class="stat-card"><p class="stat-label">With Profile</p><p class="stat-value" style="color:var(--green)">${withProfile}</p></div>
+    <div class="stat-card"><p class="stat-label">Pregnant</p><p class="stat-value">${pregnant}</p></div>
+    <div class="stat-card"><p class="stat-label">Have Baby</p><p class="stat-value">${hasBaby}</p></div>`;
+
+  // Filter chips
+  const filters = ['All','Pregnant','Nursing','Has Baby','Mens Products','Nails','Floral Fragrance','Woody Fragrance','Strict Vegan','Natural Makeup'];
+  document.getElementById('customerFilters').innerHTML = filters.map(f=>`
+    <button class="filter-chip${f===activeFilter?' active':''}" onclick="setCustomerFilter('${f}')">${f}</button>
+  `).join('');
+
+  if(!customers.length){
+    document.getElementById('customersBody').innerHTML =
+      `<div class="empty-state"><p>No customers match this filter.</p></div>`;
+    return;
+  }
+
+  document.getElementById('customersBody').innerHTML = `
+    <div style="overflow-x:auto">
+    <table class="customer-table">
+      <thead><tr>
+        <th>Customer</th><th>Skin</th><th>Hair</th><th>Makeup</th><th>Fragrance</th><th>Special</th><th>Joined</th>
+      </tr></thead>
+      <tbody>${customers.map(c=>`
+        <tr>
+          <td>
+            <div class="c-name">${c.name}</div>
+            <div class="c-email">${c.email}</div>
+            ${c.phone?`<div class="c-email">${c.phone}</div>`:''}
+          </td>
+          <td>${c.profile ? `
+            <div class="profile-tags">
+              ${c.profile.skin_tone.map(t=>`<span class="profile-tag skin">${t}</span>`).join('')}
+              ${c.profile.skin_type.map(t=>`<span class="profile-tag skin">${t}</span>`).join('')}
+            </div>` : '<span class="no-profile">No profile</span>'}
+          </td>
+          <td>${c.profile?.hair_type?.map(t=>`<span class="profile-tag hair">${t}</span>`).join('')||'—'}</td>
+          <td>${c.profile?.makeup_style?.map(t=>`<span class="profile-tag">${t}</span>`).join('')||'—'}</td>
+          <td>${c.profile?.fragrance?.map(t=>`<span class="profile-tag">${t}</span>`).join('')||'—'}</td>
+          <td>${c.profile?.special?.map(t=>`<span class="profile-tag">${t.replace(/_/g,' ')}</span>`).join('')||'—'}</td>
+          <td style="font-size:11px;color:var(--muted);white-space:nowrap">${c.joinedAt?new Date(c.joinedAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):'—'}</td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
+    </div>`;
+}
+
+function matchesFilter(profile, filter){
+  const map = {
+    'Pregnant':         ()=>profile.special?.includes('pregnant'),
+    'Nursing':          ()=>profile.special?.includes('nursing'),
+    'Has Baby':         ()=>profile.special?.includes('has_baby'),
+    'Mens Products':    ()=>profile.special?.includes('mens'),
+    'Nails':            ()=>profile.special?.includes('nails'),
+    'Floral Fragrance': ()=>profile.fragrance?.includes('floral'),
+    'Woody Fragrance':  ()=>profile.fragrance?.includes('woody'),
+    'Strict Vegan':     ()=>profile.special?.includes('strict_vegan'),
+    'Natural Makeup':   ()=>profile.makeup_style?.includes('natural'),
+  };
+  return map[filter] ? map[filter]() : true;
+}
+
+function setCustomerFilter(filter){
+  activeFilter = filter;
+  renderCustomers();
+}
+
+// ── EXPORT CSV FUNCTIONS ─────────────────────────────────────
+function downloadCSV(rows, filename){
+  const escape = function(v){ return '"' + String(v).replace(/"/g, '""') + '"'; };
+  const csv = rows.map(function(r){ return r.map(escape).join(','); }).join('\n');
+  const a = document.createElement('a');
+  a.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csv);
+  a.download = filename;
+  a.click();
+  showToast('CSV exported!');
+}
+
+function exportProductsCSV(){
+  const products = getProducts();
+  if(!products.length){ showToast('No products to export'); return; }
+  const rows = [
+    ['ID','Name','Collection','Price (USD)','Old Price (USD)','Stock','Status','Weight (oz)','Packaging','Badges','Description']
+  ];
+  products.forEach(p => {
+    const status = p.soldOut ? 'Sold Out' : p.stock <= 5 ? 'Low Stock' : 'Active';
+    rows.push([
+      p.id,
+      p.name,
+      p.collection || '',
+      p.price.toFixed(2),
+      p.oldPrice ? p.oldPrice.toFixed(2) : '',
+      p.stock || 0,
+      status,
+      p.weight || 0.3,
+      p.packaging || 'envelope',
+      (p.badges || []).join(' | '),
+      p.desc || ''
+    ]);
+  });
+  downloadCSV(rows, `jonara-products-${new Date().toISOString().slice(0,10)}.csv`);
+}
+
+function exportInventoryCSV(){
+  const products = getProducts();
+  if(!products.length){ showToast('No inventory to export'); return; }
+  const rows = [
+    ['Product','Collection','Stock Units','Status','Weight (oz)','Packaging Type','Price (USD)','Last Updated']
+  ];
+  const today = new Date().toLocaleDateString('en-US');
+  products.forEach(p => {
+    const status = p.soldOut || p.stock === 0 ? 'Out of Stock'
+      : p.stock <= 5 ? `Low Stock (${p.stock})`
+      : `In Stock (${p.stock})`;
+    rows.push([
+      p.name,
+      p.collection || '',
+      p.stock || 0,
+      status,
+      p.weight || 0.3,
+      p.packaging === 'box' ? 'Box' : 'Bubble Mailer',
+      p.price.toFixed(2),
+      today
+    ]);
+  });
+  downloadCSV(rows, `jonara-inventory-${new Date().toISOString().slice(0,10)}.csv`);
+}
+
+// ── REVIEWS ADMIN ─────────────────────────────────────────────
+let reviewsCache = [];
+let reviewFilter = 'pending';
+const PROJECT_ID = 'canela-beauty-dc884';
+
+async function loadAdminReviews(){
+  document.getElementById('reviewsAdminBody').innerHTML='<div class="loading-state">Loading reviews...</div>';
+  try {
+    const res  = await fetch(`https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/reviews?pageSize=100`);
+    const data = await res.json();
+    if(!data.documents){ reviewsCache=[]; renderAdminReviews(); return; }
+    reviewsCache = data.documents.map(doc=>{
+      const f=doc.fields||{};
+      return {
+        docId:       doc.name.split('/').pop(),
+        fullPath:    doc.name,
+        productName: f.productName?.stringValue||'',
+        userName:    f.userName?.stringValue   ||'Anonymous',
+        rating:      parseInt(f.rating?.integerValue||f.rating?.doubleValue||5),
+        comment:     f.comment?.stringValue    ||'',
+        photo:       f.photo?.stringValue      ||null,
+        status:      f.status?.stringValue     ||'pending',
+        createdAt:   f.createdAt?.stringValue  ||'',
+      };
+    });
+    renderAdminReviews();
+  } catch(e){
+    document.getElementById('reviewsAdminBody').innerHTML=`<div class="empty-state"><p>Could not load reviews.<br><small>Check Firestore rules allow admin reads.</small></p></div>`;
+  }
+}
+
+function renderAdminReviews(){
+  const pending  = reviewsCache.filter(r=>r.status==='pending').length;
+  const approved = reviewsCache.filter(r=>r.status==='approved').length;
+  const rejected = reviewsCache.filter(r=>r.status==='rejected').length;
+
+  document.getElementById('reviewStats').innerHTML=`
+    <div class="stat-card"><p class="stat-label">Pending</p><p class="stat-value" style="color:#C96400">${pending}</p></div>
+    <div class="stat-card"><p class="stat-label">Approved</p><p class="stat-value" style="color:var(--green)">${approved}</p></div>
+    <div class="stat-card"><p class="stat-label">Rejected</p><p class="stat-value" style="color:var(--red)">${rejected}</p></div>
+    <div class="stat-card"><p class="stat-label">Total</p><p class="stat-value">${reviewsCache.length}</p></div>`;
+
+  // Update filter chips
+  ['pending','approved','rejected'].forEach(s=>{
+    const chip=document.getElementById(`rf-${s}`);
+    if(chip) chip.classList.toggle('active',s===reviewFilter);
+  });
+
+  const filtered = reviewsCache.filter(r=>r.status===reviewFilter);
+  const el = document.getElementById('reviewsAdminBody');
+
+  if(!filtered.length){
+    el.innerHTML=`<div class="empty-state"><p>No ${reviewFilter} reviews.</p></div>`;
+    return;
+  }
+
+  const stars = n => '⭐'.repeat(n) + '☆'.repeat(5-n);
+
+  el.innerHTML = filtered.map(r=>`
+    <div class="review-admin-card ${r.status}">
+      <div>
+        <p class="ra-product">${r.productName}</p>
+        <div class="ra-stars">${stars(r.rating)}</div>
+        <p class="ra-comment">${r.comment}</p>
+        ${r.photo?`<img src="${r.photo}" class="ra-photo" alt="Review photo"/>`:''}
+        <p class="ra-meta">By <strong>${r.userName}</strong> · ${r.createdAt?new Date(r.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}):''}</p>
+      </div>
+      <div class="ra-actions">
+        ${r.status!=='approved'?`<button class="btn-approve" onclick="updateReview('${r.docId}','approved')">✅ Approve</button>`:''}
+        ${r.status!=='rejected'?`<button class="btn-reject"  onclick="updateReview('${r.docId}','rejected')">❌ Reject</button>`:''}
+        ${r.status!=='pending' ?`<button class="btn-secondary" style="font-size:9px;padding:6px 12px" onclick="updateReview('${r.docId}','pending')">↩ Undo</button>`:''}
+      </div>
+    </div>`).join('');
+}
+
+async function updateReview(docId, newStatus){
+  try {
+    const res = await fetch('/api/reviews', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json', 'x-admin-token': adminToken() },
+      body: JSON.stringify({ docId, status: newStatus })
+    });
+    if(res.status===401){ handleSessionExpired(); return; }
+    const data = await res.json();
+    if(data.error) throw new Error(data.error);
+
+    const r = reviewsCache.find(x=>x.docId===docId);
+    if(r) r.status=newStatus;
+    renderAdminReviews();
+    showToast(`Review ${newStatus}`);
+  } catch(e){ showToast('Error updating review: '+e.message); }
+}
+
+function filterAdminReviews(status){
+  reviewFilter=status;
+  renderAdminReviews();
+}
+
+// ── AUTO LOGIN CHECK ─────────────────────────────────────────
+if(sessionStorage.getItem(SESSION_KEY)==='1' && adminToken()) initAdmin();
+
+// ── PWA: registrar el service worker ──────────────────────────
+// Habilita "Agregar a pantalla de inicio" en Chrome/Android. No requiere
+// estar logueado — se registra siempre que se abre /admin.
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/admin-sw.js').catch(()=>{});
+  });
+}
+</script>
+</body>
+</html>
