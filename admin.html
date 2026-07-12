@@ -6,6 +6,17 @@
   <title>Admin — Jonara Beauty</title>
   <meta name="robots" content="noindex"/>
   <link rel="icon" type="image/svg+xml" href="/favicon.svg"/>
+
+  <!-- PWA — permite "Agregar a pantalla de inicio" y abrir el admin
+       como app, sin la barra del navegador -->
+  <link rel="manifest" href="/admin-manifest.json"/>
+  <meta name="theme-color" content="#3D1F00"/>
+  <link rel="apple-touch-icon" href="/admin-icon-apple-touch.png"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"/>
+  <meta name="apple-mobile-web-app-title" content="Jonara Admin"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;1,300;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
   <style>
     :root{
@@ -2186,6 +2197,15 @@ function filterAdminReviews(status){
 
 // ── AUTO LOGIN CHECK ─────────────────────────────────────────
 if(sessionStorage.getItem(SESSION_KEY)==='1' && adminToken()) initAdmin();
+
+// ── PWA: registrar el service worker ──────────────────────────
+// Habilita "Agregar a pantalla de inicio" en Chrome/Android. No requiere
+// estar logueado — se registra siempre que se abre /admin.
+if('serviceWorker' in navigator){
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/admin-sw.js').catch(()=>{});
+  });
+}
 </script>
 </body>
 </html>
