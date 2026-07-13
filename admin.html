@@ -1471,14 +1471,23 @@ function renderRevenue(){
   const refundedOrders    = orders.filter(o => o.request?.resolution==='refunded');
   const refundedThisMonth = refundedOrders.filter(o => isThisMonth(o.request.resolvedAt));
 
+  // Costo real de envío — el monto exacto pagado en EasyPost por cada
+  // label (envío normal + reposiciones por daño), no un estimado. Las
+  // órdenes que todavía no se han enviado no tienen "rate" y no restan
+  // nada (aún no se gastó ese dinero).
+  const shippingCost = (o) => parseFloat(o.rate||0) + parseFloat(o.replacement?.rate||0);
+  const shippingAll   = orders.reduce((s,o)=>s+shippingCost(o), 0);
+  const shippingMonthOrders = orders.filter(o => isThisMonth(o.labelCreatedAt) || isThisMonth(o.replacement?.labelCreatedAt));
+  const shippingMonth = shippingMonthOrders.reduce((s,o)=>s+shippingCost(o), 0);
+
   const grossAll    = orders.reduce((s,o)=>s+parseFloat(o.total),0);
   const refundsAll   = refundedOrders.reduce((s,o)=>s+parseFloat(o.total||0),0);
-  const netAll       = grossAll - refundsAll;
+  const netAll       = grossAll - refundsAll - shippingAll;
 
   const thisMonthOrders = orders.filter(o=>isThisMonth(o.createdAt));
   const grossMonth   = thisMonthOrders.reduce((s,o)=>s+parseFloat(o.total),0);
   const refundsMonth = refundedThisMonth.reduce((s,o)=>s+parseFloat(o.total||0),0);
-  const netMonth     = grossMonth - refundsMonth;
+  const netMonth     = grossMonth - refundsMonth - shippingMonth;
 
   // Promedio calculado solo sobre órdenes que sí se quedaron con la
   // venta (excluye canceladas/reembolsadas, para no bajar el promedio
@@ -1489,9 +1498,11 @@ function renderRevenue(){
   document.getElementById('revenueStats').innerHTML=`
     <div class="rev-card"><p class="rev-label">Gross Revenue</p><p class="rev-value"><em>$</em>${grossAll.toFixed(2)}</p><p class="rev-sub">${orders.length} orders</p></div>
     <div class="rev-card" style="${refundsAll?'border-color:rgba(192,48,48,.25)':''}"><p class="rev-label">Refunds</p><p class="rev-value" style="${refundsAll?'color:#C03030':''}">${refundsAll?'−':''}<em>$</em>${refundsAll.toFixed(2)}</p><p class="rev-sub">${refundedOrders.length} order${refundedOrders.length===1?'':'s'}</p></div>
-    <div class="rev-card" style="border-color:rgba(34,120,60,.3)"><p class="rev-label">Net Revenue</p><p class="rev-value" style="color:#22783C"><em>$</em>${netAll.toFixed(2)}</p><p class="rev-sub">after refunds</p></div>
-    <div class="rev-card"><p class="rev-label">This Month (Net)</p><p class="rev-value"><em>$</em>${netMonth.toFixed(2)}</p><p class="rev-sub">${thisMonthOrders.length} orders${refundedThisMonth.length?`, ${refundedThisMonth.length} refunded`:''}</p></div>
-    <div class="rev-card"><p class="rev-label">Avg Order Value</p><p class="rev-value"><em>$</em>${avgTicket.toFixed(2)}</p><p class="rev-sub">per kept transaction</p></div>`;
+    <div class="rev-card" style="${shippingAll?'border-color:rgba(196,120,26,.3)':''}"><p class="rev-label">Shipping Costs</p><p class="rev-value" style="${shippingAll?'color:#C4781A':''}">${shippingAll?'−':''}<em>$</em>${shippingAll.toFixed(2)}</p><p class="rev-sub">EasyPost, actual cost</p></div>
+    <div class="rev-card" style="border-color:rgba(34,120,60,.3)"><p class="rev-label">Revenue After Costs</p><p class="rev-value" style="color:#22783C"><em>$</em>${netAll.toFixed(2)}</p><p class="rev-sub">refunds + shipping deducted</p></div>
+    <div class="rev-card"><p class="rev-label">This Month (After Costs)</p><p class="rev-value"><em>$</em>${netMonth.toFixed(2)}</p><p class="rev-sub">${thisMonthOrders.length} orders${refundedThisMonth.length?`, ${refundedThisMonth.length} refunded`:''}</p></div>
+    <div class="rev-card"><p class="rev-label">Avg Order Value</p><p class="rev-value"><em>$</em>${avgTicket.toFixed(2)}</p><p class="rev-sub">per kept transaction</p></div>
+    <p style="grid-column:1/-1;font-size:11px;color:var(--muted);margin-top:-4px;">"Revenue After Costs" does not include Stripe's processing fee or your product/material costs — track those in your financial system for the true bottom line.</p>`;
 
   // ── Customer Service This Month ──────────────────────────────
   // Detalle de refunds/reposiciones/negadas resueltas este mes — el
