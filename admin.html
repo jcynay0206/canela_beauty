@@ -215,6 +215,11 @@
     .adj-sub:hover{background:rgba(192,48,48,.15);}
 
     /* REVENUE TAB */
+    .period-bar{display:flex;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:20px;padding:14px 16px;background:var(--bg2);border:1px solid var(--border);border-radius:3px;}
+    .period-bar select, .period-bar input[type=date]{padding:8px 12px;border:1px solid var(--border2);border-radius:2px;font-family:'DM Sans',sans-serif;font-size:12px;color:var(--brown);background:#fff;outline:none;}
+    .period-bar select:focus, .period-bar input[type=date]:focus{border-color:var(--gold);}
+    #customRangeFields{display:flex;align-items:center;gap:8px;}
+    .period-label{font-size:12px;color:var(--muted);margin-left:auto;font-style:italic;}
     .revenue-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:28px;}
     .rev-card{background:var(--bg2);border:1px solid var(--border);border-radius:3px;padding:20px;}
     .rev-label{font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:8px;}
@@ -415,7 +420,28 @@
       <h1 class="panel-title">Revenue <em>Summary</em></h1>
       <button class="export-btn" onclick="exportCSV()">↓ Export CSV</button>
     </div>
-    <p style="font-size:13px;color:var(--muted);margin-bottom:24px;">Data pulled from Stripe. Use the CSV export to import into your financial system.</p>
+    <p style="font-size:13px;color:var(--muted);margin-bottom:16px;">Data pulled from Stripe. Use the CSV export to import into your financial system.</p>
+
+    <div class="period-bar">
+      <select id="revenuePeriod" onchange="onRevenuePeriodChange()">
+        <option value="all">All Time</option>
+        <option value="today">Today</option>
+        <option value="this-month" selected>This Month</option>
+        <option value="last-month">Last Month</option>
+        <option value="this-quarter">This Quarter</option>
+        <option value="last-quarter">Last Quarter</option>
+        <option value="this-year">This Year</option>
+        <option value="custom">Custom Range…</option>
+      </select>
+      <div id="customRangeFields" style="display:none">
+        <input type="date" id="revenueFromDate"/>
+        <span style="color:var(--muted);font-size:12px">to</span>
+        <input type="date" id="revenueToDate"/>
+        <button class="export-btn" style="padding:8px 16px" onclick="applyCustomRange()">Apply</button>
+      </div>
+      <p id="periodLabel" class="period-label"></p>
+    </div>
+
     <div class="revenue-grid" id="revenueStats"></div>
     <div id="customerServiceStats"></div>
     <div style="overflow-x:auto;">
@@ -1452,42 +1478,123 @@ async function loadRevenue(){
   }
 }
 
-function renderRevenue(){
-  const orders=ordersCache;
+// ── PERÍODO (día / mes / trimestre / rango libre) ────────────────
+// Todo el cálculo de Revenue (y el CSV) se filtra por esto, para que la
+// contabilidad no se vuelva un solo bloque gigante de "todo lo que ha
+// pasado" a medida que crezcan las ventas.
+let revenuePeriod = 'this-month';
+let revenueCustomFrom = null;
+let revenueCustomTo = null;
+let lastPeriodOrders = [];
+let lastPeriodLabel = '';
 
+function getQuarterRange(year, quarter){
+  const startMonth = quarter * 3;
+  const start = new Date(year, startMonth, 1, 0,0,0,0);
+  const end   = new Date(year, startMonth+3, 0, 23,59,59,999);
+  return { start, end };
+}
+
+function getPeriodRange(){
   const now = new Date();
-  const isThisMonth = (dateStr) => {
-    if(!dateStr) return false;
-    const d = new Date(dateStr);
-    return d.getMonth()===now.getMonth() && d.getFullYear()===now.getFullYear();
-  };
+  switch(revenuePeriod){
+    case 'today': {
+      const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0,0,0,0);
+      const end   = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23,59,59,999);
+      return { start, end, label: start.toLocaleDateString('en-US',{month:'long',day:'numeric',year:'numeric'}) };
+    }
+    case 'this-month': {
+      const start = new Date(now.getFullYear(), now.getMonth(), 1, 0,0,0,0);
+      const end   = new Date(now.getFullYear(), now.getMonth()+1, 0, 23,59,59,999);
+      return { start, end, label: start.toLocaleDateString('en-US',{month:'long',year:'numeric'}) };
+    }
+    case 'last-month': {
+      const start = new Date(now.getFullYear(), now.getMonth()-1, 1, 0,0,0,0);
+      const end   = new Date(now.getFullYear(), now.getMonth(), 0, 23,59,59,999);
+      return { start, end, label: start.toLocaleDateString('en-US',{month:'long',year:'numeric'}) };
+    }
+    case 'this-quarter': {
+      const q = Math.floor(now.getMonth()/3);
+      const { start, end } = getQuarterRange(now.getFullYear(), q);
+      return { start, end, label: `Q${q+1} ${now.getFullYear()}` };
+    }
+    case 'last-quarter': {
+      let q = Math.floor(now.getMonth()/3) - 1;
+      let year = now.getFullYear();
+      if(q<0){ q=3; year-=1; }
+      const { start, end } = getQuarterRange(year, q);
+      return { start, end, label: `Q${q+1} ${year}` };
+    }
+    case 'this-year': {
+      const start = new Date(now.getFullYear(), 0, 1, 0,0,0,0);
+      const end   = new Date(now.getFullYear(), 11, 31, 23,59,59,999);
+      return { start, end, label: `${now.getFullYear()}` };
+    }
+    case 'custom': {
+      const start = revenueCustomFrom ? new Date(revenueCustomFrom+'T00:00:00') : null;
+      const end   = revenueCustomTo   ? new Date(revenueCustomTo+'T23:59:59')   : null;
+      const label = start && end
+        ? `${start.toLocaleDateString('en-US',{month:'short',day:'numeric'})} \u2013 ${end.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}`
+        : 'Select a range';
+      return { start, end, label };
+    }
+    case 'all':
+    default:
+      return { start: null, end: null, label: 'All time' };
+  }
+}
+
+function inPeriod(dateStr, range){
+  if(!range.start || !range.end) return true; // "All Time" o rango incompleto
+  if(!dateStr) return false;
+  const d = new Date(dateStr);
+  return d >= range.start && d <= range.end;
+}
+
+function onRevenuePeriodChange(){
+  revenuePeriod = document.getElementById('revenuePeriod').value;
+  document.getElementById('customRangeFields').style.display = revenuePeriod==='custom' ? 'flex' : 'none';
+  if(revenuePeriod !== 'custom') renderRevenue();
+}
+
+function applyCustomRange(){
+  revenueCustomFrom = document.getElementById('revenueFromDate').value || null;
+  revenueCustomTo   = document.getElementById('revenueToDate').value   || null;
+  if(!revenueCustomFrom || !revenueCustomTo){
+    showToast('Pick both a start and end date');
+    return;
+  }
+  renderRevenue();
+}
+
+function renderRevenue(){
+  const range = getPeriodRange();
+  const allOrders = ordersCache; // fuente completa — algunos cálculos usan su propia fecha de evento, no la de compra
+
+  // Órdenes cuya COMPRA cayó en el período — alimenta Gross Revenue, el
+  // promedio, la tabla y el CSV.
+  const orders = allOrders.filter(o => inPeriod(o.createdAt, range));
 
   // Reembolsos — se restan del bruto para llegar al ingreso REAL. Cuenta
   // tanto cancelaciones como productos dañados que se resolvieron con
   // reembolso (ambos tipos pueden terminar en "refunded"). Se cuentan
-  // por cuándo se RESOLVIÓ el reembolso, no por cuándo se hizo la compra
-  // original (una compra de junio reembolsada en julio cuenta como
-  // reembolso de julio).
-  const refundedOrders    = orders.filter(o => o.request?.resolution==='refunded');
-  const refundedThisMonth = refundedOrders.filter(o => isThisMonth(o.request.resolvedAt));
+  // por cuándo se RESOLVIÓ el reembolso dentro de TODAS las órdenes (no
+  // solo las del período), porque una compra de un período anterior
+  // reembolsada en este período cuenta como reembolso de este período.
+  const refundedInPeriod = allOrders.filter(o => o.request?.resolution==='refunded' && inPeriod(o.request.resolvedAt, range));
 
   // Costo real de envío — el monto exacto pagado en EasyPost por cada
-  // label (envío normal + reposiciones por daño), no un estimado. Las
-  // órdenes que todavía no se han enviado no tienen "rate" y no restan
-  // nada (aún no se gastó ese dinero).
+  // label (envío normal + reposiciones por daño), no un estimado. Se
+  // cuenta por la fecha en que se CREÓ el label, sobre todas las
+  // órdenes (un envío de una compra vieja hecho este período cuenta
+  // como costo de este período).
   const shippingCost = (o) => parseFloat(o.rate||0) + parseFloat(o.replacement?.rate||0);
-  const shippingAll   = orders.reduce((s,o)=>s+shippingCost(o), 0);
-  const shippingMonthOrders = orders.filter(o => isThisMonth(o.labelCreatedAt) || isThisMonth(o.replacement?.labelCreatedAt));
-  const shippingMonth = shippingMonthOrders.reduce((s,o)=>s+shippingCost(o), 0);
+  const shippingInPeriod = allOrders.filter(o => inPeriod(o.labelCreatedAt, range) || inPeriod(o.replacement?.labelCreatedAt, range));
+  const shippingAll = shippingInPeriod.reduce((s,o)=>s+shippingCost(o), 0);
 
   const grossAll    = orders.reduce((s,o)=>s+parseFloat(o.total),0);
-  const refundsAll   = refundedOrders.reduce((s,o)=>s+parseFloat(o.total||0),0);
-  const netAll       = grossAll - refundsAll - shippingAll;
-
-  const thisMonthOrders = orders.filter(o=>isThisMonth(o.createdAt));
-  const grossMonth   = thisMonthOrders.reduce((s,o)=>s+parseFloat(o.total),0);
-  const refundsMonth = refundedThisMonth.reduce((s,o)=>s+parseFloat(o.total||0),0);
-  const netMonth     = grossMonth - refundsMonth - shippingMonth;
+  const refundsAll  = refundedInPeriod.reduce((s,o)=>s+parseFloat(o.total||0),0);
+  const netAll      = grossAll - refundsAll - shippingAll;
 
   // Promedio calculado solo sobre órdenes que sí se quedaron con la
   // venta (excluye canceladas/reembolsadas, para no bajar el promedio
@@ -1495,32 +1602,31 @@ function renderRevenue(){
   const keptOrders = orders.filter(o=>o.status!=='cancelled');
   const avgTicket  = keptOrders.length ? keptOrders.reduce((s,o)=>s+parseFloat(o.total),0)/keptOrders.length : 0;
 
+  document.getElementById('periodLabel').textContent = `${range.label} · ${orders.length} order${orders.length===1?'':'s'}`;
+
   document.getElementById('revenueStats').innerHTML=`
     <div class="rev-card"><p class="rev-label">Gross Revenue</p><p class="rev-value"><em>$</em>${grossAll.toFixed(2)}</p><p class="rev-sub">${orders.length} orders</p></div>
-    <div class="rev-card" style="${refundsAll?'border-color:rgba(192,48,48,.25)':''}"><p class="rev-label">Refunds</p><p class="rev-value" style="${refundsAll?'color:#C03030':''}">${refundsAll?'−':''}<em>$</em>${refundsAll.toFixed(2)}</p><p class="rev-sub">${refundedOrders.length} order${refundedOrders.length===1?'':'s'}</p></div>
+    <div class="rev-card" style="${refundsAll?'border-color:rgba(192,48,48,.25)':''}"><p class="rev-label">Refunds</p><p class="rev-value" style="${refundsAll?'color:#C03030':''}">${refundsAll?'−':''}<em>$</em>${refundsAll.toFixed(2)}</p><p class="rev-sub">${refundedInPeriod.length} order${refundedInPeriod.length===1?'':'s'}</p></div>
     <div class="rev-card" style="${shippingAll?'border-color:rgba(196,120,26,.3)':''}"><p class="rev-label">Shipping Costs</p><p class="rev-value" style="${shippingAll?'color:#C4781A':''}">${shippingAll?'−':''}<em>$</em>${shippingAll.toFixed(2)}</p><p class="rev-sub">EasyPost, actual cost</p></div>
     <div class="rev-card" style="border-color:rgba(34,120,60,.3)"><p class="rev-label">Revenue After Costs</p><p class="rev-value" style="color:#22783C"><em>$</em>${netAll.toFixed(2)}</p><p class="rev-sub">refunds + shipping deducted</p></div>
-    <div class="rev-card"><p class="rev-label">This Month (After Costs)</p><p class="rev-value"><em>$</em>${netMonth.toFixed(2)}</p><p class="rev-sub">${thisMonthOrders.length} orders${refundedThisMonth.length?`, ${refundedThisMonth.length} refunded`:''}</p></div>
     <div class="rev-card"><p class="rev-label">Avg Order Value</p><p class="rev-value"><em>$</em>${avgTicket.toFixed(2)}</p><p class="rev-sub">per kept transaction</p></div>
     <p style="grid-column:1/-1;font-size:11px;color:var(--muted);margin-top:-4px;">"Revenue After Costs" does not include Stripe's processing fee or your product/material costs — track those in your financial system for the true bottom line.</p>`;
 
-  // ── Customer Service This Month ──────────────────────────────
-  // Detalle de refunds/reposiciones/negadas resueltas este mes — el
-  // desglose detrás del número neto de arriba, para ver de un vistazo
-  // cuánto costó el servicio al cliente sin tener que contar orden por
-  // orden.
-  const resolvedThisMonth = orders.filter(o => o.request?.status==='resolved' && isThisMonth(o.request.resolvedAt));
-  const refundedList   = resolvedThisMonth.filter(o => o.request.resolution==='refunded');
-  const replacedList   = resolvedThisMonth.filter(o => o.request.resolution==='replaced');
-  const deniedList     = resolvedThisMonth.filter(o => o.request.resolution==='denied');
+  // ── Customer Service (mismo período) ────────────────────────────
+  // Detalle de refunds/reposiciones/negadas resueltas en el período
+  // elegido — el desglose detrás del número neto de arriba.
+  const resolvedInPeriod = allOrders.filter(o => o.request?.status==='resolved' && inPeriod(o.request.resolvedAt, range));
+  const refundedList   = resolvedInPeriod.filter(o => o.request.resolution==='refunded');
+  const replacedList   = resolvedInPeriod.filter(o => o.request.resolution==='replaced');
+  const deniedList     = resolvedInPeriod.filter(o => o.request.resolution==='denied');
   const refundedTotal  = refundedList.reduce((s,o)=>s+parseFloat(o.total||0), 0);
   const replacementCost= replacedList.reduce((s,o)=>s+parseFloat(o.replacement?.rate||0), 0);
   const csTotal = refundedList.length + replacedList.length + deniedList.length;
 
   document.getElementById('customerServiceStats').innerHTML = `
-    <h3 style="font-size:13px;font-weight:600;color:var(--brown);margin:28px 0 12px;">Customer Service This Month</h3>
+    <h3 style="font-size:13px;font-weight:600;color:var(--brown);margin:28px 0 12px;">Customer Service — ${range.label}</h3>
     ${csTotal===0
-      ? `<p style="font-size:12px;color:var(--muted);padding:4px 0 8px;">No cancellations, refunds, or replacements resolved this month.</p>`
+      ? `<p style="font-size:12px;color:var(--muted);padding:4px 0 8px;">No cancellations, refunds, or replacements resolved in this period.</p>`
       : `<div class="revenue-grid">
           <div class="rev-card" style="${refundedList.length?'border-color:rgba(192,48,48,.25)':''}">
             <p class="rev-label">Refunded</p>
@@ -1540,8 +1646,11 @@ function renderRevenue(){
         </div>`
     }`;
 
+  lastPeriodOrders = orders;
+  lastPeriodLabel  = range.label;
+
   if(!orders.length){
-    document.getElementById('revenueTable').innerHTML=`<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)">No orders yet.</td></tr>`;
+    document.getElementById('revenueTable').innerHTML=`<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)">No orders in this period.</td></tr>`;
     return;
   }
 
@@ -1556,9 +1665,9 @@ function renderRevenue(){
 }
 
 function exportCSV(){
-  if(!ordersCache.length){ showToast('Load orders first'); return; }
+  if(!lastPeriodOrders.length){ showToast('No orders in this period to export'); return; }
   const rows=[['Date','Customer','Email','Items','Total USD']];
-  ordersCache.forEach(o=>{
+  lastPeriodOrders.forEach(o=>{
     rows.push([
       new Date(o.createdAt).toLocaleDateString('en-US'),
       o.customerName, o.email,
@@ -1569,9 +1678,10 @@ function exportCSV(){
   const csv=rows.map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
   const a=document.createElement('a');
   a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download=`jonara-beauty-orders-${new Date().toISOString().slice(0,10)}.csv`;
+  const periodSlug = lastPeriodLabel.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/(^-|-$)/g,'');
+  a.download=`jonara-beauty-revenue-${periodSlug}.csv`;
   a.click();
-  showToast('CSV exported!');
+  showToast(`CSV exported — ${lastPeriodOrders.length} orders (${lastPeriodLabel})`);
 }
 
 // ── ORDERS ───────────────────────────────────────────────────
