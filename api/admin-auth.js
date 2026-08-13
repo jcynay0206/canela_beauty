@@ -35,7 +35,7 @@ module.exports = async function handler(req, res) {
       }
 
       return res.status(200).json({
-        token: issueToken(),
+        token: issueToken(config.salt),
         mustChangePassword: Boolean(config.mustChangePassword),
       });
     } catch (err) {
@@ -45,6 +45,11 @@ module.exports = async function handler(req, res) {
   }
 
   if (action === "change-password") {
+    const rl = await rateLimit(req, { action: "admin-change-password", maxAttempts: 5, windowMs: 15 * 60 * 1000 });
+    if (!rl.allowed) {
+      return res.status(429).json({ error: "Demasiados intentos. Espera unos minutos e inténtalo de nuevo." });
+    }
+
     const { token, currentPassword, newPassword } = req.body;
 
     const payload = verifyToken(token);
@@ -76,7 +81,7 @@ module.exports = async function handler(req, res) {
         updatedAt: new Date().toISOString(),
       });
 
-      return res.status(200).json({ ok: true, token: issueToken() });
+      return res.status(200).json({ ok: true, token: issueToken(salt) });
     } catch (err) {
       console.error("admin-auth change-password error:", err);
       return res.status(500).json({ error: err.message });

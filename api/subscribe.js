@@ -1,5 +1,5 @@
 module.exports = async function handler(req, res) {
-  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Origin", "https://jonarabeauty-azuregs.vercel.app");
   res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
   res.setHeader("Access-Control-Allow-Headers", "Content-Type");
   if (req.method === "OPTIONS") return res.status(200).end();
@@ -50,7 +50,7 @@ module.exports = async function handler(req, res) {
 
       <p style="font-size:12px;color:rgba(92,26,36,0.4);margin:0 0 28px;">Use at checkout · One time only · Cannot be combined with other offers</p>
 
-      <a href="https://jonarabeauty.vercel.app" style="display:inline-block;background:#5C1A24;color:#FDF9F7;padding:14px 36px;text-decoration:none;font-size:11px;letter-spacing:3px;text-transform:uppercase;border-radius:2px;">Shop Now</a>
+      <a href="https://jonarabeauty-azuregs.vercel.app" style="display:inline-block;background:#5C1A24;color:#FDF9F7;padding:14px 36px;text-decoration:none;font-size:11px;letter-spacing:3px;text-transform:uppercase;border-radius:2px;">Shop Now</a>
     </div>
 
     <div style="background:#F8F1ED;padding:20px 36px;text-align:center;border-top:1px solid rgba(92,26,36,0.08);">

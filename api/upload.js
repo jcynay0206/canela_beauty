@@ -35,7 +35,7 @@ module.exports = async function handler(req, res) {
     if (!uploadRl.allowed) {
       return res.status(429).json({ error: "Demasiadas subidas. Intenta de nuevo en unos minutos." });
     }
-    if (!requireAdmin(req)) {
+    if (!(await requireAdmin(req))) {
       const authRl = await rateLimit(req, { action: "upload-auth-fail", maxAttempts: 5, windowMs: 15 * 60 * 1000 });
       if (!authRl.allowed) {
         return res.status(429).json({ error: "Demasiados intentos fallidos. Espera unos minutos." });

@@ -35,7 +35,7 @@ module.exports = async function handler(req, res) {
       return res.status(429).json({ error: "Demasiadas solicitudes. Intenta de nuevo en unos minutos." });
     }
 
-    if (!requireAdmin(req)) {
+    if (!(await requireAdmin(req))) {
       // Límite más estricto para intentos con clave incorrecta (fuerza bruta).
       const authRl = await rateLimit(req, { action: "products-auth-fail", maxAttempts: 5, windowMs: 15 * 60 * 1000 });
       if (!authRl.allowed) {

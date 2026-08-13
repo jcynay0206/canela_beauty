@@ -93,7 +93,7 @@ async function restoreStock(orderId) {
 }
 
 async function handleResolve(req, res) {
-  if (!requireAdmin(req)) {
+  if (!(await requireAdmin(req))) {
     return res.status(401).json({ error: "No autorizado" });
   }
 
@@ -168,7 +168,7 @@ async function handleResolve(req, res) {
     <p style="font-size:14px;color:#5C1A24;line-height:1.7;margin:0 0 16px;">${outcomeText}</p>
     ${adminNote ? `<p style="font-size:13px;color:rgba(92,26,36,.7);line-height:1.6;background:#FBF6F1;border-radius:2px;padding:12px 14px;margin:0;">"${adminNote}"</p>` : ""}
     <div style="margin-top:20px;">
-      <a href="https://jonarabeauty.vercel.app/account" style="display:inline-block;background:#5C1A24;color:#FAF6EF;padding:11px 24px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;border-radius:2px;">View Order →</a>
+      <a href="https://jonarabeauty-azuregs.vercel.app/account" style="display:inline-block;background:#5C1A24;color:#FAF6EF;padding:11px 24px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;border-radius:2px;">View Order →</a>
     </div>
   </div>
 </div>`,
@@ -287,7 +287,7 @@ async function handleSubmit(req, res) {
       ${type === "damaged" ? `<tr><td style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(92,26,36,.45);padding:8px 0;">Evidence</td><td style="font-size:13px;color:#5C1A24;padding:8px 0;">📷 Check WhatsApp — customer was asked to send a photo there</td></tr>` : ""}
     </table>
     <div style="margin-top:20px;">
-      <a href="https://jonarabeauty.vercel.app/admin" style="display:inline-block;background:#5C1A24;color:#FAF6EF;padding:11px 24px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;border-radius:2px;">Review in Admin →</a>
+      <a href="https://jonarabeauty-azuregs.vercel.app/admin" style="display:inline-block;background:#5C1A24;color:#FAF6EF;padding:11px 24px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;border-radius:2px;">Review in Admin →</a>
     </div>
   </div>
 </div>`,

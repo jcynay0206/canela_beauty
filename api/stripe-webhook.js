@@ -90,7 +90,7 @@ module.exports = async function handler(req, res) {
 
       <p style="font-size:13px;color:rgba(92,26,36,0.55);line-height:1.8;margin:0 0 28px;">You'll receive another email with your tracking number once your order ships — usually within 1–2 business days.</p>
 
-      <a href="https://jonarabeauty.vercel.app/account" style="display:inline-block;background:#5C1A24;color:#FDF9F7;padding:13px 32px;text-decoration:none;font-size:11px;letter-spacing:3px;text-transform:uppercase;border-radius:2px;">View My Account</a>
+      <a href="https://jonarabeauty-azuregs.vercel.app/account" style="display:inline-block;background:#5C1A24;color:#FDF9F7;padding:13px 32px;text-decoration:none;font-size:11px;letter-spacing:3px;text-transform:uppercase;border-radius:2px;">View My Account</a>
     </div>
 
     <div style="background:#F8F1ED;padding:18px 36px;text-align:center;border-top:1px solid rgba(92,26,36,0.08);">
@@ -128,7 +128,7 @@ module.exports = async function handler(req, res) {
       <tr><td style="font-size:11px;letter-spacing:1.5px;text-transform:uppercase;color:rgba(92,26,36,.45);padding:8px 0;">Total</td><td style="font-size:20px;color:#B8943C;font-weight:300;padding:8px 0;">$${total} USD</td></tr>
     </table>
     <div style="margin-top:20px;">
-      <a href="https://jonarabeauty.vercel.app/admin" style="display:inline-block;background:#5C1A24;color:#FAF6EF;padding:11px 24px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;border-radius:2px;">View in Admin →</a>
+      <a href="https://jonarabeauty-azuregs.vercel.app/admin" style="display:inline-block;background:#5C1A24;color:#FAF6EF;padding:11px 24px;text-decoration:none;font-size:10px;letter-spacing:2px;text-transform:uppercase;border-radius:2px;">View in Admin →</a>
     </div>
   </div>
 </div>`
