@@ -7,22 +7,29 @@
 //
 // Ver _auth.js para ADMIN_PW (contraseña inicial) y SESSION_SECRET.
 // Ver FIREBASE_SETUP.md para cómo obtener estas credenciales.
+//
+// firebase-admin v13+ dejó de exponer la API con namespace
+// (admin.credential.cert(), admin.firestore(), etc.) — ahora es API
+// modular, con imports separados por submódulo. Por eso db/bucket se
+// arman así en vez del patrón viejo con require("firebase-admin") a secas.
 
-const admin = require("firebase-admin");
+const { initializeApp, cert, getApps } = require("firebase-admin/app");
+const { getFirestore } = require("firebase-admin/firestore");
+const { getStorage } = require("firebase-admin/storage");
 
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert({
-      projectId: process.env.FIREBASE_PROJECT_ID,
-      clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
-      // Vercel puede quitar el \n final — lo forzamos aquí.
-      privateKey: ((process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n").trimEnd()) + "\n",
-    }),
-    storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
-  });
-}
+const app = getApps().length
+  ? getApps()[0]
+  : initializeApp({
+      credential: cert({
+        projectId: process.env.FIREBASE_PROJECT_ID,
+        clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+        // Vercel puede quitar el \n final — lo forzamos aquí.
+        privateKey: ((process.env.FIREBASE_PRIVATE_KEY || "").replace(/\\n/g, "\n").trimEnd()) + "\n",
+      }),
+      storageBucket: process.env.FIREBASE_STORAGE_BUCKET,
+    });
 
-const db = admin.firestore();
-const bucket = admin.storage().bucket();
+const db = getFirestore(app);
+const bucket = getStorage(app).bucket();
 
-module.exports = { admin, db, bucket };
+module.exports = { db, bucket };
