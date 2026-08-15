@@ -1,6 +1,9 @@
 {
   "name": "canela-beauty",
   "private": true,
+  "engines": {
+    "node": "24.x"
+  },
   "dependencies": {
     "stripe": "^17.0.0",
     "firebase-admin": "^14.2.0",
